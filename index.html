@@ -1023,13 +1023,6 @@ function resize3d() {
 }
 window.addEventListener("resize", resize3d);
 
-function tick3d() {
-  if (!ready) { requestAnimationFrame(tick3d); return; }
-  syncWalkers();
-  controls.update();
-  renderer.render(scene, camera);
-  requestAnimationFrame(tick3d);
-}
 
 /* ── 3D 地球仪(世界地图视图) ── */
 function initGlobe() {
