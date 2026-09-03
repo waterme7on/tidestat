@@ -210,6 +210,26 @@ const SITE = {
   ]
 };
 
+/* 真实路径 → 公园节点映射(样例站:yololab 结构) */
+const PATH_NODES = [
+  { match: ["/zh/writing/dyor", "/en/writing/dyor"], node: "dyor" },
+  { match: ["/work", "/zh/work", "/en/work"], node: "work" },
+  { match: ["/writing", "/zh/writing", "/en/writing"], node: "writing" },
+  { match: ["/", "/zh", "/en"], node: "home" }
+];
+function pathNode(path) {
+  const clean = (path || "/").split("?")[0];
+  for (const m of PATH_NODES) {
+    for (const pre of m.match) {
+      if (clean === pre || clean.startsWith(pre + "/") || clean.startsWith(pre + "#")) return m.node;
+    }
+  }
+  return "about"; // 兜底:未知路径归到"关于屋"旁的小径
+}
+
+/* 数据源:demo=模拟器;否则轮询 /api/live(同域 Worker) */
+const DEMO = new URLSearchParams(location.search).has("demo") || location.port === "8893";
+
 /* ───────────────────────── 世界地图:点阵 → canvas ───────────────────────── */
 
 const MAP_W = 96, MAP_H = 48;
@@ -434,6 +454,15 @@ function drawPark(now, dt) {
   const sel = sim.selectedId;
   for (const v of sim.visitors.values()) {
     const dim = sel && v.id !== sel;
+    if (!DEMO && v.state === "walking") {
+      v.t += dt * v.speed;
+      if (v.t >= 1) {
+        v.node = v.target; v.t = 0; v.state = "reading";
+        if (!v.visited.length || v.visited[v.visited.length - 1].node !== v.node) {
+          v.visited.push({ node: v.node, arrive: performance.now() });
+        }
+      }
+    }
     const a = nodeById(v.node), b = nodeById(v.target);
     const path = edgePath(P(a), P(b));
     const tt = v.state === "walking" ? ease(Math.min(v.t, 1)) : v.state === "leaving" ? ease(Math.min(v.t, 1)) : 0;
@@ -546,17 +575,81 @@ function setView(v) {
 tabMap.addEventListener("click", () => setView("map"));
 tabPark.addEventListener("click", () => setView("park"));
 
+/* Live 数据源:轮询 /api/live,驱动同一套渲染结构 */
+const liveSeen = new Map(); // id -> {node}
+let liveTimer = 0;
+async function liveTick(now) {
+  let data;
+  try {
+    const res = await fetch("/api/live", { cache: "no-store" });
+    data = await res.json();
+  } catch (e) { return; }
+  const seen = new Set();
+  for (const rv of data.visitors) {
+    seen.add(rv.id);
+    const node = pathNode(rv.paths[rv.paths.length - 1]?.path || "/");
+    const epochToRaf = ts => performance.now() - (Date.now() - ts);
+    let v = sim.visitors.get(rv.id);
+    const shortId = rv.id.slice(0, 8);
+    if (!v) {
+      v = {
+        id: shortId, fullId: rv.id,
+        city: [rv.city, rv.country, rv.lat ?? 0, rv.lng ?? 0, 1],
+        enterTs: epochToRaf(rv.firstTs),
+        state: "reading", node, target: node, t: 0,
+        speed: .5, dwell: 4000,
+        visited: rv.paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts) })),
+        bob: Math.random() * Math.PI * 2
+      };
+      sim.visitors.set(rv.id, v);
+      pushEvent(now, "visit", v, nodeById(node).label);
+      liveSeen.set(rv.id, { node });
+      continue;
+    }
+    const prev = liveSeen.get(rv.id);
+    if (!prev || prev.node !== node) {
+      // 真实 pageview:从当前节点走向新节点
+      v.state = "walking";
+      v.node = prev ? prev.node : node;
+      v.target = node;
+      v.t = 0;
+      v.speed = 1 / 2.2;
+      pushEvent(now, "pageview", v, nodeById(node).label);
+    }
+    v.visited = rv.paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts) }));
+    liveSeen.set(rv.id, { node });
+  }
+  // 消失的访客
+  for (const [id, v] of [...sim.visitors.entries()]) {
+    if (!seen.has(id)) {
+      if (v.state !== "leaving") {
+        v.state = "leaving"; v.t = 0;
+        pushEvent(now, "leave", v, nodeById(v.node).label);
+        liveSeen.delete(id);
+      }
+    }
+  }
+}
+
 let last = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, .1);
   last = now;
-  // 模拟推进
-  sim.spawnTimer -= dt;
-  if (sim.spawnTimer <= 0 && sim.visitors.size < 22) {
-    spawnVisitor(now);
-    sim.spawnTimer = rnd(.6, 2.4);
+  if (DEMO) {
+    // 模拟推进
+    sim.spawnTimer -= dt;
+    if (sim.spawnTimer <= 0 && sim.visitors.size < 22) {
+      spawnVisitor(now);
+      sim.spawnTimer = rnd(.6, 2.4);
+    }
+    for (const v of [...sim.visitors.values()]) stepVisitor(v, dt, now);
+  } else {
+    liveTimer -= dt;
+    if (liveTimer <= 0) {
+      liveTimer = 4;
+      liveTick(now);
+    }
   }
-  for (const v of [...sim.visitors.values()]) stepVisitor(v, dt, now);
   document.getElementById("onlineCount").textContent = sim.visitors.size;
 
   if (view === "map") drawMap(now); else drawPark(now, dt);
