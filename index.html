@@ -684,13 +684,20 @@ const tabMap = document.getElementById("tab-map");
 const tabPark = document.getElementById("tab-park");
 function setView(v) {
   view = v;
+  window.__tide.view = v;
   tabMap.classList.toggle("active", v === "map");
   tabPark.classList.toggle("active", v === "park");
   const c2 = document.getElementById("stage");
   const c3 = document.getElementById("stage3d");
-  c2.style.display = v === "map" ? "block" : "none";
-  c3.style.display = v === "park" ? "block" : "none";
-  if (v === "park" && window.__tide3d?.activate) window.__tide3d.activate();
+  if (window.__tide3d?.ready?.()) {
+    c2.style.display = "none";
+    c3.style.display = "block";
+    window.__tide3d.activate(v);
+  } else if (v === "park") {
+    c2.style.display = "none";
+    c3.style.display = "block";
+    window.__tide3d?.activate?.(v);
+  }
 }
 tabMap.addEventListener("click", () => setView("map"));
 tabPark.addEventListener("click", () => setView("park"));
@@ -753,6 +760,10 @@ async function liveTick(now) {
 
 window.__tideSite = SITE;
 window.__tideAvatarTraits = avatarTraits;
+window.__tideLandB64 = LAND_B64;
+window.__tideCities = CITIES;
+window.__tide = window.__tide || {};
+window.__tide.view = "map";
 document.getElementById("tzNote").textContent =
   new Date().toLocaleTimeString("zh-CN", { hour12: false, timeZoneName: "short" }).replace(/^\d{1,2}:\d{2}:\d{2}\s*/, "");
 
@@ -816,7 +827,9 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const canvas3d = document.getElementById("stage3d");
 let renderer, scene, camera, controls, ready = false;
+let globeScene, globeCamera, globeControls, globeReady = false;
 const walkers = new Map();     // visitor -> {sprite, tex, canvas, g}
+const beacons = new Map();     // city -> beacon
 const NODE = {}, CURVES = {};
 
 function nodePos(n) { return NODE[n.id]; }
@@ -1018,15 +1031,171 @@ function tick3d() {
   requestAnimationFrame(tick3d);
 }
 
-window.__tide3d = {
-  ready: () => ready,
-  activate() {
-    if (!ready) { init(); }
-    resize3d();
-    const hint = document.getElementById("stageHint");
-    if (hint) hint.textContent = "LIVE · 拖拽旋转 · 滚轮缩放 · 每个头像是一位访客";
+/* ── 3D 地球仪(世界地图视图) ── */
+function initGlobe() {
+  globeScene = new THREE.Scene();
+  globeScene.background = new THREE.Color("#f6f8fb");
+  globeCamera = new THREE.PerspectiveCamera(42, 1, .1, 100);
+  globeCamera.position.set(0, 1.2, 6.4);
+  globeControls = new OrbitControls(globeCamera, canvas3d);
+  globeControls.enableDamping = true;
+  globeControls.dampingFactor = .08;
+  globeControls.enablePan = false;
+  globeControls.minDistance = 4.2; globeControls.maxDistance = 11;
+  globeControls.autoRotate = true; globeControls.autoRotateSpeed = .55;
+  globeScene.add(new THREE.HemisphereLight("#ffffff", "#b9c8d8", 1.2));
+  const sun = new THREE.DirectionalLight("#fff4d6", 1.5);
+  sun.position.set(5, 3, 5);
+  globeScene.add(sun);
+  const sea = new THREE.Mesh(
+    new THREE.SphereGeometry(2, 48, 48),
+    new THREE.MeshToonMaterial({ color: "#bcdcf5" })
+  );
+  globeScene.add(sea);
+  const glow = new THREE.Mesh(
+    new THREE.SphereGeometry(2.22, 48, 48),
+    new THREE.ShaderMaterial({
+      transparent: true,
+      side: THREE.BackSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      vertexShader: "varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+      fragmentShader: "varying vec3 vN; void main(){ float i = pow(0.62 - dot(vN, vec3(0.0, 0.0, 1.0)), 2.2); gl_FragColor = vec4(0.45, 0.65, 1.0, 1.0) * i; }"
+    })
+  );
+  globeScene.add(glow);
+  const raw = atob(window.__tideLandB64);
+  const MW = 96, MH = 48;
+  const tiltM = new THREE.Matrix4().makeRotationZ(-23 * Math.PI / 180);
+  const dots = [];
+  for (let i = 0; i < MW * MH; i++) {
+    if (!(raw.charCodeAt(i >> 3) & (1 << (i & 7)))) continue;
+    const cx = i % MW, cy = (i / MW) | 0;
+    const lon = cx / (MW - 1) * 360 - 180;
+    const lat = 90 - cy / (MH - 1) * 180;
+    const phi = (90 - lat) * Math.PI / 180;
+    const theta = (lon + 180) * Math.PI / 180;
+    const v = new THREE.Vector3(
+      -Math.sin(phi) * Math.cos(theta),
+      Math.cos(phi),
+      Math.sin(phi) * Math.sin(theta)
+    ).multiplyScalar(2.01);
+    v.applyMatrix4(tiltM);
+    dots.push(v);
   }
-};
+  const inst = new THREE.InstancedMesh(
+    new THREE.SphereGeometry(.028, 6, 6),
+    new THREE.MeshToonMaterial({ color: "#5db160" }),
+    dots.length
+  );
+  const m4 = new THREE.Matrix4();
+  dots.forEach((v, i) => { m4.setPosition(v); inst.setMatrixAt(i, m4); });
+  globeScene.add(inst);
+  const starGeo = new THREE.BufferGeometry();
+  const starPos = [];
+  for (let i = 0; i < 140; i++) {
+    const r = 18 + Math.random() * 14;
+    const a = Math.random() * Math.PI * 2, b = Math.acos(2 * Math.random() - 1);
+    starPos.push(r * Math.sin(b) * Math.cos(a), r * Math.cos(b), r * Math.sin(b) * Math.sin(a));
+  }
+  starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos, 3));
+  globeScene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: "#c7d4e6", size: .05 })));
+  globeReady = true;
+}
+
+const DEG = Math.PI / 180;
+function cityVec(city) {
+  const v = new THREE.Vector3(
+    -Math.cos(city[2] * DEG) * Math.cos((city[3] + 180) * DEG),
+    Math.sin(city[2] * DEG),
+    Math.cos(city[2] * DEG) * Math.sin((city[3] + 180) * DEG)
+  ).multiplyScalar(2.02);
+  return v.applyMatrix4(new THREE.Matrix4().makeRotationZ(-23 * Math.PI / 180));
+}
+
+function syncBeacons(now) {
+  const byCity = new Map();
+  for (const v of (window.__tide.visitors || new Map()).values()) {
+    const k = v.city[0];
+    if (!byCity.has(k)) byCity.set(k, []);
+    byCity.get(k).push(v);
+  }
+  const seen = new Set();
+  for (const [name, list] of byCity) {
+    seen.add(name);
+    let b = beacons.get(name);
+    if (!b) {
+      const group = new THREE.Group();
+      const base = cityVec(list[0].city);
+      const normal = base.clone().normalize();
+      group.position.copy(base);
+      group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+      const pillar = new THREE.Mesh(
+        new THREE.CylinderGeometry(.016, .016, 1, 8),
+        new THREE.MeshToonMaterial({ color: "#2563eb" })
+      );
+      pillar.geometry.translate(0, .5, 0);
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(.05, .085, 24),
+        new THREE.MeshBasicMaterial({ color: "#2563eb", transparent: true, side: THREE.DoubleSide })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = .02;
+      group.add(pillar, ring);
+      globeScene.add(group);
+      b = { group, pillar, ring };
+      beacons.set(name, b);
+    }
+    b.n = list.length;
+    const pulse = .5 + Math.sin(now / 420 + b.group.position.x * 7) * .5;
+    b.pillar.scale.y = .5 + Math.min(list.length, 8) * .3;
+    b.ring.scale.setScalar(1 + pulse * 1.3);
+    b.ring.material.opacity = .75 - pulse * .45;
+    if (list.length >= 3 && !b.label) {
+      b.label = new THREE.Sprite(makeTextSprite(name + " · " + list.length));
+      b.label.scale.set(1.7, .55, 1);
+      b.label.position.y = Math.max(1, b.pillar.scale.y) + .5;
+      b.group.add(b.label);
+    } else if (b.label && list.length < 3) {
+      b.group.remove(b.label); b.label = null;
+    } else if (b.label) {
+      b.label.position.y = Math.max(1, b.pillar.scale.y) + .5;
+    }
+  }
+  for (const [name, b] of [...beacons.entries()]) {
+    if (!seen.has(name)) {
+      globeScene.remove(b.group);
+      beacons.delete(name);
+    }
+  }
+}
+
+let lastView = null;
+function tick3d() {
+  requestAnimationFrame(tick3d);
+  const now = performance.now();
+  if (!ready && window.__tideSite) init();
+  if (!globeReady && window.__tideLandB64) initGlobe();
+  const view = window.__tide.view || "map";
+  const w = canvas3d.parentElement.clientWidth, h = canvas3d.parentElement.clientHeight;
+  if (renderer && lastView !== view) {
+    renderer.setSize(w, h, false);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    globeCamera.aspect = w / h; globeCamera.updateProjectionMatrix();
+  }
+  lastView = view;
+  if (!renderer) return;
+  if (view === "park" && ready) {
+    syncWalkers();
+    controls.update();
+    renderer.render(scene, camera);
+  } else if (globeReady) {
+    syncBeacons(now);
+    globeControls.update();
+    renderer.render(globeScene, globeCamera);
+  }
+}
 tick3d();
 </script>
 </body>
