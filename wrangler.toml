@@ -1,0 +1,15 @@
+name = "tidestat"
+main = "worker.js"
+compatibility_date = "2025-05-03"
+
+[assets]
+binding = "ASSETS"
+directory = "./"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tidestat"
+database_id = "83d47f45-d78b-403a-a9fb-e6fab984fca6"
+
+[triggers]
+# 无定时任务;旧数据在 collect 时按概率清理
