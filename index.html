@@ -412,105 +412,101 @@ function drawMap(now) {
   drawHint("LIVE · 实时访客 · 光点大小 = 该城市当前在线数");
 }
 
-/* 访客战士:按访客 id 稳定生成个性化外观(盔型/羽饰/脸/盾/体格) */
-const WARRIOR_COLORS = ["#2563eb", "#7c3aed", "#ea580c", "#059669", "#db2777", "#0891b2", "#65a30d", "#d97706"];
-const PLUME_COLORS = ["#f59e0b", "#ef4444", "#22c55e", "#e879f9", "#facc15", "#f8fafc"];
-function warriorTraits(id) {
+/* 访客头像:按访客 id 稳定生成个性化卡通头像(肤色/发型或帽子/眼镜/嘴型) */
+const RING_COLORS = ["#2563eb", "#7c3aed", "#ea580c", "#059669", "#db2777", "#0891b2", "#65a30d", "#d97706"];
+const SKINS = ["#fcd7b8", "#f2c197", "#e3ac81", "#c68863", "#9c6b49", "#7a4e33"];
+const HAIRS = ["#1f2937", "#4b2e1e", "#7c4a23", "#b45309", "#111827", "#9ca3af"];
+function avatarTraits(id) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   const bit = n => ((h >>> n) & 1) === 1;
   return {
-    color: WARRIOR_COLORS[h % WARRIOR_COLORS.length],
-    helm: h % 3,                    // 0 圆盔 1 尖顶 2 宽檐
-    plume: h % 3 !== 2,             // 大多数有羽饰
-    plumeColor: PLUME_COLORS[(h >> 3) % PLUME_COLORS.length],
-    beard: bit(6),                  // 络腮胡
-    visor: bit(7),                  // 面甲开缝样式:双点 or 横缝
-    shield: bit(8),                 // 是否背小圆盾
-    size: .92 + ((h >> 9) % 5) * .04
+    ring: RING_COLORS[h % RING_COLORS.length],
+    skin: SKINS[(h >> 2) % SKINS.length],
+    hair: HAIRS[(h >> 4) % HAIRS.length],
+    style: h % 4,                 // 0 刘海 1 短发 2 马尾 3 棒球帽
+    hatColor: RING_COLORS[(h >> 6) % RING_COLORS.length],
+    glasses: bit(8),
+    happy: bit(9),
+    size: .94 + ((h >> 10) % 4) * .03
   };
 }
 
-// 小战士:头盔+脸+身体+摆腿。phase 为步态相位,state 决定姿态。
-function drawWarrior(x, y, t, phase, state, scale, alpha) {
-  const { color, helm, plume, plumeColor, beard, visor, shield, size } = t;
+// 悬浮头像:圆框脸 + 发型/帽子 + 表情。state 驱动 bob 与表情。
+function drawAvatar(x, y, t, phase, state, scale, alpha) {
+  const { ring, skin, hair, style, hatColor, glasses, happy, size } = t;
+  const R = 10;
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(scale * size, scale * size);
   ctx.globalAlpha = alpha;
-  const swing = state === "walking" ? Math.sin(phase) : 0;
   // 影子
   ctx.beginPath();
-  ctx.ellipse(0, 13.8, 5.2, 1.4, 0, 0, 7);
-  ctx.fillStyle = "rgba(15,23,42,.12)"; ctx.fill();
-  // 腿
-  ctx.strokeStyle = "#1e293b";
-  ctx.lineWidth = 2.2;
-  ctx.lineCap = "round";
-  ctx.beginPath(); ctx.moveTo(-2.2, 8); ctx.lineTo(-2.2 + swing * 3.4, 13); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(2.2, 8); ctx.lineTo(2.2 - swing * 3.4, 13); ctx.stroke();
-  // 背面小圆盾
-  if (shield) {
-    ctx.beginPath(); ctx.arc(-6.4, 2.5, 3, 0, 7);
-    ctx.fillStyle = "#f1f5f9"; ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 1.4; ctx.stroke();
-    ctx.beginPath(); ctx.arc(-6.4, 2.5, 1.1, 0, 7);
-    ctx.fillStyle = color; ctx.fill();
-  }
-  // 身体(战衣)
-  ctx.beginPath();
-  ctx.roundRect(-4.4, -1.5, 8.8, 10.5, 3);
-  ctx.fillStyle = color; ctx.fill();
-  ctx.strokeStyle = "rgba(15,23,42,.35)"; ctx.lineWidth = 1; ctx.stroke();
-  // 手臂(走路摆动)
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2.2;
-  ctx.beginPath(); ctx.moveTo(-4.4, 1); ctx.lineTo(-6.2, 4.5 - swing * 2.4); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(4.4, 1); ctx.lineTo(6.2, 4.5 + swing * 2.4); ctx.stroke();
-  // 头盔三型
-  ctx.fillStyle = color;
-  ctx.strokeStyle = "rgba(15,23,42,.4)";
-  ctx.lineWidth = 1;
-  if (helm === 0) {
-    ctx.beginPath(); ctx.arc(0, -6.4, 5, 0, 7); ctx.fill(); ctx.stroke();
-  } else if (helm === 1) {
-    ctx.beginPath(); ctx.arc(0, -6.4, 5, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.ellipse(0, R + 5.5, R * .48, R * .13, 0, 0, 7);
+  ctx.fillStyle = "rgba(15,23,42,.14)"; ctx.fill();
+  // 外圈(身份色)
+  ctx.beginPath(); ctx.arc(0, 0, R + 1.6, 0, 7);
+  ctx.fillStyle = ring; ctx.fill();
+  // 脸底
+  ctx.beginPath(); ctx.arc(0, 0, R - .4, 0, 7);
+  ctx.fillStyle = skin; ctx.fill();
+  // 头发/帽子(先画盖住上缘)
+  if (style === 3) {
+    // 棒球帽
+    ctx.beginPath(); ctx.arc(0, -1.2, R - .4, Math.PI, 0);
+    ctx.fillStyle = hatColor; ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(-3.4, -9.6); ctx.lineTo(0, -14); ctx.lineTo(3.4, -9.6);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-  } else {
-    ctx.beginPath(); ctx.arc(0, -6.6, 4.6, 0, 7); ctx.fill(); ctx.stroke();
-    ctx.beginPath();
-    ctx.roundRect(-7, -8.4, 14, 2.6, 2);
-    ctx.fill(); ctx.stroke();
-  }
-  // 脸
-  ctx.beginPath();
-  ctx.roundRect(-4.2, -7.2, 8.4, 4.2, 2);
-  ctx.fillStyle = "#f8fafc"; ctx.fill();
-  ctx.fillStyle = "#0f172a";
-  if (visor) {
-    ctx.beginPath(); ctx.arc(-1.7, -5.2, .9, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.arc(1.7, -5.2, .9, 0, 7); ctx.fill();
-  } else {
-    ctx.beginPath();
-    ctx.roundRect(-2.4, -5.9, 4.8, 1.3, 1);
+    ctx.roundRect(R * .55, -3.4, R * .5, 2.6, 1.3);
     ctx.fill();
-  }
-  if (beard) {
+  } else if (style === 0) {
+    // 刘海
     ctx.beginPath();
-    ctx.moveTo(-3.4, -3.4); ctx.quadraticCurveTo(0, -.4, 3.4, -3.4);
-    ctx.quadraticCurveTo(0, -2.2, -3.4, -3.4);
-    ctx.fillStyle = "#78350f"; ctx.fill();
-  }
-  // 盔顶羽饰
-  if (plume) {
+    ctx.arc(0, -1, R - .4, Math.PI * .96, Math.PI * 2.04);
+    ctx.lineTo(R, -3.2);
+    ctx.quadraticCurveTo(3, -7.5, 0, -6.8);
+    ctx.quadraticCurveTo(-5, -6.2, -R, -3.2);
+    ctx.closePath();
+    ctx.fillStyle = hair; ctx.fill();
+  } else {
+    // 短发/马尾
     ctx.beginPath();
-    ctx.moveTo(0, helm === 1 ? -13.4 : -11.2);
-    ctx.quadraticCurveTo(2.6, -9.4, 0, -8);
-    ctx.quadraticCurveTo(-2.6, -9.4, 0, helm === 1 ? -13.4 : -11.2);
-    ctx.fillStyle = plumeColor; ctx.fill();
+    ctx.arc(0, -1, R - .4, Math.PI * .93, Math.PI * 2.07);
+    ctx.fillStyle = hair; ctx.fill();
+    if (style === 2) {
+      ctx.beginPath();
+      ctx.ellipse(-R - 1.6, 1.5, 2.6, 4.2, .5, 0, 7);
+      ctx.fillStyle = hair; ctx.fill();
+    }
   }
+  // 眼睛
+  ctx.fillStyle = "#0f172a";
+  if (happy && state !== "leaving") {
+    ctx.lineWidth = 1.2; ctx.strokeStyle = "#0f172a"; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-4.2, -1); ctx.quadraticCurveTo(-2.9, -2.6, -1.6, -1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1.6, -1); ctx.quadraticCurveTo(2.9, -2.6, 4.2, -1); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.arc(-2.9, -1.1, 1.05, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(2.9, -1.1, 1.05, 0, 7); ctx.fill();
+  }
+  // 嘴:停留=微笑,走路=小圆嘴,离开=扁嘴
+  ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 1.2; ctx.lineCap = "round";
+  if (state === "leaving") {
+    ctx.beginPath(); ctx.moveTo(-1.8, 3.4); ctx.lineTo(1.8, 3.4); ctx.stroke();
+  } else if (state === "walking") {
+    ctx.beginPath(); ctx.arc(0, 3.2, 1.4, 0, 7); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.arc(0, 2.2, 2.1, .25 * Math.PI, .75 * Math.PI); ctx.stroke();
+  }
+  // 眼镜
+  if (glasses) {
+    ctx.strokeStyle = "rgba(15,23,42,.8)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(-2.9, -1.1, 1.9, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(2.9, -1.1, 1.9, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-1, -1.1); ctx.lineTo(1, -1.1); ctx.stroke();
+  }
+  // 高光
+  ctx.beginPath(); ctx.arc(-R * .45, -R * .5, R * .16, 0, 7);
+  ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.fill();
   ctx.restore();
 }
 
@@ -574,7 +570,7 @@ function drawPark(now, dt) {
 
     // 已走轨迹高亮
     if (v.id === sel) {
-      ctx.strokeStyle = "rgba(37,99,235,.5)"; ctx.lineWidth = 2.5;
+      ctx.strokeStyle = "rgba(37,99,235,.45)"; ctx.lineWidth = 2;
       ctx.beginPath();
       const hist = v.visited.map(x => P(nodeById(x.node)));
       if (hist.length) {
@@ -595,15 +591,15 @@ function drawPark(now, dt) {
       ctx.lineWidth = 1.5; ctx.stroke();
     }
 
-    // 头像战士
-    const gait = now / (v.state === "walking" ? 95 : 700) + v.bob;
-    drawWarrior(
-      pos.x, pos.y - 13 + bobY * .4, warriorTraits(v.fullId || v.id), gait, v.state,
-      v.id === sel ? 1.35 : 1, alpha
+    // 头像
+    const gait = now / (v.state === "walking" ? 160 : 700) + v.bob;
+    drawAvatar(
+      pos.x, pos.y - 16 + bobY, avatarTraits(v.fullId || v.id), gait, v.state,
+      v.id === sel ? 1.4 : 1, alpha
     );
     ctx.globalAlpha = 1;
   }
-  drawHint("LIVE · 每个战士是一位访客 · 点击右侧事件可追踪");
+  drawHint("LIVE · 每个头像是一位访客 · 点击右侧事件可追踪");
 }
 
 let hintEl = document.getElementById("stageHint");
