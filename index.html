@@ -1203,6 +1203,18 @@ function tick3d() {
     renderer.render(globeScene, globeCamera);
   }
 }
+window.__tide3d = {
+  ready: () => ready || globeReady,
+  activate(v) {
+    if (v === "map" && !globeReady) initGlobe();
+    if (v === "park" && !ready) init();
+    resize3d();
+    const hint = document.getElementById("stageHint");
+    if (hint) hint.textContent = v === "map"
+      ? "LIVE · 拖拽旋转地球 · 光柱高度 = 该城市当前在线数"
+      : "LIVE · 拖拽旋转 · 滚轮缩放 · 每个头像是一位访客";
+  }
+};
 tick3d();
 </script>
 </body>
