@@ -1164,6 +1164,7 @@ function syncBeacons(now) {
 }
 
 let lastView = null;
+let lastSync = 0;
 function tick3d() {
   requestAnimationFrame(tick3d);
   const now = performance.now();
@@ -1179,12 +1180,16 @@ function tick3d() {
   }
   lastView = view;
   if (!renderer) return;
+  // 数据同步 200ms 一次;渲染每帧
+  if (now - lastSync > 200) {
+    lastSync = now;
+    if (view === "park" && ready) syncWalkers();
+    else if (globeReady) syncBeacons(now);
+  }
   if (view === "park" && ready) {
-    syncWalkers();
     controls.update();
     renderer.render(scene, camera);
   } else if (globeReady) {
-    syncBeacons(now);
     globeControls.update();
     renderer.render(globeScene, globeCamera);
   }
