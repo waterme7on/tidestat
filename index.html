@@ -137,7 +137,7 @@
     <button id="tab-map" class="active" type="button">世界地图</button>
     <button id="tab-park" type="button">网站足迹</button>
   </nav>
-  <div class="live"><span class="dot" aria-hidden="true"></span>实时 · <b id="onlineCount">0</b> 位访客在线</div>
+  <div class="live"><span class="dot" aria-hidden="true"></span>实时 · <b id="onlineCount">0</b> 位访客在线<span id="tzNote" style="color:var(--ink-soft);font-size:10px;margin-left:8px;"></span></div>
 </header>
 
 <main>
@@ -155,7 +155,7 @@
       </div>
     </div>
     <div class="panel" style="flex:1;">
-      <h2>实时事件 <span class="count" id="evCount"></span></h2>
+      <h2>实时事件 · 时间为本机时区 <span class="count" id="evCount"></span></h2>
       <div id="events" role="log" aria-live="polite"></div>
     </div>
   </aside>
@@ -631,6 +631,9 @@ async function liveTick(now) {
   }
 }
 
+document.getElementById("tzNote").textContent =
+  new Date().toLocaleTimeString("zh-CN", { hour12: false, timeZoneName: "short" }).replace(/^\d{1,2}:\d{2}:\d{2}\s*/, "");
+
 let last = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, .1);
@@ -659,8 +662,8 @@ function loop(now) {
 }
 requestAnimationFrame(loop);
 
-// 预热:开局就有内容
-for (let i = 0; i < 9; i++) {
+// 预热:仅 demo 模式(真实模式绝不能混入模拟访客)
+if (DEMO) for (let i = 0; i < 9; i++) {
   spawnVisitor(performance.now() - rnd(2000, 26000));
   const v = [...sim.visitors.values()].pop();
   v.state = "reading"; v.node = v.target = pick(SITE.nodes.slice(1)).id;
