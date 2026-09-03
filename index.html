@@ -934,11 +934,10 @@ function makeTextSprite(text) {
   return mat;
 }
 
-function avatarTexture(id) {
+function avatarTexture(v) {
   const c = document.createElement("canvas");
   c.width = 128; c.height = 128;
   const g = c.getContext("2d");
-  const v = walkers.get(id);
   const traits = window.__tideAvatarTraits(v.fullId || v.id);
   window.__tidePaintAvatar(g, 64, 64, 44, traits, v.state);
   const tex = new THREE.CanvasTexture(c);
@@ -960,7 +959,7 @@ function syncWalkers() {
     seen.add(id);
     if (!walkers.has(id)) {
       walkers.set(id, { sprite: null });
-      const { tex, c, g } = avatarTexture(id);
+      const { tex, c, g } = avatarTexture(v);
       const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
       const sprite = new THREE.Sprite(mat);
       sprite.scale.set(1.15, 1.15, 1);
