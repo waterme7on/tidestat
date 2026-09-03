@@ -767,8 +767,14 @@ window.__tide.view = "map";
 document.getElementById("tzNote").textContent =
   new Date().toLocaleTimeString("zh-CN", { hour12: false, timeZoneName: "short" }).replace(/^\d{1,2}:\d{2}:\d{2}\s*/, "");
 
+let handed = false;
 let last = performance.now();
 function loop(now) {
+  // 3D 模块就绪后,一次性把画布交给 3D(初始视图为地图)
+  if (!handed && window.__tide3d?.ready?.()) {
+    handed = true;
+    setView(view);
+  }
   const dt = Math.min((now - last) / 1000, .1);
   last = now;
   if (DEMO) {
@@ -1165,9 +1171,12 @@ function syncBeacons(now) {
 
 let lastView = null;
 let lastSync = 0;
+let lastFrame = 0;
 function tick3d() {
   requestAnimationFrame(tick3d);
   const now = performance.now();
+  if (now - lastFrame < 33) return;   // 3D 上限 ~30fps,足够顺滑且省电
+  lastFrame = now;
   if (!ready && window.__tideSite) init();
   if (!globeReady && window.__tideLandB64) initGlobe();
   const view = window.__tide.view || "map";
