@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TideStat — 实时访客地图与网站足迹</title>
+<style>
+  :root {
+    --bg: #fafaf8;
+    --ink: #0f172a;
+    --ink-soft: #64748b;
+    --line: #e2e8f0;
+    --blue: #2563eb;
+    --blue-soft: #dbeafe;
+    --green: #059669;
+    --paper: #ffffff;
+    --radius: 14px;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    overflow-x: clip;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 16px; letter-spacing: -0.02em; }
+  .brand svg { display: block; }
+  .tabs { display: flex; gap: 4px; background: #eef1f5; padding: 4px; border-radius: 999px; }
+  .tabs button {
+    border: 0; background: transparent; padding: 7px 16px; border-radius: 999px;
+    font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-soft); cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .tabs button.active { background: var(--paper); color: var(--ink); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+  .live {
+    display: inline-flex; align-items: center; gap: 7px; margin-left: auto;
+    font-family: var(--mono); font-size: 12px; color: var(--ink-soft);
+  }
+  .live b { color: var(--ink); font-size: 14px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 rgba(34,197,94,.5); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.45);} 70% { box-shadow: 0 0 0 8px rgba(34,197,94,0);} 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0);} }
+  main { flex: 1; display: flex; gap: 14px; padding: 14px 20px; min-height: 0; }
+  .stage {
+    flex: 1; min-width: 0; position: relative;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--paper); overflow: hidden;
+  }
+  canvas#stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .stage .hint {
+    position: absolute; left: 14px; bottom: 12px; z-index: 2;
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--ink-soft); background: color-mix(in srgb, var(--paper) 88%, transparent);
+    padding: 5px 9px; border-radius: 8px; pointer-events: none;
+  }
+  aside {
+    width: 330px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; min-height: 0;
+  }
+  .panel {
+    border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper);
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  }
+  .panel > h2 {
+    font-size: 11px; font-family: var(--mono); font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-soft);
+    padding: 11px 14px; border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel > h2 .count { color: var(--blue); }
+  #visitorDetail { flex: 0 0 auto; display: none; }
+  #visitorDetail.open { display: block; }
+  #visitorDetail .vd-body { padding: 12px 14px; }
+  .vd-id { font-family: var(--mono); font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+  .vd-meta { font-size: 12px; color: var(--ink-soft); margin-bottom: 10px; }
+  .tl { list-style: none; display: grid; gap: 0; }
+  .tl li { display: grid; grid-template-columns: 14px 1fr auto; gap: 9px; align-items: baseline; padding: 5px 0; position: relative; }
+  .tl li::before {
+    content: ""; position: absolute; left: 5px; top: 0; bottom: 0; width: 1px; background: var(--line);
+  }
+  .tl li:first-child::before { top: 50%; }
+  .tl li:last-child::before { bottom: 50%; }
+  .tl i { width: 7px; height: 7px; border-radius: 50%; background: var(--blue); justify-self: center; z-index: 1; }
+  .tl li:first-child i { background: var(--green); }
+  .tl b { font-size: 12.5px; font-weight: 600; }
+  .tl time { font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft); }
+  #events { flex: 1; overflow-y: auto; }
+  .ev {
+    display: grid; grid-template-columns: 8px 1fr auto; gap: 10px; align-items: baseline;
+    padding: 9px 14px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+    cursor: pointer; transition: background .12s;
+  }
+  .ev:hover { background: #f6f8fb; }
+  .ev.selected { background: var(--blue-soft); }
+  .ev i { width: 8px; height: 8px; border-radius: 50%; justify-self: center; align-self: center; }
+  .ev i.visit { background: var(--blue); }
+  .ev i.pageview { background: #cbd5e1; }
+  .ev i.leave { background: #e2e8f0; outline: 1px solid var(--line); }
+  .ev .txt { font-size: 12.5px; line-height: 1.45; min-width: 0; }
+  .ev .txt b { font-weight: 700; }
+  .ev .txt span { color: var(--ink-soft); }
+  .ev time { font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft); flex-shrink: 0; }
+  @media (max-width: 860px) {
+    main { flex-direction: column; padding: 10px 12px; }
+    aside { width: 100%; flex: 1; }
+    .stage { min-height: 52vh; flex: 0 0 auto; }
+    header { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
+    .live { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
+      <rect x="1" y="11" width="4" height="10" rx="1.5" fill="#2563eb"/>
+      <rect x="9" y="5" width="4" height="16" rx="1.5" fill="#2563eb" opacity=".55"/>
+      <rect x="17" y="1" width="4" height="20" rx="1.5" fill="#2563eb" opacity=".3"/>
+    </svg>
+    TideStat
+  </div>
+  <nav class="tabs" aria-label="视图切换">
+    <button id="tab-map" class="active" type="button">世界地图</button>
+    <button id="tab-park" type="button">网站足迹</button>
+  </nav>
+  <div class="live"><span class="dot" aria-hidden="true"></span>实时 · <b id="onlineCount">0</b> 位访客在线</div>
+</header>
+
+<main>
+  <div class="stage">
+    <canvas id="stage"></canvas>
+    <div class="hint" id="stageHint">LIVE · 实时访客 · 点击右侧事件可追踪访客</div>
+  </div>
+  <aside>
+    <div class="panel" id="visitorDetail">
+      <h2>访客时间线 <button id="vdClose" type="button" style="border:0;background:none;cursor:pointer;color:var(--ink-soft);font-size:14px;line-height:1;">✕</button></h2>
+      <div class="vd-body">
+        <div class="vd-id" id="vdId"></div>
+        <div class="vd-meta" id="vdMeta"></div>
+        <ol class="tl" id="vdTimeline"></ol>
+      </div>
+    </div>
+    <div class="panel" style="flex:1;">
+      <h2>实时事件 <span class="count" id="evCount"></span></h2>
+      <div id="events" role="log" aria-live="polite"></div>
+    </div>
+  </aside>
+</main>
+
+<script>
+"use strict";
+
+/* ───────────────────────── 数据底座(为真实埋点预留同构结构) ───────────────────────── */
+
+const LAND_B64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/vADAAAAAAAAAAD07/8HGAAADAAAAAAEB/4HAICAHwAAwQCeH/wBwED0//8D4///Y3wA8Of3//9/4P//YhgA3P////9/YPh/OAAA3v///38FIOD/8QCAzP///w8GAMD//wGA/v///z8CAID/fwOA/////z8AAID/PwAA8+z//y8AAID/DwDApN///wMAAAD/DwBAB////xIAAAD+BwDAL/7//wQAAAB8BADg/////wAAAAA8AADw/338fwAAAAAwCQD4//94DwAAAADgAQDw/3s4DgAAAAAAAwDw/w8QGAEAAAAA8ADw/x8QAAEAAAAA8APg/h8ABAAAAAAA+AcA+A8AZAAAAAAA+A8A/AcA6BAAAAAA+H8A+AMAAPgAAAAA+H8A+AMAgAAAAAAA8D8A+AcAACwAAAAA4D8A+BMAAH8AAAAA4B8A8BEAgH8IAAAA4AcA8AEAwP8AAAAA4AcA8AEAwP8BAAAA4AMA4AAAgPkAAAAA4AEAAAAAAOAAAAAA4AAAAAAAAABAAAAAYAAAAAAAAAAQAAAAcAAAAAAAAAAAAAAAMAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAGCAfD8AAAAA4AAA/v/7//8PAPDnfwDw//////8PoP//B4j///////8PAP////z///////8HAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+// 城市表:[名称, 国家, 纬度, 经度, 权重]
+const CITIES = [
+  ["上海","CN",31.23,121.47,9],["北京","CN",39.90,116.40,8],["深圳","CN",22.54,114.06,7],
+  ["杭州","CN",30.27,120.16,6],["成都","CN",30.57,104.07,5],["广州","CN",23.13,113.26,6],
+  ["香港","HK",22.32,114.17,4],["台北","TW",25.03,121.57,3],["新加坡","SG",1.35,103.82,5],
+  ["东京","JP",35.68,139.69,7],["大阪","JP",34.69,135.50,3],["首尔","KR",37.57,126.98,5],
+  ["孟买","IN",19.08,72.88,4],["班加罗尔","IN",12.97,77.59,4],["悉尼","AU",-33.87,151.21,4],
+  ["墨尔本","AU",-37.81,144.96,2],["伦敦","GB",51.51,-0.13,7],["巴黎","FR",48.86,2.35,6],
+  ["柏林","DE",52.52,13.41,5],["阿姆斯特丹","NL",52.37,4.90,4],["苏黎世","CH",47.38,8.54,2],
+  ["斯德哥尔摩","SE",59.33,18.07,2],["华沙","PL",52.23,21.01,2],["里斯本","PT",38.72,-9.14,2],
+  ["马德里","ES",40.42,-3.70,3],["米兰","IT",45.46,9.19,3],["伊斯坦布尔","TR",41.01,28.98,3],
+  ["迪拜","AE",25.20,55.27,3],["特拉维夫","IL",32.09,34.78,2],["纽约","US",40.71,-74.01,9],
+  ["旧金山","US",37.77,-122.42,8],["洛杉矶","US",34.05,-118.24,6],["西雅图","US",47.61,-122.33,4],
+  ["芝加哥","US",41.88,-87.63,4],["奥斯汀","US",30.27,-97.74,4],["丹佛","US",39.74,-104.99,2],
+  ["多伦多","CA",43.65,-79.38,4],["温哥华","CA",49.28,-123.12,3],["墨西哥城","MX",19.43,-99.13,2],
+  ["圣保罗","BR",-23.55,-46.63,3],["布宜诺斯艾利斯","AR",-34.60,-58.38,2],["波哥大","CO",4.71,-74.07,1],
+  ["开普敦","ZA",-33.92,18.42,1],["拉各斯","NG",6.52,3.38,1],["内罗毕","KE",-1.29,36.82,1],
+  ["开罗","EG",30.04,31.24,1],["利雅得","SA",24.71,46.68,1],["华沙","PL",52.23,21.01,1]
+];
+
+// 站点结构(样例站:以一个内容+作品型站点为例)。node: id, 名称, 公园坐标(0-1), 类型
+const SITE = {
+  entry: "gate",
+  nodes: [
+    { id: "gate",      label: "入口",     x: .50, y: .07, kind: "gate" },
+    { id: "home",      label: "首页",     x: .50, y: .30, kind: "core" },
+    { id: "work",      label: "作品馆",   x: .18, y: .55, kind: "area" },
+    { id: "writing",   label: "文章林",   x: .50, y: .60, kind: "area" },
+    { id: "dyor",      label: "研究实验室", x: .82, y: .55, kind: "lab" },
+    { id: "about",     label: "关于屋",   x: .28, y: .85, kind: "house" },
+    { id: "subscribe", label: "订阅角",   x: .72, y: .85, kind: "house" }
+  ],
+  // 邻接 + 转移权重(对称连通图)
+  edges: [
+    ["gate", "home", 10],
+    ["home", "work", 6], ["home", "writing", 8], ["home", "about", 2], ["home", "dyor", 3],
+    ["work", "writing", 4], ["work", "about", 1],
+    ["writing", "dyor", 5], ["writing", "subscribe", 3], ["writing", "about", 2],
+    ["dyor", "subscribe", 2]
+  ]
+};
+
+/* ───────────────────────── 世界地图:点阵 → canvas ───────────────────────── */
+
+const MAP_W = 96, MAP_H = 48;
+const landCells = (() => {
+  const raw = atob(LAND_B64);
+  const cells = [];
+  for (let i = 0; i < MAP_W * MAP_H; i++) {
+    if (raw.charCodeAt(i >> 3) & (1 << (i & 7))) cells.push(i);
+  }
+  return cells;
+})();
+const lngToX = lng => (lng + 180) / 360;
+const latToY = lat => (90 - lat) / 180;
+
+/* ───────────────────────── 模拟器 ───────────────────────── */
+
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+function weightedCity() {
+  let total = 0; for (const c of CITIES) total += c[4];
+  let r = Math.random() * total;
+  for (const c of CITIES) { r -= c[4]; if (r <= 0) return c; }
+  return CITIES[0];
+}
+const nodeById = id => SITE.nodes.find(n => n.id === id);
+function neighbors(id) {
+  return SITE.edges.filter(e => e[0] === id || e[1] === id)
+    .map(e => ({ to: e[0] === id ? e[1] : e[0], w: e[2] }));
+}
+function nextNode(id) {
+  const ns = neighbors(id).filter(n => n.to !== "gate");
+  let total = 0; for (const n of ns) total += n.w;
+  let r = Math.random() * total;
+  for (const n of ns) { r -= n.w; if (r <= 0) return n.to; }
+  return ns.length ? ns[ns.length - 1].to : "home";
+}
+
+const sim = {
+  visitors: new Map(),
+  events: [],
+  selectedId: null,
+  nextId: 1,
+  spawnTimer: 0
+};
+
+function spawnVisitor(now) {
+  const id = "v" + String(sim.nextId++).padStart(4, "0");
+  const city = weightedCity();
+  const v = {
+    id, city, enterTs: now,
+    state: "walking",                 // walking | reading | leaving
+    node: "gate", target: "home",
+    t: 0, speed: rnd(.35, .6),        // 归一化路径速度/秒
+    dwell: rnd(4000, 12000),
+    visited: [{ node: "gate", arrive: now }],
+    bob: Math.random() * Math.PI * 2
+  };
+  sim.visitors.set(id, v);
+  pushEvent(now, "visit", v, "入口");
+}
+
+function pushEvent(ts, type, v, place) {
+  sim.events.unshift({ ts, type, v, place });
+  if (sim.events.length > 42) sim.events.pop();
+  renderEventsThrottled();
+}
+
+function stepVisitor(v, dt, now) {
+  if (v.state === "walking") {
+    v.t += dt * v.speed;
+    if (v.t >= 1) {
+      v.node = v.target;
+      v.t = 0;
+      v.state = "reading";
+      v.dwell = rnd(3500, 13000);
+      v.visited.push({ node: v.node, arrive: now });
+      pushEvent(now, "pageview", v, nodeById(v.node).label);
+      // 决定下一步
+      if (v.visited.length >= 3 && Math.random() < .38) {
+        v.state = "leaving"; v.t = 0;
+      } else {
+        v.target = nextNode(v.node);
+      }
+    }
+  } else if (v.state === "reading") {
+    v.dwell -= dt * 1000;
+    if (v.dwell <= 0) {
+      if (v.state === "leaving" || v.visited.length >= 7) {
+        v.state = "leaving"; v.t = 0;
+      } else {
+        v.state = "walking";
+      }
+    }
+  } else if (v.state === "leaving") {
+    v.t += dt * v.speed * 1.25;
+    if (v.t >= 1) {
+      pushEvent(now, "leave", v, nodeById(v.node).label);
+      if (sim.selectedId === v.id) deselect();
+      sim.visitors.delete(v.id);
+    }
+  }
+}
+
+/* ───────────────────────── 画布与渲染 ───────────────────────── */
+
+const canvas = document.getElementById("stage");
+const ctx = canvas.getContext("2d");
+let view = "map";
+let dpr = 1, W = 0, H = 0;
+
+function resize() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = Math.max(1, rect.width); H = Math.max(1, rect.height);
+  canvas.width = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+new ResizeObserver(resize).observe(canvas.parentElement);
+resize();
+
+function ease(t) { return t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+function edgePath(a, b) {
+  // 轻微弯曲线,让路径像园中小径
+  const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const cx = mx - dy * .18, cy = my + dx * .18;
+  return { a, b, c: { x: cx, y: cy } };
+}
+function pointOn(p, t) {
+  const u = 1 - t;
+  return {
+    x: u * u * p.a.x + 2 * u * t * p.c.x + t * t * p.b.x,
+    y: u * u * p.a.y + 2 * u * t * p.c.y + t * t * p.b.y
+  };
+}
+
+function drawMap(now) {
+  ctx.fillStyle = "#fbfcfe";
+  ctx.fillRect(0, 0, W, H);
+  const m = Math.min(W * .94, H * 1.72);
+  const mw = m, mh = m * .5;
+  const ox = (W - mw) / 2, oy = (H - mh) / 2;
+  // 陆地点阵
+  ctx.fillStyle = "#d3dce8";
+  const cell = mw / MAP_W;
+  const dot = Math.max(1.1, cell * .3);
+  for (const i of landCells) {
+    const c = i % MAP_W, r = (i / MAP_W) | 0;
+    ctx.beginPath();
+    ctx.arc(ox + (c + .5) * cell, oy + (r + .5) * cell * (mh / (MAP_H * cell)) , dot, 0, 7);
+    ctx.fill();
+  }
+  // 聚合城市访客
+  const byCity = new Map();
+  for (const v of sim.visitors.values()) {
+    const k = v.city[0];
+    if (!byCity.has(k)) byCity.set(k, []);
+    byCity.get(k).push(v);
+  }
+  for (const [name, list] of byCity) {
+    const c = list[0].city;
+    const x = ox + lngToX(c[3]) * mw, y = oy + latToY(c[2]) * mh;
+    const pulse = .5 + Math.sin(now / 500 + x) * .5;
+    const r = 3.5 + Math.min(list.length, 8) * 1.1;
+    ctx.beginPath(); ctx.arc(x, y, r + pulse * 7, 0, 7);
+    ctx.fillStyle = `rgba(37, 99, 235, ${.14 + pulse * .1})`;
+    ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
+    ctx.fillStyle = "#2563eb"; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, r * .42, 0, 7);
+    ctx.fillStyle = "#fff"; ctx.fill();
+    if (list.length >= 3) {
+      ctx.font = "600 10.5px ui-monospace, monospace";
+      ctx.fillStyle = "#334155";
+      ctx.textAlign = "left";
+      ctx.fillText(`${name} · ${list.length}`, x + r + 6, y + 3.5);
+    }
+  }
+  drawHint("LIVE · 实时访客 · 光点大小 = 该城市当前在线数");
+}
+
+function drawPark(now, dt) {
+  // 背景:园圃底色
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#f4f8f1"); g.addColorStop(1, "#eef4ea");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+  const pad = 46;
+  const P = n => ({ x: pad + n.x * (W - pad * 2), y: 26 + n.y * (H - 60) });
+
+  // 路径
+  ctx.setLineDash([1, 7]); ctx.lineWidth = 2; ctx.lineCap = "round";
+  for (const [aId, bId] of SITE.edges.map(e => [e[0], e[1]])) {
+    const p = edgePath(P(nodeById(aId)), P(nodeById(bId)));
+    ctx.strokeStyle = "#cbbfa8";
+    ctx.beginPath();
+    ctx.moveTo(p.a.x, p.a.y);
+    ctx.quadraticCurveTo(p.c.x, p.c.y, p.b.x, p.b.y);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // 节点
+  for (const n of SITE.nodes) {
+    const p = P(n);
+    const w = n.kind === "gate" ? 58 : 74, h = 30;
+    ctx.beginPath();
+    ctx.roundRect(p.x - w / 2, p.y - h / 2, w, h, 9);
+    ctx.fillStyle = n.kind === "lab" ? "#eef2ff" : n.kind === "house" ? "#fef9ee" : "#ffffff";
+    ctx.fill();
+    ctx.strokeStyle = n.kind === "gate" ? "#2563eb" : "#d7dee8";
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.font = "600 11.5px ui-sans-serif, system-ui";
+    ctx.fillStyle = "#0f172a";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(n.label, p.x, p.y + .5);
+  }
+
+  // 访客(walkers)
+  const sel = sim.selectedId;
+  for (const v of sim.visitors.values()) {
+    const dim = sel && v.id !== sel;
+    const a = nodeById(v.node), b = nodeById(v.target);
+    const path = edgePath(P(a), P(b));
+    const tt = v.state === "walking" ? ease(Math.min(v.t, 1)) : v.state === "leaving" ? ease(Math.min(v.t, 1)) : 0;
+    const pos = v.state === "reading" ? P(b || a) : pointOn(path, tt);
+    const bobY = v.state === "walking" ? Math.sin(now / 90 + v.bob) * 1.8 : Math.sin(now / 500 + v.bob) * .8;
+    const alpha = v.state === "leaving" ? Math.max(0, 1 - v.t) : dim ? .16 : 1;
+
+    // 已走轨迹高亮
+    if (v.id === sel) {
+      ctx.strokeStyle = "rgba(37,99,235,.5)"; ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      const hist = v.visited.map(x => P(nodeById(x.node)));
+      if (hist.length) {
+        ctx.moveTo(hist[0].x, hist[0].y);
+        for (let i = 1; i < hist.length; i++) {
+          const p = edgePath(hist[i - 1], hist[i]);
+          ctx.quadraticCurveTo(p.c.x, p.c.y, p.b.x, p.b.y);
+        }
+      }
+      ctx.stroke();
+    }
+
+    // 到站涟漪
+    if (v.state === "reading" && now - (v.visited[v.visited.length - 1]?.arrive || 0) < 900) {
+      const k = ((now - v.visited[v.visited.length - 1].arrive) / 900);
+      ctx.beginPath(); ctx.arc(pos.x, pos.y, 6 + k * 16, 0, 7);
+      ctx.strokeStyle = `rgba(37,99,235,${(1 - k) * .5})`;
+      ctx.lineWidth = 1.5; ctx.stroke();
+    }
+
+    // 人
+    ctx.beginPath(); ctx.arc(pos.x, pos.y + bobY, v.id === sel ? 5.5 : 4, 0, 7);
+    ctx.fillStyle = v.state === "leaving" ? "#94a3b8" : v.id === sel ? "#1d4ed8" : "#2563eb";
+    ctx.globalAlpha = alpha;
+    ctx.fill();
+    ctx.lineWidth = 1.6; ctx.strokeStyle = "#fff"; ctx.stroke();
+    // 脚步:两个交替小点
+    if (v.state === "walking") {
+      const ph = Math.sin(now / 60 + v.bob);
+      ctx.fillStyle = "rgba(37,99,235,.55)";
+      ctx.beginPath(); ctx.arc(pos.x - 2.6, pos.y + 6 + ph * 1.6, 1.1, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(pos.x + 2.6, pos.y + 6 - ph * 1.6, 1.1, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  drawHint("LIVE · 每个光点是一位访客 · 双击空白取消选中");
+}
+
+let hintEl = document.getElementById("stageHint");
+function drawHint(text) { hintEl.textContent = text; }
+
+/* ───────────────────────── 事件流 + 访客时间线 ───────────────────────── */
+
+const eventsEl = document.getElementById("events");
+let eventsDirty = true;
+function renderEventsThrottled() { eventsDirty = true; }
+function flushEvents() {
+  if (!eventsDirty) return;
+  eventsDirty = false;
+  document.getElementById("evCount").textContent = sim.events.length;
+  const sel = sim.selectedId;
+  eventsEl.innerHTML = sim.events.map(e => `
+    <div class="ev${sel === e.v.id ? " selected" : ""}" data-id="${e.v.id}">
+      <i class="${e.type}"></i>
+      <div class="txt"><b>${e.v.city[0]}</b><span> · ${
+        e.type === "visit" ? "进入网站" : e.type === "leave" ? "离开(" + e.place + ")" : "浏览 " + e.place
+      }</span></div>
+      <time>${new Date(e.ts).toLocaleTimeString("zh-CN", { hour12: false })}</time>
+    </div>`).join("");
+}
+eventsEl.addEventListener("click", e => {
+  const row = e.target.closest(".ev");
+  if (!row) return;
+  selectVisitor(row.dataset.id);
+});
+
+const vd = document.getElementById("visitorDetail");
+function selectVisitor(id) {
+  sim.selectedId = id;
+  vd.classList.add("open");
+  renderVisitorDetail();
+  eventsDirty = true;
+}
+function deselect() {
+  sim.selectedId = null;
+  vd.classList.remove("open");
+  eventsDirty = true;
+}
+document.getElementById("vdClose").addEventListener("click", deselect);
+
+function renderVisitorDetail() {
+  const v = sim.visitors.get(sim.selectedId);
+  if (!v) return;
+  document.getElementById("vdId").textContent = v.id + " · " + v.city[0];
+  document.getElementById("vdMeta").textContent =
+    `${v.city[1]} · 进入于 ${new Date(v.enterTs).toLocaleTimeString("zh-CN", { hour12: false })} · 在线 ${Math.round((performance.now() - v.enterTs) / 1000)}s`;
+  document.getElementById("vdTimeline").innerHTML = v.visited.map((x, i) => `
+    <li><i></i><b>${nodeById(x.node).label}</b><time>${new Date(x.arrive).toLocaleTimeString("zh-CN", { hour12: false })}</time></li>`).join("");
+}
+
+/* ───────────────────────── 视图切换 + 主循环 ───────────────────────── */
+
+const tabMap = document.getElementById("tab-map");
+const tabPark = document.getElementById("tab-park");
+function setView(v) {
+  view = v;
+  tabMap.classList.toggle("active", v === "map");
+  tabPark.classList.toggle("active", v === "park");
+}
+tabMap.addEventListener("click", () => setView("map"));
+tabPark.addEventListener("click", () => setView("park"));
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, .1);
+  last = now;
+  // 模拟推进
+  sim.spawnTimer -= dt;
+  if (sim.spawnTimer <= 0 && sim.visitors.size < 22) {
+    spawnVisitor(now);
+    sim.spawnTimer = rnd(.6, 2.4);
+  }
+  for (const v of [...sim.visitors.values()]) stepVisitor(v, dt, now);
+  document.getElementById("onlineCount").textContent = sim.visitors.size;
+
+  if (view === "map") drawMap(now); else drawPark(now, dt);
+  flushEvents();
+  if (sim.selectedId && sim.visitors.has(sim.selectedId)) renderVisitorDetail();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// 预热:开局就有内容
+for (let i = 0; i < 9; i++) {
+  spawnVisitor(performance.now() - rnd(2000, 26000));
+  const v = [...sim.visitors.values()].pop();
+  v.state = "reading"; v.node = v.target = pick(SITE.nodes.slice(1)).id;
+  v.visited = [{ node: v.node, arrive: performance.now() - rnd(1000, 20000) }];
+  v.t = 0;
+}
+</script>
+</body>
+</html>
