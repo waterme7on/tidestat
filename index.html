@@ -824,7 +824,7 @@ const SITE = window.__tideSite;
 function nodeById(id) { return SITE.nodes.find(n => n.id === id); }
 
 function init() {
-  renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true });
+  renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true, preserveDrawingBuffer: true });
   scene = new THREE.Scene();
   scene.background = new THREE.Color("#f2f7ef");
   scene.fog = new THREE.Fog("#f2f7ef", 30, 85);
