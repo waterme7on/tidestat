@@ -550,6 +550,19 @@ function drawPark(now, dt) {
 
   // 访客(walkers)
   const sel = sim.selectedId;
+  // 同一节点停留的访客围成一圈,避免头像压住节点卡片
+  const nodeCrowd = new Map();
+  if (view === "park") {
+    for (const v of sim.visitors.values()) {
+      const key = v.state === "reading" ? v.node : null;
+      if (key) {
+        const idx = nodeCrowd.get(key) || 0;
+        nodeCrowd.set(key, idx + 1);
+        v._ringIdx = idx;
+      }
+    }
+  }
+
   for (const v of sim.visitors.values()) {
     const dim = sel && v.id !== sel;
     if (!DEMO && v.state === "walking") {
@@ -564,7 +577,11 @@ function drawPark(now, dt) {
     const a = nodeById(v.node), b = nodeById(v.target);
     const path = edgePath(P(a), P(b));
     const tt = v.state === "walking" ? ease(Math.min(v.t, 1)) : v.state === "leaving" ? ease(Math.min(v.t, 1)) : 0;
-    const pos = v.state === "reading" ? P(a) : pointOn(path, tt);
+    let pos = v.state === "reading" ? P(a) : pointOn(path, tt);
+    if (v.state === "reading") {
+      const ang = (v._ringIdx || 0) * (Math.PI / 3.2) + .55;
+      pos = { x: pos.x + Math.cos(ang) * 30, y: pos.y + 24 + Math.sin(ang) * 12 };
+    }
     const bobY = v.state === "walking" ? Math.sin(now / 90 + v.bob) * 1.8 : Math.sin(now / 500 + v.bob) * .8;
     const alpha = v.state === "leaving" ? Math.max(0, 1 - v.t) : dim ? .16 : 1;
 
