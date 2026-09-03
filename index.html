@@ -437,7 +437,7 @@ function drawPark(now, dt) {
     const a = nodeById(v.node), b = nodeById(v.target);
     const path = edgePath(P(a), P(b));
     const tt = v.state === "walking" ? ease(Math.min(v.t, 1)) : v.state === "leaving" ? ease(Math.min(v.t, 1)) : 0;
-    const pos = v.state === "reading" ? P(b || a) : pointOn(path, tt);
+    const pos = v.state === "reading" ? P(a) : pointOn(path, tt);
     const bobY = v.state === "walking" ? Math.sin(now / 90 + v.bob) * 1.8 : Math.sin(now / 500 + v.bob) * .8;
     const alpha = v.state === "leaving" ? Math.max(0, 1 - v.t) : dim ? .16 : 1;
 
