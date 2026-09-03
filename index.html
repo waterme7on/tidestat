@@ -14,14 +14,15 @@
 </script>
 <style>
   :root {
-    --bg: #fafaf8;
-    --ink: #0f172a;
-    --ink-soft: #64748b;
-    --line: #e2e8f0;
-    --blue: #2563eb;
-    --blue-soft: #dbeafe;
-    --green: #059669;
-    --paper: #ffffff;
+    --bg: #0b1220;
+    --bg-2: #131c2e;
+    --ink: #e8eef9;
+    --ink-soft: #8ea0bd;
+    --line: rgba(148, 170, 205, .16);
+    --blue: #5eb0ff;
+    --blue-soft: rgba(94, 176, 255, .16);
+    --green: #3ddc97;
+    --paper: #101a2c;
     --radius: 14px;
     --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
   }
@@ -29,7 +30,7 @@
   html, body { height: 100%; }
   body {
     font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
-    background: var(--bg);
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
     color: var(--ink);
     display: flex;
     flex-direction: column;
@@ -41,33 +42,34 @@
     gap: 18px;
     padding: 12px 20px;
     border-bottom: 1px solid var(--line);
-    background: color-mix(in srgb, var(--paper) 92%, transparent);
-    backdrop-filter: blur(8px);
+    background: color-mix(in srgb, var(--paper) 72%, transparent);
+    backdrop-filter: blur(10px);
     position: sticky;
     top: 0;
     z-index: 10;
   }
   .brand { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 16px; letter-spacing: -0.02em; }
   .brand svg { display: block; }
-  .tabs { display: flex; gap: 4px; background: #eef1f5; padding: 4px; border-radius: 999px; }
+  .tabs { display: flex; gap: 4px; background: rgba(148, 170, 205, .12); padding: 4px; border-radius: 999px; }
   .tabs button {
     border: 0; background: transparent; padding: 7px 16px; border-radius: 999px;
     font: inherit; font-size: 13px; font-weight: 600; color: var(--ink-soft); cursor: pointer;
     transition: background .15s, color .15s;
   }
-  .tabs button.active { background: var(--paper); color: var(--ink); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+  .tabs button.active { background: rgba(94, 176, 255, .18); color: var(--ink); box-shadow: inset 0 0 0 1px rgba(94, 176, 255, .35); }
   .live {
     display: inline-flex; align-items: center; gap: 7px; margin-left: auto;
     font-family: var(--mono); font-size: 12px; color: var(--ink-soft);
   }
   .live b { color: var(--ink); font-size: 14px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 rgba(34,197,94,.5); animation: pulse 1.6s infinite; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #3ddc97; box-shadow: 0 0 0 0 rgba(61,220,151,.5); animation: pulse 1.6s infinite; }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,.45);} 70% { box-shadow: 0 0 0 8px rgba(34,197,94,0);} 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0);} }
   main { flex: 1; display: flex; gap: 14px; padding: 14px 20px; min-height: 0; }
   .stage {
     flex: 1; min-width: 0; position: relative;
     border: 1px solid var(--line); border-radius: var(--radius);
-    background: var(--paper); overflow: hidden;
+    background: radial-gradient(120% 90% at 50% 8%, #16233d 0%, #0d1526 70%);
+    overflow: hidden;
   }
   canvas#stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .stage .hint {
@@ -82,6 +84,7 @@
   .panel {
     border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper);
     display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+    box-shadow: 0 12px 40px rgba(3, 8, 20, .45);
   }
   .panel > h2 {
     font-size: 11px; font-family: var(--mono); font-weight: 600; letter-spacing: .1em;
@@ -112,12 +115,12 @@
     padding: 9px 14px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
     cursor: pointer; transition: background .12s;
   }
-  .ev:hover { background: #f6f8fb; }
+  .ev:hover { background: rgba(94, 176, 255, .07); }
   .ev.selected { background: var(--blue-soft); }
   .ev i { width: 8px; height: 8px; border-radius: 50%; justify-self: center; align-self: center; }
   .ev i.visit { background: var(--blue); }
-  .ev i.pageview { background: #cbd5e1; }
-  .ev i.leave { background: #e2e8f0; outline: 1px solid var(--line); }
+  .ev i.pageview { background: #44546e; }
+  .ev i.leave { background: #2a3850; outline: 1px solid rgba(148,170,205,.25); }
   .ev .txt { font-size: 12.5px; line-height: 1.45; min-width: 0; }
   .ev .txt b { font-weight: 700; }
   .ev .txt span { color: var(--ink-soft); }
@@ -135,9 +138,9 @@
 <header>
   <div class="brand">
     <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-      <rect x="1" y="11" width="4" height="10" rx="1.5" fill="#2563eb"/>
-      <rect x="9" y="5" width="4" height="16" rx="1.5" fill="#2563eb" opacity=".55"/>
-      <rect x="17" y="1" width="4" height="20" rx="1.5" fill="#2563eb" opacity=".3"/>
+      <rect x="1" y="11" width="4" height="10" rx="1.5" fill="#5eb0ff"/>
+      <rect x="9" y="5" width="4" height="16" rx="1.5" fill="#5eb0ff" opacity=".55"/>
+      <rect x="17" y="1" width="4" height="20" rx="1.5" fill="#5eb0ff" opacity=".3"/>
     </svg>
     TideStat
   </div>
@@ -615,7 +618,11 @@ function drawPark(now, dt) {
       ctx.lineWidth = 1.5; ctx.stroke();
     }
 
-    // 头像
+    // 头像 + 地面光圈
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y + 15, 9, 0, 7);
+    ctx.fillStyle = `rgba(94,176,255,${.1 + Math.sin(now / 600 + v.bob) * .04})`;
+    ctx.fill();
     const gait = now / (v.state === "walking" ? 160 : 700) + v.bob;
     drawAvatar(
       pos.x, pos.y - 16 + bobY, avatarTraits(v.fullId || v.id), gait, v.state,
@@ -834,6 +841,25 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 const canvas3d = document.getElementById("stage3d");
 let renderer, scene, camera, controls, ready = false;
 let globeScene, globeCamera, globeControls, globeReady = false;
+
+/* ── 暮色沙盘 · 统一色板(设计师调色处) ── */
+const P = {
+  bg: "#0d1526",
+  ground: "#151f38",
+  groundRing: "#1d2a48",
+  buildingBody: "#1d2c4e",
+  buildingAlt: "#223357",
+  windowLit: "#7cc4ff",
+  pathGlow: "#3f7fd9",
+  treeDark: "#1c4a3c",
+  treeLite: "#266350",
+  label: "#dbe7ff",
+  sea: "#152238",
+  land: "#34d399",
+  beam: "#5eb0ff",
+  star: "#8ea6c8",
+  fog: "#0d1526"
+};
 const walkers = new Map();     // visitor -> {sprite, tex, canvas, g}
 const beacons = new Map();     // city -> beacon
 const NODE = {}, CURVES = {};
@@ -845,8 +871,8 @@ function nodeById(id) { return SITE.nodes.find(n => n.id === id); }
 function init() {
   renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true, preserveDrawingBuffer: true });
   scene = new THREE.Scene();
-  scene.background = new THREE.Color("#f2f7ef");
-  scene.fog = new THREE.Fog("#f2f7ef", 30, 85);
+  scene.background = null;
+  scene.fog = new THREE.Fog(P.fog, 26, 70);
   camera = new THREE.PerspectiveCamera(45, 1, .1, 200);
   camera.position.set(0, 13, 21);
   controls = new OrbitControls(camera, canvas3d);
@@ -857,18 +883,32 @@ function init() {
   controls.target.set(0, .6, 0);
   controls.autoRotate = true; controls.autoRotateSpeed = .6;
 
-  scene.add(new THREE.HemisphereLight("#ffffff", "#c8d8bf", 1.15));
-  const sun = new THREE.DirectionalLight("#fff7e0", 1.6);
+  scene.add(new THREE.HemisphereLight("#9db8e8", "#141d33", 1.05));
+  const sun = new THREE.DirectionalLight("#cfe0ff", 1.1);
   sun.position.set(8, 16, 6);
   scene.add(sun);
 
-  // 草地圆盘
+  // 夜色沙盘:深色圆盘 + 边缘光
   const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(16, 64),
-    new THREE.MeshToonMaterial({ color: "#cfe6c2" })
+    new THREE.CircleGeometry(16, 72),
+    new THREE.MeshToonMaterial({ color: P.ground })
   );
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
+  const groundIn = new THREE.Mesh(
+    new THREE.CircleGeometry(10.5, 72),
+    new THREE.MeshToonMaterial({ color: P.groundRing })
+  );
+  groundIn.rotation.x = -Math.PI / 2;
+  groundIn.position.y = .01;
+  scene.add(groundIn);
+  const rim = new THREE.Mesh(
+    new THREE.RingGeometry(15.7, 16, 96),
+    new THREE.MeshBasicMaterial({ color: "#2c4472", transparent: true, opacity: .8, side: THREE.DoubleSide })
+  );
+  rim.rotation.x = -Math.PI / 2;
+  rim.position.y = .02;
+  scene.add(rim);
 
   // 节点建筑
   for (const n of SITE.nodes) {
@@ -876,38 +916,60 @@ function init() {
     const g = new THREE.Group();
     g.position.set(x, 0, z);
     NODE[n.id] = new THREE.Vector3(x, 0, z);
-    const col = n.kind === "gate" ? "#2563eb" : n.kind === "lab" ? "#8b5cf6" : n.kind === "house" ? "#f59e0b" : "#38bdf8";
+    const col = P.buildingAlt;
     const mat = new THREE.MeshToonMaterial({ color: col });
-    const white = new THREE.MeshToonMaterial({ color: "#fdfdf8" });
+    const white = new THREE.MeshToonMaterial({ color: P.buildingBody });
+    const lit = new THREE.MeshBasicMaterial({ color: P.windowLit });
+    const windows = (w, h, d, y0) => {
+      const wg = new THREE.Group();
+      const rows = Math.max(1, Math.round(h / .5));
+      for (let r = 0; r < rows; r++) {
+        const win = new THREE.Mesh(new THREE.PlaneGeometry(d * .55, .12), lit);
+        win.position.set(w / 2 + .005, y0 + .25 + r * .45, 0);
+        win.rotation.y = Math.PI / 2;
+        wg.add(win);
+        const win2 = win.clone();
+        win2.position.x = -(w / 2 + .005);
+        win2.rotation.y = -Math.PI / 2;
+        wg.add(win2);
+      }
+      return wg;
+    };
     if (n.kind === "gate") {
-      const arch = new THREE.Mesh(new THREE.BoxGeometry(3.4, .5, 1), white); arch.position.y = .25;
-      const p1 = new THREE.Mesh(new THREE.CylinderGeometry(.34, .34, 2.2, 12), mat); p1.position.set(-1.3, 1.1, 0);
+      const arch = new THREE.Mesh(new THREE.BoxGeometry(3.4, .4, .9), white); arch.position.y = 2.35;
+      const glowBar = new THREE.Mesh(new THREE.BoxGeometry(3.4, .06, .94), lit); glowBar.position.y = 2.18;
+      const p1 = new THREE.Mesh(new THREE.CylinderGeometry(.3, .34, 2.2, 12), mat); p1.position.set(-1.3, 1.1, 0);
       const p2 = p1.clone(); p2.position.x = 1.3;
-      g.add(arch, p1, p2);
+      g.add(arch, glowBar, p1, p2);
     } else if (n.kind === "house") {
-      const body = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.3, 1.7), white); body.position.y = .65;
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.55, 1, 4), mat);
-      roof.rotation.y = Math.PI / 4; roof.position.y = 1.8;
-      g.add(body, roof);
+      const body = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.2, 1.7), white); body.position.y = .6;
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.6, .9, 4), mat);
+      roof.rotation.y = Math.PI / 4; roof.position.y = 1.65;
+      const win = new THREE.Mesh(new THREE.PlaneGeometry(.5, .4), lit);
+      win.position.set(0, .55, .87);
+      const door = new THREE.Mesh(new THREE.PlaneGeometry(.34, .62), new THREE.MeshBasicMaterial({ color: "#0e1830" }));
+      door.position.set(.55, .31, .87);
+      g.add(body, roof, win, door);
     } else if (n.kind === "lab") {
       const base = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.35, 1, 10), white); base.position.y = .5;
       const dome = new THREE.Mesh(new THREE.SphereGeometry(1.05, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat);
       dome.position.y = 1;
-      g.add(base, dome);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(1.16, 1.16, .08, 10), lit); band.position.y = .92;
+      g.add(base, dome, band);
     } else if (n.kind === "core") {
       const t1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.1, 1.5), mat); t1.position.y = 1.05;
       const t2 = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.9, 1.1), white); t2.position.set(1.2, 1.45, .4);
-      g.add(t1, t2);
+      g.add(t1, t2, windows(1.5, 2.1, 1.5, 0), windows(1.1, 2.9, 1.1, .4));
     } else {
       const b1 = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.5, 1.6), white); b1.position.y = .75;
       const b2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.2, 1.2), mat); b2.position.set(-.6, 1.1, .3);
-      g.add(b1, b2);
+      g.add(b1, b2, windows(2.1, 1.5, 1.6, 0), windows(1.2, 2.2, 1.2, .1));
     }
     // 树
     for (let i = 0; i < 2; i++) {
       const tr = new THREE.Group();
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.09, .13, .55, 6), new THREE.MeshToonMaterial({ color: "#8a5a33" }));
-      const crown = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 8), new THREE.MeshToonMaterial({ color: i ? "#7cc36a" : "#5aa64e" }));
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.08, .12, .55, 6), new THREE.MeshToonMaterial({ color: "#152338" }));
+      const crown = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 8), new THREE.MeshToonMaterial({ color: i ? P.treeLite : P.treeDark }));
       crown.position.y = .5;
       tr.add(trunk, crown);
       const a = (n.x * 7 + i * 2.6) % (Math.PI * 2);
@@ -931,8 +993,8 @@ function init() {
     CURVES[aId + ">" + bId] = curve;
     CURVES[bId + ">" + aId] = curve;
     const tube = new THREE.Mesh(
-      new THREE.TubeGeometry(curve, 32, .07, 6, false),
-      new THREE.MeshToonMaterial({ color: "#b9a88b" })
+      new THREE.TubeGeometry(curve, 40, .045, 6, false),
+      new THREE.MeshBasicMaterial({ color: P.pathGlow, transparent: true, opacity: .55 })
     );
     scene.add(tube);
   }
@@ -944,10 +1006,13 @@ function makeTextSprite(text) {
   const c = document.createElement("canvas");
   c.width = 256; c.height = 80;
   const g = c.getContext("2d");
-  g.font = "600 44px ui-sans-serif, system-ui";
+  g.font = "600 46px ui-sans-serif, system-ui";
   g.textAlign = "center"; g.textBaseline = "middle";
-  g.fillStyle = "#0f172a";
+  g.shadowColor = "rgba(94,176,255,.9)";
+  g.shadowBlur = 18;
+  g.fillStyle = P.label;
   g.fillText(text, 128, 40);
+  g.shadowBlur = 0;
   const tex = new THREE.CanvasTexture(c);
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
   return mat;
@@ -1033,7 +1098,7 @@ window.addEventListener("resize", resize3d);
 /* ── 3D 地球仪(世界地图视图) ── */
 function initGlobe() {
   globeScene = new THREE.Scene();
-  globeScene.background = new THREE.Color("#f6f8fb");
+  globeScene.background = null;
   globeCamera = new THREE.PerspectiveCamera(42, 1, .1, 100);
   globeCamera.position.set(0, 1.2, 6.4);
   globeControls = new OrbitControls(globeCamera, canvas3d);
@@ -1042,13 +1107,13 @@ function initGlobe() {
   globeControls.enablePan = false;
   globeControls.minDistance = 4.2; globeControls.maxDistance = 11;
   globeControls.autoRotate = true; globeControls.autoRotateSpeed = .55;
-  globeScene.add(new THREE.HemisphereLight("#ffffff", "#b9c8d8", 1.2));
-  const sun = new THREE.DirectionalLight("#fff4d6", 1.5);
+  globeScene.add(new THREE.HemisphereLight("#a8c4f0", "#101a30", 1.15));
+  const sun = new THREE.DirectionalLight("#dfeaff", 1.25);
   sun.position.set(5, 3, 5);
   globeScene.add(sun);
   const sea = new THREE.Mesh(
     new THREE.SphereGeometry(2, 48, 48),
-    new THREE.MeshToonMaterial({ color: "#bcdcf5" })
+    new THREE.MeshToonMaterial({ color: P.sea })
   );
   globeScene.add(sea);
   const glow = new THREE.Mesh(
@@ -1059,7 +1124,7 @@ function initGlobe() {
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       vertexShader: "varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
-      fragmentShader: "varying vec3 vN; void main(){ float i = pow(0.62 - dot(vN, vec3(0.0, 0.0, 1.0)), 2.2); gl_FragColor = vec4(0.45, 0.65, 1.0, 1.0) * i; }"
+      fragmentShader: "varying vec3 vN; void main(){ float i = pow(0.72 - dot(vN, vec3(0.0, 0.0, 1.0)), 2.4); gl_FragColor = vec4(0.29, 0.55, 1.0, 1.0) * i; }"
     })
   );
   globeScene.add(glow);
@@ -1084,7 +1149,7 @@ function initGlobe() {
   }
   const inst = new THREE.InstancedMesh(
     new THREE.SphereGeometry(.028, 6, 6),
-    new THREE.MeshToonMaterial({ color: "#5db160" }),
+    new THREE.MeshToonMaterial({ color: P.land }),
     dots.length
   );
   const m4 = new THREE.Matrix4();
@@ -1098,8 +1163,20 @@ function initGlobe() {
     starPos.push(r * Math.sin(b) * Math.cos(a), r * Math.cos(b), r * Math.sin(b) * Math.sin(a));
   }
   starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos, 3));
-  globeScene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: "#c7d4e6", size: .05 })));
+  globeScene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: P.star, size: .05 })));
   globeReady = true;
+}
+
+function haloTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d");
+  const grad = g.createRadialGradient(32, 32, 2, 32, 32, 30);
+  grad.addColorStop(0, "rgba(94,176,255,.9)");
+  grad.addColorStop(1, "rgba(94,176,255,0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
 }
 
 const DEG = Math.PI / 180;
@@ -1119,6 +1196,7 @@ function syncBeacons(now) {
     if (!byCity.has(k)) byCity.set(k, []);
     byCity.get(k).push(v);
   }
+  const camPos = globeCamera ? globeCamera.position : null;
   const seen = new Set();
   for (const [name, list] of byCity) {
     seen.add(name);
@@ -1129,21 +1207,37 @@ function syncBeacons(now) {
       const normal = base.clone().normalize();
       group.position.copy(base);
       group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+      const beamMat = new THREE.MeshBasicMaterial({
+        color: P.beam, transparent: true, opacity: .85,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      });
       const pillar = new THREE.Mesh(
-        new THREE.CylinderGeometry(.016, .016, 1, 8),
-        new THREE.MeshToonMaterial({ color: "#2563eb" })
+        new THREE.CylinderGeometry(.014, .03, 1, 8),
+        beamMat
       );
       pillar.geometry.translate(0, .5, 0);
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: haloTexture(), transparent: true, opacity: .9,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      }));
+      halo.scale.setScalar(.5);
+      halo.position.y = .05;
       const ring = new THREE.Mesh(
-        new THREE.RingGeometry(.05, .085, 24),
-        new THREE.MeshBasicMaterial({ color: "#2563eb", transparent: true, side: THREE.DoubleSide })
+        new THREE.RingGeometry(.05, .08, 24),
+        new THREE.MeshBasicMaterial({ color: P.beam, transparent: true, side: THREE.DoubleSide })
       );
       ring.rotation.x = -Math.PI / 2;
       ring.position.y = .02;
-      group.add(pillar, ring);
+      group.add(pillar, halo, ring);
       globeScene.add(group);
       b = { group, pillar, ring };
       beacons.set(name, b);
+    }
+    // 背面剔除:光柱只在朝向相机的一面显示
+    if (camPos) {
+      const facing = b.group.position.clone().normalize().dot(camPos.clone().normalize());
+      b.group.visible = facing > .12;
+      if (!b.group.visible) continue;
     }
     b.n = list.length;
     const pulse = .5 + Math.sin(now / 420 + b.group.position.x * 7) * .5;
