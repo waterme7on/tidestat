@@ -880,7 +880,7 @@ function init() {
   renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true, preserveDrawingBuffer: true });
   renderer.setClearColor(0x000000, 0);
   scene = new THREE.Scene();
-  scene.background = null;
+  scene.background = new THREE.Color("#efe9da");
   scene.fog = new THREE.Fog(P.fog, 30, 75);
   camera = new THREE.PerspectiveCamera(45, 1, .1, 200);
   camera.position.set(0, 13, 21);
@@ -1115,7 +1115,7 @@ window.addEventListener("resize", resize3d);
 /* ── 3D 地球仪(世界地图视图) ── */
 function initGlobe() {
   globeScene = new THREE.Scene();
-  globeScene.background = null;
+  globeScene.background = new THREE.Color("#f2eee2");
   globeCamera = new THREE.PerspectiveCamera(42, 1, .1, 100);
   globeCamera.position.set(0, 1.2, 6.4);
   globeControls = new OrbitControls(globeCamera, canvas3d);
@@ -1130,7 +1130,7 @@ function initGlobe() {
   globeScene.add(sun);
   const sea = new THREE.Mesh(
     new THREE.SphereGeometry(2, 48, 48),
-    new THREE.MeshToonMaterial({ color: "#b8d2ee" })
+    new THREE.MeshToonMaterial({ color: "#c3dbf2" })
   );
   globeScene.add(sea);
   const glow = new THREE.Mesh(
