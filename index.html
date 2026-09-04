@@ -1130,7 +1130,7 @@ function initGlobe() {
   globeScene.add(sun);
   const sea = new THREE.Mesh(
     new THREE.SphereGeometry(2, 48, 48),
-    new THREE.MeshToonMaterial({ color: "#c3dbf2" })
+    new THREE.MeshToonMaterial({ color: "#8fb8e8" })
   );
   globeScene.add(sea);
   const glow = new THREE.Mesh(
@@ -1249,7 +1249,7 @@ function syncBeacons(now) {
     // 背面剔除:光柱只在朝向相机的一面显示
     if (camPos) {
       const facing = b.group.position.clone().normalize().dot(camPos.clone().normalize());
-      b.group.visible = facing > .12;
+      b.group.visible = facing > .28;
       if (!b.group.visible) continue;
     }
     b.n = list.length;
