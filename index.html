@@ -878,6 +878,7 @@ function nodeById(id) { return SITE.nodes.find(n => n.id === id); }
 
 function init() {
   renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setClearColor(0x000000, 0);
   scene = new THREE.Scene();
   scene.background = null;
   scene.fog = new THREE.Fog(P.fog, 30, 75);
@@ -1123,13 +1124,13 @@ function initGlobe() {
   globeControls.enablePan = false;
   globeControls.minDistance = 4.2; globeControls.maxDistance = 11;
   globeControls.autoRotate = true; globeControls.autoRotateSpeed = .55;
-  globeScene.add(new THREE.HemisphereLight("#ffffff", "#cfc6ae", 1.2));
-  const sun = new THREE.DirectionalLight("#fff2dc", 1.3);
+  globeScene.add(new THREE.HemisphereLight("#ffffff", "#d9d2bd", 1.0));
+  const sun = new THREE.DirectionalLight("#fff2dc", .9);
   sun.position.set(5, 3, 5);
   globeScene.add(sun);
   const sea = new THREE.Mesh(
     new THREE.SphereGeometry(2, 48, 48),
-    new THREE.MeshToonMaterial({ color: P.sea })
+    new THREE.MeshToonMaterial({ color: "#b8d2ee" })
   );
   globeScene.add(sea);
   const glow = new THREE.Mesh(
@@ -1180,8 +1181,8 @@ function haloTexture() {
   c.width = c.height = 64;
   const g = c.getContext("2d");
   const grad = g.createRadialGradient(32, 32, 2, 32, 32, 30);
-  grad.addColorStop(0, "rgba(94,176,255,.9)");
-  grad.addColorStop(1, "rgba(94,176,255,0)");
+  grad.addColorStop(0, "rgba(232,134,58,.85)");
+  grad.addColorStop(1, "rgba(232,134,58,0)");
   g.fillStyle = grad;
   g.fillRect(0, 0, 64, 64);
   return new THREE.CanvasTexture(c);
