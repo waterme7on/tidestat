@@ -13,3 +13,11 @@ CREATE TABLE IF NOT EXISTS events (
 );
 CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
 CREATE INDEX IF NOT EXISTS idx_events_visitor ON events(visitor_id, ts);
+
+-- Additive and idempotent for existing installs; never backfill or store full IPs.
+CREATE TABLE IF NOT EXISTS visitor_display (
+  visitor_id TEXT PRIMARY KEY,
+  masked_ip TEXT,
+  updated_ts INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_visitor_display_ts ON visitor_display(updated_ts);

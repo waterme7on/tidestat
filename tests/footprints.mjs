@@ -20,7 +20,7 @@ const data=(()=>{const now=Date.now();const points=[['上海','CN',31,121],['伦
  return Array.from({length:16},(_,i)=>{const [city,country,lat,lng]=points[i%4];return{id:`footprint-full-${i}`,city,country,lat,lng,firstTs:now-i*3000-20000,lastTs:now,
  paths:[{path:'/zh',ts:now-20000},{path:'/zh/work',ts:now-10000},{path:['/zh/writing','/zh/work','/zh/writing/dyor','/contact'][i%4],ts:now}]};});})();
 let visitors=data,status=200;
-const page=await browser.newPage({viewport:{width:1440,height:1000},colorScheme:'dark',reducedMotion:'reduce'});
+const page=await browser.newPage({locale:'zh-CN',viewport:{width:1440,height:1000},colorScheme:'dark',reducedMotion:'reduce'});
 let inspected=page;
 function watch(p){p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='warn'||m.type()==='error')console.log('[browser]',m.text());});}
 watch(page);
@@ -49,10 +49,10 @@ try{
  await page.screenshot({path:'visual-review/footprints-tracked.png'});
  const before=await page.evaluate(()=>window.__tide3d.viewState());await page.locator('#footprintTheme').selectOption('light');await page.waitForTimeout(350);
  assert.deepEqual(await page.evaluate(()=>window.__tide3d.viewState()),before);assert.equal(await person.locator('svg').evaluate(e=>e.outerHTML),svg);
- assert.equal(await page.locator('html').getAttribute('data-theme'),'light');await page.locator('.footprint-journey > button').click();
+ assert.equal(await page.locator('html').getAttribute('data-theme'),'light');await page.getByRole('button',{name:'取消访客追踪'}).click();
  await page.locator('.footprint-journey').waitFor({state:'hidden'});
  await page.locator('.footprint-avatar[data-visitor-id="footprint-full-1"]').click();await selected(page,'footprint-full-1');
- await page.locator('.footprint-journey > button').click();await page.locator('.footprint-journey').waitFor({state:'hidden'});
+ await page.getByRole('button',{name:'取消访客追踪'}).click();await page.locator('.footprint-journey').waitFor({state:'hidden'});
  await page.screenshot({path:'visual-review/footprints-light-desktop.png'});
  results.push('desktop: native 3D, correct counts, seven labeled sections, node filter, keyboard and actual avatar selection, actual route and matching B avatars');
  const bounds=await page.locator('#stage3d').boundingBox();await page.mouse.move(bounds.x+bounds.width*.4,bounds.y+bounds.height*.7);await page.mouse.down();await page.mouse.move(bounds.x+bounds.width*.4+70,bounds.y+bounds.height*.7+15,{steps:8});await page.mouse.up();await page.waitForTimeout(900);
@@ -77,7 +77,7 @@ try{
  await page.locator('#stage3d').evaluate(c=>c.getContext('webgl2').getExtension('WEBGL_lose_context').loseContext());
  await page.waitForFunction(()=>document.querySelector('.stage').dataset.footprintEngine==='flat');
  assert.ok(await page.locator('.footprint-flat').isVisible());await page.locator('.footprint-person').click();await selected(page,visitors[0].id);
- const flat=await browser.newPage({viewport:{width:390,height:844},colorScheme:'light',reducedMotion:'reduce'});watch(flat);inspected=flat;
+ const flat=await browser.newPage({locale:'zh-CN',viewport:{width:390,height:844},colorScheme:'light',reducedMotion:'reduce'});watch(flat);inspected=flat;
  await flat.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)?null:original.call(this,type,...args);};});
  await flat.bringToFront();await open(flat);assert.equal(await flat.locator('.stage').getAttribute('data-footprint-engine'),'flat');assert.equal(await flat.locator('#stage3d').isVisible(),false);
  await flat.locator('#footprintTheme').selectOption('dark');assert.equal(await flat.locator('html').getAttribute('data-theme'),'dark');

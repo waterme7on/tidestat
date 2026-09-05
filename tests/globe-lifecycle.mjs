@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 const browser = await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-const page = await browser.newPage({viewport:{width:1280,height:900},reducedMotion:'reduce'});
+const page = await browser.newPage({locale:'zh-CN',viewport:{width:1280,height:900},reducedMotion:'reduce'});
 const errors = [], results = [];
 page.on('pageerror', e=>errors.push(e.message));
 try {

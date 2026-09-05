@@ -41,7 +41,7 @@ async function ready(page) {
 }
 let page;
 try {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, colorScheme: 'dark', reducedMotion: 'reduce' });
+  const context = await browser.newContext({locale:'zh-CN', viewport: { width: 1440, height: 1000 }, colorScheme: 'dark', reducedMotion: 'reduce' });
   page = await context.newPage(); await watch(page); await page.goto(base); await ready(page);
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
   assert.equal(await page.locator('#mapTheme').inputValue(), 'system');
@@ -119,7 +119,7 @@ try {
   await context.close();
 
   // Storage and WebGL may both be unavailable. Existing local-data flat fallback still follows the theme.
-  const safeContext = await browser.newContext({ viewport: { width: 900, height: 750 }, colorScheme: 'light', reducedMotion: 'reduce' });
+  const safeContext = await browser.newContext({locale:'zh-CN', viewport: { width: 900, height: 750 }, colorScheme: 'light', reducedMotion: 'reduce' });
   await safeContext.addInitScript(() => {
     Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Unavailable', 'SecurityError'); } });
     const getContext = HTMLCanvasElement.prototype.getContext;

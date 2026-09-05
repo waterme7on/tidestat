@@ -1,4 +1,5 @@
 // TideStat Worker:collect API + live aggregation + tracker script + static assets.
+import { maskIp, validMaskedIp } from './privacy.js';
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -77,22 +78,32 @@ export default {
         if (!visitorId) return json({ ok: false }, 400);
         const cf = request.cf || {};
         const ts = Date.now();
-        await env.DB.prepare(
-          "INSERT INTO events (visitor_id, ts, path, city, country, lat, lng, referrer, device, site) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-        ).bind(
-          visitorId,
-          ts,
-          path,
-          cf.city || null,
-          cf.country || null,
-          cf.latitude ? Number(cf.latitude) : null,
-          cf.longitude ? Number(cf.longitude) : null,
-          String(body.r || "").slice(0, 256),
-          deviceFromUA(request.headers.get("user-agent") || ""),
-          String(body.site || url.hostname).slice(0, 128)
-        ).run();
+        // Trust the Cloudflare edge header, never body.ip or client-provided display text.
+        const maskedIp = maskIp(request.headers.get("CF-Connecting-IPv6") || request.headers.get("CF-Connecting-IP"));
+        await env.DB.batch([
+          env.DB.prepare(
+            "INSERT INTO events (visitor_id, ts, path, city, country, lat, lng, referrer, device, site) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          ).bind(
+            visitorId,
+            ts,
+            path,
+            cf.city || null,
+            cf.country || null,
+            cf.latitude ? Number(cf.latitude) : null,
+            cf.longitude ? Number(cf.longitude) : null,
+            String(body.r || "").slice(0, 256),
+            deviceFromUA(request.headers.get("user-agent") || ""),
+            String(body.site || url.hostname).slice(0, 128)
+          ),
+          env.DB.prepare(
+            "INSERT INTO visitor_display (visitor_id, masked_ip, updated_ts) VALUES (?, ?, ?) ON CONFLICT(visitor_id) DO UPDATE SET masked_ip=excluded.masked_ip, updated_ts=excluded.updated_ts"
+          ).bind(visitorId, maskedIp, ts)
+        ]);
         if (Math.random() < 0.02) {
-          await env.DB.prepare("DELETE FROM events WHERE ts < ?").bind(ts - 86_400_000).run();
+          await env.DB.batch([
+            env.DB.prepare("DELETE FROM events WHERE ts < ?").bind(ts - 86_400_000),
+            env.DB.prepare("DELETE FROM visitor_display WHERE updated_ts < ?").bind(ts - 86_400_000)
+          ]);
         }
         return json({ ok: true });
       } catch (e) {
@@ -105,8 +116,9 @@ export default {
       const windowMs = 10 * 60 * 1000;
       const onlineMs = 90 * 1000;
       const { results } = await env.DB.prepare(
-        `SELECT visitor_id, ts, path, city, country, lat, lng, device
-         FROM events WHERE ts > ? ORDER BY ts ASC LIMIT 2000`
+        `SELECT e.visitor_id, e.ts, e.path, e.city, e.country, e.lat, e.lng, e.device, d.masked_ip
+         FROM events e LEFT JOIN visitor_display d ON d.visitor_id=e.visitor_id
+         WHERE e.ts > ? ORDER BY e.ts ASC LIMIT 2000`
       ).bind(now - windowMs).all();
       const map = new Map();
       for (const row of results) {
@@ -114,6 +126,7 @@ export default {
         if (!v) {
           v = {
             id: row.visitor_id,
+            maskedIp: validMaskedIp(row.masked_ip),
             city: row.city || "未知",
             country: row.country || "",
             lat: row.lat,

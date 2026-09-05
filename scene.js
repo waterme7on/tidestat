@@ -1,19 +1,22 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { avatarSVG } from './visitor-avatar.js';
-import { snapshot, journey, steps, currentNode, edgeKey, pageName } from './footprint-model.js';
+import { idleMotion } from './idle-motion.js';
+const {t,cityName,identity}=window.__tideI18n;
+import { snapshot, journey, steps, currentNode, edgeKey, pageName as rawPageName } from './footprint-model.js';
 
 // Website footprints only. The native globe, avatar identities and data bridge are unchanged.
 const sheet = document.createElement('link'); sheet.rel = 'stylesheet'; sheet.href = new URL('./footprints.css', import.meta.url).href; document.head.append(sheet);
 const el = id => document.getElementById(id), canvas = el('stage3d'), stage = canvas.parentElement;
 const bridge = () => window.__tide || {}, site = window.__tideSite;
+const pageName=(v,s)=>t(rawPageName(v,s));
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 const palettes = {
   dark: { bg: '#101112', base: '#242927', rim: '#414a43', wall: '#aaa99f', roof: '#454e47', pane: '#242d29', line: '#556253', lit: '#f4ca87' },
   light: { bg: '#f6f8f3', base: '#e5eadd', rim: '#c2cdb8', wall: '#f4f0e5', roof: '#8c9c85', pane: '#b9c9bf', line: '#bac8af', lit: '#678357' },
 };
 const LABELS = { gate: '入口', home: '首页', work: '作品馆', writing: '文章林', dyor: '研究室', about: '关于 / 其他', subscribe: '订阅角' };
-const label = id => LABELS[id] || site.nodes.find(n => n.id === id)?.label || id || '未分类';
+const label = id => t(LABELS[id] || site.nodes.find(n => n.id === id)?.label || id || '未分类');
 const objects = new Set(), nodeViews = new Map(), avatars = new Map(), listRows = new Map(), routes = new Map();
 const scene = new THREE.Scene(), camera = new THREE.OrthographicCamera(-15, 15, 12, -12, .1, 200);
 const target = new THREE.Vector3(0, .5, 0), home = new THREE.Vector3(4, 27, 29);
@@ -92,33 +95,34 @@ function addRoute(a,b, permanent=false) {
   const r={key,a,b,c,line,permanent}; routes.set(key,r); return r;
 }
 function text(tag,value,className) {
-  const e=document.createElement(tag); e.textContent=String(value??''); if(className)e.className=className; return e;
+  const e=document.createElement(tag); e.textContent=t(String(value??'')); if(value)e.dataset.i18n=String(value); if(className)e.className=className; return e;
 }
-function button(title, value, action) { const b=text('button',value); b.type='button'; b.setAttribute('aria-label',title); b.title=title; b.onclick=action; return b; }
+function button(title, value, action) { const b=text('button',value); b.type='button'; b.setAttribute('aria-label',t(title));b.dataset.i18nAriaLabel=title;b.dataset.i18nTitle=title; b.title=t(title); b.onclick=action; return b; }
 function face(id) { const f=text('span','','visitor-face'); f.innerHTML=avatarSVG(id); return f; }
 // All UI stays in the document for keyboard access, readable text and shared avatar SVGs.
 const heading=text('div','','footprint-heading park-only');
 const intro=text('div',''); intro.append(text('h1','网站足迹'),text('p','把网站变成一个小街区，看看访客正在逛哪里。'));
 const badge=text('span','', 'source-badge'); badge.id='footprintSource'; heading.append(intro,badge);
-const metrics=text('section','','footprint-metrics park-only'); metrics.setAttribute('aria-label','网站足迹统计');
-metrics.innerHTML='<div><strong id="footprintCount">—</strong><span>位访客正在逛</span><small id="footprintStatus">正在读取数据…</small></div><div><strong id="footprintActive">—</strong><span>活跃分区</span></div><div><strong id="footprintMoving">—</strong><span>正在切换页面</span></div>';
+const metrics=text('section','','footprint-metrics park-only'); metrics.setAttribute('aria-label',t('网站足迹统计'));
+metrics.innerHTML='<div><strong id="footprintCount">—</strong><span data-i18n="位访客正在逛">位访客正在逛</span><small id="footprintStatus">正在读取数据…</small></div><div><strong id="footprintActive">—</strong><span data-i18n="活跃分区">活跃分区</span></div><div><strong id="footprintMoving">—</strong><span data-i18n="正在切换页面">正在切换页面</span></div>';
 stage.before(heading,metrics);
 const overlay=text('div','','footprint-overlay park-only'); stage.append(overlay);
 const note=text('div','页面是站点，头像是访客。','footprint-caption park-only'); stage.append(note);
 const toolbar=text('div','','footprint-toolbar park-only');
-const select=document.createElement('select'); select.id='footprintTheme'; select.setAttribute('aria-label','足迹外观');
+const select=document.createElement('select'); select.id='footprintTheme'; select.setAttribute('aria-label',t('足迹外观'));
 for(const [value,name] of [['system','跟随系统'],['light','浅色'],['dark','深色']]){const o=text('option',name);o.value=value;select.append(o);}
 select.onchange=()=>window.__tideTheme?.setPreference(select.value); toolbar.append(select); stage.append(toolbar);
-const tools=text('div','','footprint-controls park-only'); tools.setAttribute('role','group');tools.setAttribute('aria-label','足迹视图控制');
+const tools=text('div','','footprint-controls park-only'); tools.setAttribute('role','group');tools.setAttribute('aria-label',t('足迹视图控制'));
 const resetButton=button('重置足迹视角','↺',()=>reset()); resetButton.id='footprintReset';
 const planButton=button('切换俯瞰视角','俯瞰',()=>{overview=!overview;reset();}); planButton.id='footprintPlan';
-const rotateButton=button('自动旋转足迹','自转',()=>{autoRotate=!autoRotate;rotateButton.setAttribute('aria-pressed',String(autoRotate));dirty=true;});rotateButton.id='footprintRotate';rotateButton.setAttribute('aria-pressed','false');
+const rotateButton=button('自动旋转足迹','自转',()=>idleMotion.toggle());rotateButton.id='footprintRotate';rotateButton.setAttribute('aria-pressed','false');
 const expandButton=button('展开足迹','展开',()=>stage.classList.contains('footprint-expanded')?collapse():expand());expandButton.id='footprintExpand';
 tools.append(resetButton,planButton,rotateButton,expandButton); stage.append(tools);
 const mode=text('span','立体漫游', 'footprint-mode park-only'); stage.append(mode);
 const footer=text('div','','footprint-journey park-only'); footer.hidden=true;
 const routeTitle=text('span','', 'footprint-route-title'), chips=text('div','', 'footprint-route-steps');
-const stop=button('取消访客追踪','取消追踪',()=>bridge().deselect?.());footer.append(routeTitle,chips,stop);stage.after(footer);
+const timelineButton=button('查看访问时间线 →','查看访问时间线 →',()=>bridge().openTimeline?.());
+const stop=button('取消访客追踪','取消追踪',()=>bridge().deselect?.());footer.append(routeTitle,chips,timelineButton,stop);stage.after(footer);
 const explain=text('div','节点为页面分类 · 虚线为站点结构，亮线为选中访客的访问顺序 · 并非鼠标轨迹','footprint-explain park-only');footer.after(explain);
 const panel=text('section','','panel park-only footprint-panel');panel.id='footprintPanel';
 const panelHead=text('h2','');const panelTitle=text('span','正在逛哪里');const clearFilter=button('显示全部分区','全部',()=>setFilter(null));clearFilter.hidden=true;
@@ -137,14 +141,14 @@ function syncList(s) {
     if(!row){ row=button('','',()=>bridge().selectVisitor?.(id));row.className='footprint-person';row.dataset.visitorId=id;
       const copy=text('span','','footprint-person-copy');copy.append(text('strong',''),text('small',''));
       row.append(face(id),copy,text('span','', 'footprint-person-node'));listRows.set(id,row); }
-    row.querySelector('strong').textContent=v.city?.[0]||'未知位置';row.querySelector('small').textContent=pageName(v,site);
+    row.querySelector('strong').textContent=cityName(v.city?.[0]);row.querySelector('small').textContent=pageName(v,site);
     row.querySelector('.footprint-person-node').textContent=label(currentNode(v,site));
-    row.setAttribute('aria-label',`${v.city?.[0]||'未知位置'}，${pageName(v,site)}，查看访问足迹`);
+    row.setAttribute('aria-label',t('{location}，{page}，查看访问足迹',{location:cityName(v.city?.[0]),page:pageName(v,site)}));
     row.setAttribute('aria-pressed',String(id===bridge().selectedId));
     if(roster.children[i]!==row)roster.insertBefore(row,roster.children[i]||null);
   });
-  panelTitle.textContent=filter?`${label(filter)} · ${entries.length} 人`:`正在逛哪里 · ${entries.length}`;clearFilter.hidden=!filter;
-  rosterEmpty.hidden=entries.length>0;rosterEmpty.textContent=s.unavailable?'等待访客数据…':filter?'这个分区暂时没有访客。':'有人来访时，头像会出现在这里。';
+  panelTitle.textContent=filter?t('{area} · {count} 人',{area:label(filter),count:entries.length}):t('正在逛哪里 · {count}',{count:entries.length});clearFilter.hidden=!filter;
+  rosterEmpty.hidden=entries.length>0;rosterEmpty.textContent=s.unavailable?t('等待访客数据…'):filter?t('这个分区暂时没有访客。'):t('有人来访时，头像会出现在这里。');
 }
 function sync() {
   if(disposed||!active)return;
@@ -152,13 +156,13 @@ function sync() {
   el('footprintCount').textContent=s.unavailable?'—':s.visitors.length;
   el('footprintActive').textContent=s.unavailable?'—':s.activeNodes;
   el('footprintMoving').textContent=s.unavailable?'—':s.moving;
-  badge.textContent=data.demo?'演示数据':'实时数据';badge.classList.toggle('is-demo',!!data.demo);
-  el('footprintStatus').textContent=data.demo?'模拟访客演示，不计入真实统计':data.status==='error'?'连接中断 · 暂停活动亮灯':s.unavailable?'正在读取访客数据…':`最近 ${Math.round((data.onlineMs||90000)/1000)} 秒内有活动`;
+  badge.textContent=data.demo?t('演示数据'):t('实时数据');badge.classList.toggle('is-demo',!!data.demo);
+  el('footprintStatus').textContent=data.demo?t('模拟访客演示，不计入真实统计'):data.status==='error'?t('连接中断 · 暂停活动亮灯'):s.unavailable?t('正在读取访客数据…'):t('最近 {seconds} 秒内有活动',{seconds:Math.round((data.onlineMs||90000)/1000)});
   statusBox.hidden=!(data.status==='error'||(!s.unavailable&&!s.visitors.length));retry.hidden=data.status!=='error';
-  statusText.textContent=data.status==='error'?(data.updatedAt?'连接中断，显示最近数据。':'暂时无法读取访客数据。'):'目前没有在线访客，新的足迹会自动出现在这里。';
+  statusText.textContent=data.status==='error'?(data.updatedAt?t('连接中断，显示最近数据。'):t('暂时无法读取访客数据。')):t('目前没有在线访客，新的足迹会自动出现在这里。');
   for(const [id,n]of nodeViews){n.count=s.occupants.get(id)?.length||0;n.button.querySelector('b').textContent=n.count;
     n.button.classList.toggle('is-active',n.count>0&&s.fresh);n.button.setAttribute('aria-pressed',String(filter===id));
-    n.button.setAttribute('aria-label',`${label(id)}，${n.count} 位访客，筛选这个分区`);
+    n.button.setAttribute('aria-label',t('{area}，{count} 位访客，筛选这个分区',{area:label(id),count:n.count}));
     n.windows.color.set(n.count&&s.fresh?palettes[theme].lit:palettes[theme].pane);
     n.windows.emissiveIntensity=theme==='dark'&&n.count>0&&s.fresh ? .65 : 0;
     n.lamp.color.set(palettes[theme].lit);n.lamp.opacity=n.count&&s.fresh?(theme==='dark'?.5:.12):0;
@@ -184,7 +188,7 @@ function sync() {
   const chipSig=JSON.stringify([data.selectedId,history,chosen?.currentPath]);
   if(chipSig!==stepSignature){
     chips.replaceChildren();footer.hidden=!chosen;
-    if(chosen){routeTitle.textContent=`${chosen.city?.[0]||'匿名'}访客的足迹`;
+    if(chosen){routeTitle.textContent=t('{location}访客的足迹',{location:cityName(chosen.city?.[0]||'匿名')});
       history.forEach((s,i)=>{if(i)chips.append(text('span','→','footprint-step-arrow'));const chip=text('span',label(s.node),'footprint-step');
         chip.title=s.path||label(s.node);chips.append(chip);});
       if(!history.length)chips.append(text('span','尚无已记录路径'));
@@ -211,7 +215,7 @@ function layout() {
     else a.point.copy(p).add(new THREE.Vector3(0,.8,2));
     place(a.node,a.point,walking?0:(Math.min(i,2)-1)*26);a.node.classList.toggle('is-selected',chosen);
     a.node.classList.toggle('is-dimmed',!!bridge().selectedId&&!chosen);
-    a.node.title=`${v.city?.[0]||'匿名访客'} · ${pageName(v,site)}`;a.node.setAttribute('aria-label',a.node.title+'，查看足迹');
+    a.node.title=t('{location} · {page}',{location:cityName(v.city?.[0]||'匿名访客'),page:pageName(v,site)});a.node.setAttribute('aria-label',t('{title}，查看足迹',{title:a.node.title}));
   }
   if(flat)drawFlat();
 }
@@ -250,15 +254,16 @@ function resize(){
 function reset(){
   if(controls){const damping=controls.enableDamping;controls.enableDamping=false;controls.autoRotate=false;controls.update();controls.enableDamping=damping;controls.target.copy(target);}
   camera.position.copy(overview||flat?new THREE.Vector3(0,40,.01):home);camera.zoom=1;camera.lookAt(target);camera.updateProjectionMatrix();controls?.update();
-  planButton.setAttribute('aria-pressed',String(overview));planButton.textContent=overview?'漫游':'俯瞰';dirty=true;
+  planButton.setAttribute('aria-pressed',String(overview));planButton.textContent=t(overview?'漫游':'俯瞰');dirty=true;
 }
-function expand(){stage.append(footer);savedOverflow=document.body.style.overflow;stage.classList.add('footprint-expanded');document.body.style.overflow='hidden';expandButton.textContent='收起';expandButton.setAttribute('aria-label','收起足迹');resize();}
-function collapse(){if(!stage.classList.contains('footprint-expanded'))return;stage.classList.remove('footprint-expanded');stage.after(footer);document.body.style.overflow=savedOverflow;expandButton.textContent='展开';expandButton.setAttribute('aria-label','展开足迹');resize();expandButton.focus({preventScroll:true});}
+function expand(){stage.append(footer);savedOverflow=document.body.style.overflow;stage.classList.add('footprint-expanded');document.body.style.overflow='hidden';expandButton.removeAttribute('data-i18n');expandButton.textContent=t('收起');expandButton.dataset.i18nAriaLabel='收起足迹';expandButton.setAttribute('aria-label',t('收起足迹'));resize();}
+function collapse(){if(!stage.classList.contains('footprint-expanded'))return;stage.classList.remove('footprint-expanded');stage.after(footer);document.body.style.overflow=savedOverflow;expandButton.removeAttribute('data-i18n');expandButton.textContent=t('展开');expandButton.dataset.i18nAriaLabel='展开足迹';expandButton.setAttribute('aria-label',t('展开足迹'));resize();expandButton.focus({preventScroll:true});}
 function activate(view){active=view==='park';if(controls)controls.enabled=active&&!flat;if(!active){collapse();cancelAnimationFrame(frame);frame=0;return;}resize();sync();start();}
 function tick(time){frame=0;if(disposed||!active||document.hidden)return;
   const dt=Math.min((time-last)/1000,.1);if(time-last<1000/30){start();return;}last=time;
   if(time-synced>200){sync();synced=time;}
-  if(controls){controls.autoRotate=autoRotate&&!reduced.matches;controls.update(dt);}
+  autoRotate=idleMotion.canRotate()&&!overview&&!flat&&!filter;stage.dataset.footprintRotating=String(autoRotate);
+  if(controls){controls.autoRotate=autoRotate;controls.update(dt);}
   if (dirty || autoRotate || (snapshotValue?.fresh && snapshotValue.moving && !reduced.matches)) {
     layout();if(renderer&&!flat)renderer.render(scene,camera);dirty=false;
   }
@@ -267,26 +272,36 @@ function tick(time){frame=0;if(disposed||!active||document.hidden)return;
 function start(){if(!frame&&active&&!disposed&&!document.hidden)frame=requestAnimationFrame(tick);}
 function useFlat(){
   flat=true;stage.dataset.footprintEngine='flat';controls&&(controls.enabled=false);
-  canvas.style.display='none';el('stage').style.display='none';mode.textContent='平面兼容模式';
+  canvas.style.display='none';el('stage').style.display='none';mode.dataset.i18n='平面兼容模式';mode.textContent=t('平面兼容模式');
   planButton.disabled=rotateButton.disabled=true;autoRotate=false;rotateButton.setAttribute('aria-pressed','false');
   if(!flatSVG){flatSVG=document.createElementNS('http://www.w3.org/2000/svg','svg');flatSVG.classList.add('footprint-flat','park-only');flatSVG.setAttribute('aria-hidden','true');stage.prepend(flatSVG);}
   reset();width=0;resize();
 }
-function destroy(event){if(event.persisted)return;disposed=true;cancelAnimationFrame(frame);observer?.disconnect();controls?.dispose();window.removeEventListener('tide:themechange',applyTheme);for(const o of objects)o.dispose();renderer?.dispose();}
+function destroy(event){if(event.persisted)return;disposed=true;unsubscribeMotion();window.removeEventListener('tide:languagechange',updateLanguage);cancelAnimationFrame(frame);observer?.disconnect();controls?.dispose();window.removeEventListener('tide:themechange',applyTheme);for(const o of objects)o.dispose();renderer?.dispose();}
 function motionChange(){if(reduced.matches){autoRotate=false;rotateButton.setAttribute('aria-pressed','false');}rotateButton.disabled=flat||reduced.matches;dirty=true;}
-window.__tide3d={ready:()=>ready,activate,reset,viewState:()=>({mode:flat?'flat':'3d',position:camera.position.toArray(),zoom:camera.zoom})};
+const unsubscribeMotion=idleMotion.subscribe(()=>{rotateButton.disabled=flat||idleMotion.reduced;rotateButton.setAttribute('aria-pressed',String(idleMotion.enabled&&!idleMotion.reduced));dirty=true;});
+function updateLanguage(){
+  window.__tideI18n.applyDOM();
+  for(const[id,n]of nodeViews){const text=n.button.querySelector('span');text.removeAttribute('data-i18n');text.textContent=label(id);}
+  planButton.removeAttribute('data-i18n');planButton.textContent=t(overview?'漫游':'俯瞰');
+  expandButton.removeAttribute('data-i18n');expandButton.textContent=t(stage.classList.contains('footprint-expanded')?'收起':'展开');
+  mode.dataset.i18n=flat?'平面兼容模式':'立体漫游';mode.textContent=t(mode.dataset.i18n);
+  stepSignature='';sync();dirty=true;
+}
+window.addEventListener('tide:languagechange',updateLanguage);
+window.__tide3d={collapse,ready:()=>ready,activate,reset,viewState:()=>({mode:flat?'flat':'3d',position:camera.position.toArray(),zoom:camera.zoom})};
 for(const n of site.nodes)buildNode(n);for(const[a,b]of site.edges)addRoute(a,b,true);
 applyTheme();reset();
 try{
   renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power',preserveDrawingBuffer:true});renderer.outputColorSpace=THREE.SRGBColorSpace;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
   controls=new OrbitControls(camera,canvas);controls.target.copy(target);controls.enableDamping=true;controls.enablePan=false;controls.minZoom=.65;controls.maxZoom=2;
-  controls.minPolarAngle=.001;controls.maxPolarAngle=Math.PI*.42;controls.autoRotateSpeed=.35;controls.addEventListener('change',()=>{dirty=true;});controls.update();
+  controls.minPolarAngle=.001;controls.maxPolarAngle=Math.PI*.42;controls.autoRotateSpeed=.075;controls.addEventListener('change',()=>{dirty=true;});controls.update();
   stage.dataset.footprintEngine='3d';canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();useFlat();});
 }catch(error){console.warn('TideStat footprints: using local flat view.',error);useFlat();}
 observer=new ResizeObserver(resize);observer.observe(stage);
 window.addEventListener('tide:themechange',applyTheme);window.addEventListener('pagehide',destroy);
-window.addEventListener('keydown',e=>{if(e.key==='Escape'&&active)collapse();});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'&&active&&!bridge().timelineOpen)collapse();});
 reduced.addEventListener('change',motionChange);motionChange();
 document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(frame);frame=0;}else start();});
-ready=true;activate(bridge().view||'park');
+ready=true;updateLanguage();activate(bridge().view||'park');
