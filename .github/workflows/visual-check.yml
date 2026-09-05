@@ -1,0 +1,59 @@
+name: Visual review
+on:
+  push:
+    branches: ['design/observatory-3d-refresh']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: visual-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser tooling
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Capture baseline or run regression checks
+        run: |
+          mkdir -p visual-review
+          node server.cjs > /tmp/tidestat-server.log 2>&1 &
+          if [ -f tests/visual.mjs ]; then
+            node tests/visual.mjs
+          else
+            node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+          const page = await browser.newPage({viewport:{width:1440,height:1000}});
+          await page.goto('http://127.0.0.1:8893/?demo=1');
+          await page.waitForTimeout(2500);
+          await page.screenshot({path:'visual-review/baseline-map.png'});
+          await page.locator('#tab-park').click();
+          await page.waitForTimeout(1000);
+          await page.screenshot({path:'visual-review/baseline-park.png'});
+          await browser.close();
+          JS
+          fi
+      - name: Package self-contained visual review
+        if: always()
+        run: |
+          mkdir -p visual-review/app
+          cp index.html server.cjs visual-review/app/
+          cp -R vendor visual-review/app/
+          for path in scene.js scene.css tests; do
+            [ ! -e "$path" ] || cp -R "$path" visual-review/app/
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tidestat-visual-review
+          path: visual-review
+          retention-days: 3
