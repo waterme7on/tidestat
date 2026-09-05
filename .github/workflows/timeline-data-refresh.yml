@@ -1,0 +1,40 @@
+name: Apply timeline data refresh
+on:
+  push:
+    branches: ['design/footprints-doodle-day-night']
+    paths: ['.github/workflows/timeline-data-refresh.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/design/footprints-doodle-day-night' && github.actor == 'waterme7on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/footprints-doodle-day-night
+          fetch-depth: 0
+      - name: Refresh selected history immediately on data events
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import subprocess
+          p=Path('index.html');original=subprocess.check_output(['git','show','6207da66b43a709b0da48e48753f2420b6764c2c:index.html'])
+          assert p.read_bytes()==original
+          s=p.read_text()
+          old='  renderEventsThrottled();\n}\n\nfunction stepVisitor'
+          assert old in s
+          s=s.replace(old,'  renderEventsThrottled();\n  if (sim.selectedId === (v.fullId || v.id)) renderVisitorDetail(true);\n}\n\nfunction stepVisitor',1)
+          s=s.replace('  if(live)selectedSnapshot=', '  selectedSnapshot=')
+          old='    window.__tide.updatedAt = Date.now();'
+          assert old in s
+          s=s.replace(old,old+'\n    // Dialog updates must not wait for a throttled WebGL animation frame.\n    if (sim.selectedId) renderVisitorDetail(true);',1)
+          p.write_text(s)
+          PY
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'fix: refresh timeline on live and demo events, including departing visitors'
+          git push origin HEAD:design/footprints-doodle-day-night
