@@ -9,7 +9,7 @@ function up(){pressed=false;touch();}
 for(const event of ['pointermove','wheel','keydown','focusin'])document.addEventListener(event,touch,{passive:true});
 document.addEventListener('pointerdown',down,{passive:true});
 for(const event of ['pointerup','pointercancel'])document.addEventListener(event,up,{passive:true});
-window.addEventListener('blur',up);document.addEventListener('visibilitychange',touch);
+window.addEventListener('blur',up);window.addEventListener('focus',touch);document.addEventListener('visibilitychange',touch);
 reduced.addEventListener('change',()=>{touch();notify();});
 window.addEventListener('storage',event=>{if(event.key===KEY||event.key===null){try{enabled=localStorage.getItem(KEY)!=='off';}catch{}touch();notify();}});
 export const idleMotion={
