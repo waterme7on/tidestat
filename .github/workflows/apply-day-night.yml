@@ -1,0 +1,32 @@
+# One-time branch-local integration; removed before final review.
+name: Integrate day-night theme
+on:
+  push:
+    branches: ['design/observatory-3d-refresh']
+    paths: ['.github/workflows/apply-day-night.yml']
+permissions:
+  contents: write
+jobs:
+  integrate:
+    if: github.ref == 'refs/heads/design/observatory-3d-refresh' && github.actor == 'waterme7on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/observatory-3d-refresh
+      - name: Apply exact, base-checked frontend patch
+        run: |
+          test "$(git hash-object index.html)" = 'c95f441c1cd96f7823a73ddbc05c41cec6da4b2f'
+          test "$(git hash-object globe-map.js)" = 'f083c7a3e77329fd0585abd3e989fe886c136ab8'
+          git apply --check scripts/day-night-integration.patch
+          git apply scripts/day-night-integration.patch
+          node --check theme.js
+          node --check globe-map.js
+          node --check tests/themes.mjs
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html globe-map.js
+          git commit -m 'feat: connect system theme and live-location night lights without map reload'
+          git push origin HEAD:design/observatory-3d-refresh
