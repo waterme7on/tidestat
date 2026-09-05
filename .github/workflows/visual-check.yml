@@ -21,19 +21,20 @@ jobs:
         run: |
           npm install --no-save --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Map regression checks
+      - name: Globe regression checks
         run: |
           mkdir -p visual-review
           PORT=8894 node server.cjs > /tmp/tidestat-server.log 2>&1 &
           node --check scene.js
-          node --check realtime-map.js
-          node tests/map.mjs
+          node --check globe-map.js
+          node --check visitor-avatar.js
+          node tests/globe.mjs
       - name: Package self-contained visual review
         if: always()
         run: |
           mkdir -p visual-review/app
-          cp index.html server.cjs scene.js scene.css realtime-map.js realtime.css visual-review/app/
-          cp -R vendor tests visual-review/app/
+          cp index.html server.cjs scene.js scene.css realtime-map.js realtime.css globe-map.js globe.css visitor-avatar.js visual-review/app/
+          cp -R vendor assets tests visual-review/app/
       - uses: actions/upload-artifact@v4
         if: always()
         with:
