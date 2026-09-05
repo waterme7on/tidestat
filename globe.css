@@ -141,3 +141,6 @@ body[data-view="map"] .stage.map-expanded { position: fixed; inset: 0; width: 10
   .map-footer { font-size: 9px; }
 }
 @media (prefers-reduced-motion: reduce) { #liveMap *, .map-controls * { animation: none !important; transition: none !important; } }
+
+/* Static star field; no animation or external image request. */
+#liveMap { background-image: url("./assets/stars.svg"); background-size: 360px 360px; }

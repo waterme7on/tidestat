@@ -212,7 +212,7 @@ async function renderGlobe(signature) {
 }
 function homeZoom() {
   const size = Math.max(250, Math.min(root.clientWidth - 56, root.clientHeight - 64));
-  return Math.log2(size / 350);
+  return Math.log2(size / 130);
 }
 function showWorld(center = requestedCenter) {
   requestedCenter = center; clearPopup();
@@ -328,7 +328,16 @@ async function init() {
     map.on('zoomstart', event => { if (event.originalEvent) fitted = false; });
     map.on('mouseenter', 'avatars', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'avatars', () => { map.getCanvas().style.cursor = ''; });
-    map.on('click', 'avatars', event => { const key = event.features?.[0]?.properties?.key; if (key) clickGroup(key); });
+    map.on('click', 'avatars', event => {
+      // Query order is not a reliable proxy for which overlapping circular face was clicked.
+      const hits = [...(event.features || [])];
+      const distance = f => {
+        const group = groups.get(f.properties?.key); if (!group) return Infinity;
+        const point = map.project(group.loc); return Math.hypot(point.x - event.point.x, point.y - event.point.y);
+      };
+      hits.sort((a, b) => distance(a) - distance(b));
+      const key = hits[0]?.properties?.key; if (key) clickGroup(key);
+    });
     map.on('load', () => {
       ready = true; root.dataset.ready = 'true';
       map.getCanvas().setAttribute('aria-label', '访客地球地图：拖拽旋转，滚轮缩放，点击圆形头像查看详情');

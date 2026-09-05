@@ -29,7 +29,7 @@ function visitor(id, c, index = 0) {
 const fixture = cities.map((c, i) => visitor(`guest-${String(i).padStart(3,'0')}`, c, i));
 fixture.push(visitor('samecity-one', cities[0]), visitor('samecity-two', cities[0]));
 fixture.push(visitor('missing-location', ['未知位置','',null,null]));
-fixture.push(visitor(`unsafe'"<id>`, ['Tokyo <img src=x onerror=window.pwned=1>','JP',35.68,139.69]));
+const unsafeVisitor = visitor(`unsafe'"<id>`, ['Tokyo <img src=x onerror=window.pwned=1>','JP',35.68,139.69]);
 let payload = { now, onlineMs:90000, visitors: fixture }, status = 200;
 function watch(p) {
   p.on('pageerror', e => errors.push(e.message));
@@ -89,6 +89,8 @@ try {
   assert.equal(await page.locator('.group-people button').count(),3);
   await page.locator('.group-people button').last().click();
   assert.ok(await page.locator('.visitor-popup-page').isVisible());
+  payload = {...payload, visitors:[...fixture, unsafeVisitor]};
+  await page.evaluate(() => window.__tide.refresh());
   await page.locator('.online-visitor').filter({hasText:'<img src=x'}).click();
   assert.equal(await page.locator('#mapVisitors img, .maplibregl-popup img').count(),0);
   assert.equal(await page.evaluate(() => window.pwned),undefined);
