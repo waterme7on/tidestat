@@ -46,9 +46,7 @@ function countryName(code) {
   if (!/^[A-Z]{2}$/.test(code || '')) return '';
   try { return new Intl.DisplayNames(['zh-CN'], { type: 'region' }).of(code) || code; } catch { return code; }
 }
-function locationName(v) {
-  return [v.city?.[0] || '未知位置', countryName(v.city?.[1])].filter(Boolean).join(' · ');
-}
+function locationName(v) { return [v.city?.[0] || '未知位置', countryName(v.city?.[1])].filter(Boolean).join(' · '); }
 function text(tag, value, className) {
   const node = document.createElement(tag); node.textContent = value;
   if (className) node.className = className;
@@ -61,8 +59,7 @@ function popup(v, id) {
   const title = document.createElement('div'); title.append(text('strong', locationName(v)), text('span', '匿名访客 · ' + String(v.id).slice(0, 8)));
   top.append(face, title); card.append(top);
   const details = document.createElement('div'); details.className = 'visitor-popup-page';
-  details.append(text('span', '正在浏览'), text('b', currentPage(v)));
-  card.append(details);
+  details.append(text('span', '正在浏览'), text('b', currentPage(v))); card.append(details);
   card.append(text('p', '城市级近似位置，头像为随机生成。', 'visitor-privacy'));
   const button = text('button', '查看访问足迹 →'); button.type = 'button';
   button.addEventListener('click', () => { bridge().selectVisitor?.(id); el('visitorDetail').scrollIntoView({ behavior: reducedMotion.matches ? 'instant' : 'smooth', block: 'nearest' }); });
@@ -75,8 +72,7 @@ function clusterIcon(group) {
   const children = group.getAllChildMarkers().sort((a, b) => a.options.visitorId.localeCompare(b.options.visitorId));
   const count = children.length;
   const faces = children.slice(0, 3).map(m => `<span class="visitor-face">${avatarSVG(m.options.visitorId)}</span>`).join('');
-  const label = `${count} 位访客，点击放大或展开头像`;
-  return L.divIcon({ className: 'visitor-cluster', html: `<span class="visitor-stack" aria-label="${label}">${faces}<b>${count}</b></span>`, iconSize: [76, 48], iconAnchor: [38, 44] });
+  return L.divIcon({ className: 'visitor-cluster', html: `<span class="visitor-stack" aria-label="${count} 位访客，点击放大或展开头像">${faces}<b>${count}</b></span>`, iconSize: [76, 48], iconAnchor: [38, 44] });
 }
 function applySelection() {
   for (const [id, m] of markers) {
@@ -86,6 +82,8 @@ function applySelection() {
   for (const [id, row] of rows) row.classList.toggle('is-selected', selected() === id);
 }
 function focusVisitor(id) {
+  // The bridge invokes this immediately; do not repeat the same zoom/spiderfy next sync.
+  selection = id;
   const marker = markers.get(id);
   if (!marker || !active) { map?.closePopup(); applySelection(); return; }
   cluster.zoomToShowLayer(marker, () => {
@@ -96,7 +94,7 @@ function focusVisitor(id) {
 }
 function showWorld() {
   if (!map) return;
-  fitted = true; map.stop(); map.closePopup();
+  map.stop(); map.closePopup();
   map.fitBounds(world, { padding: [24, 28], animate: false }); fitted = true;
 }
 function renderList(list) {
@@ -127,12 +125,13 @@ function sync() {
   const valid = list.filter(([, v]) => locationOf(v)), ids = new Set(valid.map(([id]) => id));
   const countries = new Set(list.map(([, v]) => v.city?.[1]).filter(c => /^[A-Z]{2}$/.test(c || '')));
   const cities = new Set(valid.map(([, v]) => JSON.stringify([v.city?.[0], v.city?.[1], ...locationOf(v)])));
-  el('realtimeCount').textContent = data.status === 'loading' ? '—' : list.length;
-  el('countryCount').textContent = countries.size; el('cityCount').textContent = cities.size;
+  const failed = data.status === 'error', unavailable = !demo && (data.status === 'loading' || (failed && !data.updatedAt));
+  el('realtimeCount').textContent = unavailable ? '—' : list.length;
+  el('countryCount').textContent = unavailable ? '—' : countries.size;
+  el('cityCount').textContent = unavailable ? '—' : cities.size;
   el('mapSource').textContent = demo ? '演示数据' : '实时数据';
   el('mapSource').classList.toggle('is-demo', demo);
-  const failed = data.status === 'error';
-  el('liveStatus').textContent = demo ? '模拟访客演示，不计入真实统计' : failed ? '连接中断 · 显示最近一次数据' : data.status === 'loading' ? '正在连接访客数据…' : `最近 ${Math.round((data.onlineMs || 90000) / 1000)} 秒内有活动`;
+  el('liveStatus').textContent = demo ? '模拟访客演示，不计入真实统计' : failed ? (data.updatedAt ? '连接中断 · 显示最近一次数据' : '暂时无法读取访客数据') : data.status === 'loading' ? '正在连接访客数据…' : `最近 ${Math.round((data.onlineMs || 90000) / 1000)} 秒内有活动`;
   el('dataRetry').hidden = !failed;
   document.body.classList.toggle('data-stale', failed);
   el('mapEmpty').hidden = list.length > 0 || data.status === 'loading' || failed;
@@ -146,12 +145,13 @@ function sync() {
       let marker = markers.get(id);
       const loc = locationOf(v);
       if (!marker) {
-        marker = L.marker(loc, { icon: markerIcon(id), title: locationName(v), alt: '匿名访客头像', keyboard: true, riseOnHover: true, visitorId: id });
+        marker = L.marker(loc, { icon: markerIcon(id), title: locationName(v), alt: '匿名访客头像', keyboard: true, riseOnHover: true, visitorId: id, visitorLocation: loc });
         marker.bindPopup(popup(v, id), { className: 'live-visitor-popup', maxWidth: 280, minWidth: 210, autoPanPadding: [30, 60], closeButton: true });
         marker.on('click', () => bridge().selectVisitor?.(id));
         markers.set(id, marker); added.push(marker);
-      } else if (!marker.getLatLng().equals(L.latLng(loc))) {
-        cluster.removeLayer(marker); marker.setLatLng(loc); cluster.addLayer(marker);
+      } else if (marker.options.visitorLocation[0] !== loc[0] || marker.options.visitorLocation[1] !== loc[1]) {
+        // MarkerCluster temporarily moves displayed LatLng while spiderfied. Compare only source coordinates.
+        cluster.removeLayer(marker); marker.setLatLng(loc); marker.options.visitorLocation = loc; cluster.addLayer(marker);
       }
       marker.getElement()?.setAttribute('aria-label', `${locationName(v)}，${currentPage(v)}，查看访客详情`);
       if (marker.isPopupOpen()) {
