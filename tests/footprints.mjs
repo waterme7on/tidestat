@@ -21,11 +21,17 @@ const data=(()=>{const now=Date.now();const points=[['上海','CN',31,121],['伦
  paths:[{path:'/zh',ts:now-20000},{path:'/zh/work',ts:now-10000},{path:['/zh/writing','/zh/work','/zh/writing/dyor','/contact'][i%4],ts:now}]};});})();
 let visitors=data,status=200;
 const page=await browser.newPage({viewport:{width:1440,height:1000},colorScheme:'dark',reducedMotion:'reduce'});
+let inspected=page;
 function watch(p){p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='warn'||m.type()==='error')console.log('[browser]',m.text());});}
 watch(page);
 async function mock(p){await p.route('**/api/live',r=>r.fulfill({status,contentType:'application/json',body:JSON.stringify({onlineMs:90000,visitors})}));}
 async function open(p){await mock(p);await p.goto(base);await p.waitForFunction(()=>window.__tideMap?.ready());await p.locator('#tab-park').click();await p.waitForFunction(()=>window.__tide3d?.ready(),null,{timeout:15000});await p.waitForTimeout(700);}
 async function refresh(p){await p.evaluate(()=>window.__tide.refresh());await p.waitForTimeout(400);}
+async function selected(p,id){
+ await p.waitForFunction(id=>window.__tide.selectedId===id,id);
+ await p.locator('.footprint-journey').waitFor({state:'visible',timeout:5000});
+ assert.equal(await p.locator('.footprint-journey').getAttribute('hidden'),null);
+}
 try{
  await open(page);assert.equal(await page.locator('.stage').getAttribute('data-footprint-engine'),'3d');
  assert.equal(await page.locator('#footprintCount').textContent(),'16');assert.equal(await page.locator('#footprintActive').textContent(),'4');
@@ -36,17 +42,19 @@ try{
  await page.screenshot({path:'visual-review/footprints-dark-desktop.png'});
  await page.locator('.footprint-node[data-node-id="writing"]').click();assert.equal(await page.locator('.footprint-person').count(),4);
  await page.getByRole('button',{name:'显示全部分区'}).click();assert.equal(await page.locator('.footprint-person').count(),16);
- const person=page.locator('.footprint-person[data-visitor-id="footprint-full-0"]');await person.press('Enter');await page.waitForTimeout(400);
- assert.equal(await page.evaluate(()=>window.__tide.selectedId),'footprint-full-0');assert.ok(await page.locator('.footprint-journey').isVisible());
+ const person=page.locator('.footprint-person[data-visitor-id="footprint-full-0"]');await person.press('Enter');await selected(page,'footprint-full-0');
  assert.deepEqual(JSON.parse(await page.locator('.stage').getAttribute('data-footprint-route')),[['home','work'],['work','writing']]);
  const svg=await person.locator('svg').evaluate(e=>e.outerHTML);
  assert.equal(await page.locator('.footprint-avatar[data-visitor-id="footprint-full-0"] svg').evaluate(e=>e.outerHTML),svg);
  await page.screenshot({path:'visual-review/footprints-tracked.png'});
  const before=await page.evaluate(()=>window.__tide3d.viewState());await page.locator('#footprintTheme').selectOption('light');await page.waitForTimeout(350);
  assert.deepEqual(await page.evaluate(()=>window.__tide3d.viewState()),before);assert.equal(await person.locator('svg').evaluate(e=>e.outerHTML),svg);
- assert.equal(await page.locator('html').getAttribute('data-theme'),'light');await page.locator('.footprint-journey > button').click();await page.waitForTimeout(300);
+ assert.equal(await page.locator('html').getAttribute('data-theme'),'light');await page.locator('.footprint-journey > button').click();
+ await page.locator('.footprint-journey').waitFor({state:'hidden'});
+ await page.locator('.footprint-avatar[data-visitor-id="footprint-full-1"]').click();await selected(page,'footprint-full-1');
+ await page.locator('.footprint-journey > button').click();await page.locator('.footprint-journey').waitFor({state:'hidden'});
  await page.screenshot({path:'visual-review/footprints-light-desktop.png'});
- results.push('desktop: native 3D, correct counts, seven labeled sections, node filter, keyboard selection, actual route and matching B avatars');
+ results.push('desktop: native 3D, correct counts, seven labeled sections, node filter, keyboard and actual avatar selection, actual route and matching B avatars');
  const bounds=await page.locator('#stage3d').boundingBox();await page.mouse.move(bounds.x+bounds.width*.4,bounds.y+bounds.height*.7);await page.mouse.down();await page.mouse.move(bounds.x+bounds.width*.4+70,bounds.y+bounds.height*.7+15,{steps:8});await page.mouse.up();await page.waitForTimeout(900);
  await page.locator('#footprintReset').click();await page.locator('#footprintPlan').click();assert.equal(await page.locator('#footprintPlan').getAttribute('aria-pressed'),'true');
  await page.locator('#footprintPlan').click();await page.locator('#footprintExpand').click();assert.ok(await page.locator('.footprint-expanded').count());
@@ -68,16 +76,18 @@ try{
  results.push('live data: departures and zero state, stale-data lamps off, recovery and text escaping; repeated tabs preserve a single instance');
  await page.locator('#stage3d').evaluate(c=>c.getContext('webgl2').getExtension('WEBGL_lose_context').loseContext());
  await page.waitForFunction(()=>document.querySelector('.stage').dataset.footprintEngine==='flat');
- assert.ok(await page.locator('.footprint-flat').isVisible());await page.locator('.footprint-person').click();await page.waitForTimeout(300);
- assert.equal(await page.evaluate(()=>window.__tide.selectedId),visitors[0].id);
- const flat=await browser.newPage({viewport:{width:390,height:844},colorScheme:'light',reducedMotion:'reduce'});watch(flat);
+ assert.ok(await page.locator('.footprint-flat').isVisible());await page.locator('.footprint-person').click();await selected(page,visitors[0].id);
+ const flat=await browser.newPage({viewport:{width:390,height:844},colorScheme:'light',reducedMotion:'reduce'});watch(flat);inspected=flat;
  await flat.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)?null:original.call(this,type,...args);};});
- await open(flat);assert.equal(await flat.locator('.stage').getAttribute('data-footprint-engine'),'flat');assert.equal(await flat.locator('#stage3d').isVisible(),false);
+ await flat.bringToFront();await open(flat);assert.equal(await flat.locator('.stage').getAttribute('data-footprint-engine'),'flat');assert.equal(await flat.locator('#stage3d').isVisible(),false);
  await flat.locator('#footprintTheme').selectOption('dark');assert.equal(await flat.locator('html').getAttribute('data-theme'),'dark');
- await flat.locator('.footprint-person').click();await flat.waitForTimeout(250);assert.ok(await flat.locator('.footprint-journey').isVisible());
- await flat.screenshot({path:'visual-review/footprints-flat-mobile.png',fullPage:true});await flat.close();
+ await flat.locator('.footprint-person').click();await selected(flat,visitors[0].id);
+ await flat.screenshot({path:'visual-review/footprints-flat-mobile.png',fullPage:true});inspected=page;await flat.close();
  results.push('compatibility: unavailable/lost WebGL uses themed local flat footprint with working visitor selection');
  assert.deepEqual(errors,[]);
  await fs.writeFile('visual-review/footprint-results.json',JSON.stringify({passed:true,results,errors},null,2));console.log(results.join('\n'));
-}catch(error){await page.screenshot({path:'visual-review/footprint-failure.png',fullPage:true}).catch(()=>{});await fs.writeFile('visual-review/footprint-results.json',JSON.stringify({passed:false,results,errors,failure:String(error)},null,2));throw error;}
-finally{await browser.close();}
+}catch(error){
+ await inspected.screenshot({path:'visual-review/footprint-failure.png',fullPage:true}).catch(()=>{});
+ const state=await inspected.evaluate(()=>({visibility:document.visibilityState,view:document.body.dataset.view,ready:window.__tide3d?.ready(),engine:document.querySelector('.stage')?.dataset.footprintEngine,id:window.__tide?.selectedId,visitors:[...(window.__tide?.visitors?.keys()||[])],journey:document.querySelector('.footprint-journey')?.outerHTML})).catch(()=>null);
+ await fs.writeFile('visual-review/footprint-results.json',JSON.stringify({passed:false,results,errors,state,failure:String(error)},null,2));throw error;
+}finally{await browser.close();}
