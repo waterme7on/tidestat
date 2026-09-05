@@ -41,10 +41,10 @@ jobs:
           name: tidestat-dashboard-review
           path: visual-review
           retention-days: 3
-      - name: Existing footprint, theme, avatar and globe regressions
+      - name: Hardening and existing footprint, theme, avatar and globe regressions
         run: |
           failed=0
-          for suite in footprints themes avatars globe globe-lifecycle; do
+          for suite in hardening footprints themes avatars globe globe-lifecycle; do
             echo "::group::${suite}"
             node "tests/${suite}.mjs" || failed=1
             echo '::endgroup::'

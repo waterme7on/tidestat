@@ -158,6 +158,7 @@ function sync() {
   el('footprintMoving').textContent=s.unavailable?'—':s.moving;
   badge.textContent=data.demo?t('演示数据'):t('实时数据');badge.classList.toggle('is-demo',!!data.demo);
   el('footprintStatus').textContent=data.demo?t('模拟访客演示，不计入真实统计'):data.status==='error'?t('连接中断 · 暂停活动亮灯'):s.unavailable?t('正在读取访客数据…'):t('最近 {seconds} 秒内有活动',{seconds:Math.round((data.onlineMs||90000)/1000)});
+  if (!data.demo && s.fresh && data.truncated) el('footprintStatus').textContent += ' · ' + t('仅展示最近 2,000 条事件 · 人数与足迹可能不完整');
   statusBox.hidden=!(data.status==='error'||(!s.unavailable&&!s.visitors.length));retry.hidden=data.status!=='error';
   statusText.textContent=data.status==='error'?(data.updatedAt?t('连接中断，显示最近数据。'):t('暂时无法读取访客数据。')):t('目前没有在线访客，新的足迹会自动出现在这里。');
   for(const [id,n]of nodeViews){n.count=s.occupants.get(id)?.length||0;n.button.querySelector('b').textContent=n.count;

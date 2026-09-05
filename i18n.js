@@ -68,6 +68,7 @@
   "连接中断 · 显示最近一次数据": "Disconnected · Showing the last update",
   "暂时无法读取访客数据": "Visitor data is currently unavailable",
   "最近 {seconds} 秒内有活动": "Active within the last {seconds} seconds",
+  "仅展示最近 2,000 条事件 · 人数与足迹可能不完整": "Latest 2,000 events only · Counts and journeys may be incomplete",
   "美洲": "Americas",
   "欧洲 / 非洲": "Europe / Africa",
   "亚太": "Asia Pacific",

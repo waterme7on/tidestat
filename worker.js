@@ -115,13 +115,17 @@ export default {
       const now = Date.now();
       const windowMs = 10 * 60 * 1000;
       const onlineMs = 90 * 1000;
+      const eventLimit = 2000;
       const { results } = await env.DB.prepare(
         `SELECT e.visitor_id, e.ts, e.path, e.city, e.country, e.lat, e.lng, e.device, d.masked_ip
          FROM events e LEFT JOIN visitor_display d ON d.visitor_id=e.visitor_id
-         WHERE e.ts > ? ORDER BY e.ts ASC LIMIT 2000`
-      ).bind(now - windowMs).all();
+         WHERE e.ts > ? ORDER BY e.ts DESC, e.id DESC LIMIT ?`
+      ).bind(now - windowMs, eventLimit + 1).all();
+      // Keep the newest bounded window, then restore chronological journey order.
+      // A sentinel row makes truncation explicit instead of presenting a partial count as complete.
+      const truncated = results.length > eventLimit;
       const map = new Map();
-      for (const row of results) {
+      for (const row of results.slice(0, eventLimit).reverse()) {
         let v = map.get(row.visitor_id);
         if (!v) {
           v = {
@@ -146,7 +150,7 @@ export default {
         if (v.paths.length > 12) v.paths.shift();
       }
       const visitors = [...map.values()].filter(v => now - v.lastTs < onlineMs);
-      return new Response(JSON.stringify({ now, onlineMs, visitors }), {
+      return new Response(JSON.stringify({ now, onlineMs, visitors, truncated }), {
         headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...CORS }
       });
     }

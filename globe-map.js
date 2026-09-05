@@ -116,6 +116,12 @@ function showPopup(loc, content) {
   clearPopup();
   if (engine === 'globe') popup = new maplibregl.Popup({ offset: 30, maxWidth: '300px', className: 'live-visitor-popup', closeOnClick: false }).setLngLat(loc).setDOMContent(content).addTo(map);
   else if (flat) popup = L.popup({ className: 'live-visitor-popup', maxWidth: 280, minWidth: 230, offset: [0, -25] }).setLatLng([loc[1], loc[0]]).setContent(content).openOn(flat);
+  // Native close controls must release our pause state, not just remove the map's DOM.
+  const opened = popup;
+  opened?.once(engine === 'globe' ? 'close' : 'remove', () => {
+    if (popup !== opened) return; // An old popup must not clear a newer selection.
+    popup = null; popupState = null; idleMotion.reset();
+  });
 }
 function groupCard(group) {
   const v = bridge().visitors?.get(group.ids[0]);
@@ -180,6 +186,7 @@ function sync() {
   el('countryCount').textContent = unavailable ? '—' : countries.size; el('cityCount').textContent = unavailable ? '—' : cities.size;
   el('mapSource').textContent = data.demo ? t('演示数据') : t('实时数据'); el('mapSource').classList.toggle('is-demo', Boolean(data.demo));
   el('liveStatus').textContent = data.demo ? t('模拟访客演示，不计入真实统计') : failed ? (data.updatedAt ? t('连接中断 · 显示最近一次数据') : t('暂时无法读取访客数据')) : unavailable ? t('正在连接访客数据…') : t('最近 {seconds} 秒内有活动',{seconds:Math.round((data.onlineMs||90000)/1000)});
+  if (!data.demo && !failed && !unavailable && data.truncated) el('liveStatus').textContent += ' · ' + t('仅展示最近 2,000 条事件 · 人数与足迹可能不完整');
   el('dataRetry').hidden = !failed; document.body.classList.toggle('data-stale', failed);
   el('mapEmpty').hidden = list.length > 0 || unavailable || failed;
   const missing = list.filter(([, v]) => !locationOf(v)).length;

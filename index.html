@@ -840,11 +840,14 @@ async function liveTick(now) {
       v.currentPath = currentPath; v.device = rv.device; v.maskedIp = rv.maskedIp || null;
       v.visited = paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts), path: p.path }));
       if (isNew) pushEvent(now, "visit", v, nodeById(node).label);
-      else if (prev.node !== node) {
-        v.state = "walking"; v.node = prev.node; v.target = node; v.t = 0; v.speed = 1 / 2.2;
+      else if (prev.path !== currentPath) {
+        // A second article is a new pageview even when both URLs share one visual area.
+        if (prev.node !== node) {
+          v.state = "walking"; v.node = prev.node; v.target = node; v.t = 0; v.speed = 1 / 2.2;
+        }
         pushEvent(now, "pageview", v, nodeById(node).label);
       }
-      liveSeen.set(rv.id, { node });
+      liveSeen.set(rv.id, { node, path: currentPath });
     }
     // The API already defines online=last 90 seconds. Never accumulate departed visitors.
     for (const [id,v] of sim.visitors) if (!seen.has(id)) {
@@ -853,6 +856,7 @@ async function liveTick(now) {
       if (sim.selectedId === id && !window.__tide.timelineOpen) deselect();
     }
     window.__tide.status = "ready";
+    window.__tide.truncated = data.truncated === true;
     window.__tide.onlineMs = Number(data.onlineMs) > 0 ? Number(data.onlineMs) : 90000;
     window.__tide.updatedAt = Date.now();
     // Dialog updates must not wait for a throttled WebGL animation frame.
@@ -868,7 +872,7 @@ window.__tideLandB64 = LAND_B64;
 window.__tideCities = CITIES;
 window.__tide = window.__tide || {};
 Object.assign(window.__tide, { view: "map", visitors: sim.visitors, selectedId: null,
-  demo: DEMO, status: DEMO ? "ready" : "loading", onlineMs: 90000,
+  demo: DEMO, status: DEMO ? "ready" : "loading", onlineMs: 90000, truncated: false,
   selectVisitor, deselect, openTimeline, timelineOpen: false, refresh: () => liveTick(performance.now()) });
 document.getElementById("tzNote").textContent =
   new Date().toLocaleTimeString(window.__tideI18n.locale, { hour12: false, timeZoneName: "short" }).replace(/^\d{1,2}:\d{2}:\d{2}\s*/, "");
@@ -926,7 +930,7 @@ if (DEMO) for (let i = 0; i < 120; i++) {
   if(i<CITIES.length)v.city=CITIES[i];
   let node='gate';const count=3+i%4;v.visited=[];
   for(let j=0;j<count;j++){v.visited.push({node,arrive:entered+(now-entered)*j/count});node=nextNode(node);}
-  v.node=v.target=v.visited.at(-1).node;v.state='reading';v.dwell=rnd(10000,40000);v.t=0;
+  v.node=v.visited.at(-1).node;v.target=nextNode(v.node);v.state='reading';v.dwell=rnd(10000,40000);v.t=0;
 }
 </script>
 
