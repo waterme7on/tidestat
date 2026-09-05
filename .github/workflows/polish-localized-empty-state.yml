@@ -19,11 +19,13 @@ jobs:
         run: |
           python3 <<'PY'
           from pathlib import Path
-          import subprocess
+          import subprocess,json
           for name in ['i18n.js','dashboard.css']:
             assert Path(name).read_bytes()==subprocess.check_output(['git','show','6c38c3f0302f23efcc34c559769c507aded0295b:'+name]), 'Concurrent change: '+name
           p=Path('i18n.js');s=p.read_text()
-          for a,b in [("'位访客在线': 'visitors online'","'位访客在线': 'online'"),("'位访客正在浏览': 'visitors browsing'","'位访客正在浏览': 'browsing now'"),("'位访客正在逛': 'visitors exploring'","'位访客正在逛': 'exploring now'")]:
+          for key,old,new in [('位访客在线','visitors online','online'),('位访客正在浏览','visitors browsing','browsing now'),('位访客正在逛','visitors exploring','exploring now')]:
+            a=json.dumps(key,ensure_ascii=False)+': '+json.dumps(old)
+            b=json.dumps(key,ensure_ascii=False)+': '+json.dumps(new)
             assert a in s;s=s.replace(a,b,1)
           p.write_text(s)
           p=Path('dashboard.css');s=p.read_text();s+='\n/* Empty histories have no marker/time columns; keep their copy full-width. */\n#vdTimeline li:not(:has(> i)) {display:block;font-size:12px;line-height:1.7;color:var(--ink-soft);}\n';p.write_text(s)
