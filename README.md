@@ -1,6 +1,6 @@
 # TideStat
 
-> **Observatory 视觉升级**：新版渲染已拆分为 `scene.js` / `scene.css`，采用深色仪器台与建筑沙盘。设计、兼容性及测试说明见 [docs/observatory.md](docs/observatory.md)。下文的暖纸绘本材质描述保留为初版设计记录；埋点与数据模型未变。
+> **最新：实时访问人数**：默认世界地图已改为常规二维底图和 Q 版匿名头像；在线数据、位置缺失、聚合与测试说明见 [docs/realtime-map.md](docs/realtime-map.md)。早先的 Observatory 设计不是默认地图。
 
 实时访客可视化分析——把「谁在访问你的网站」变成两个一眼可读的 3D 场景:
 

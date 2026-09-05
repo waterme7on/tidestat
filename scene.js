@@ -326,7 +326,8 @@ function resize() {
 function activate(view) {
   if (!ready) return;
   current = view === 'park' ? 'park' : 'map';
-  park.controls.enabled = current === 'park'; globe.controls.enabled = current === 'map';
+  park.controls.enabled = current === 'park'; globe.controls.enabled = false;
+  const buttons = stage.querySelector('.scene-controls'); if (buttons) buttons.hidden = current !== 'park';
   stage.dataset.view = current;
   lastSync = -Infinity; resize();
 }
@@ -358,7 +359,7 @@ function controlsUI() {
 }
 function tick(now) {
   raf = requestAnimationFrame(tick);
-  if (!ready || document.hidden || now - lastFrame < 1000 / 30) return;
+  if (!ready || current !== 'park' || document.hidden || now - lastFrame < 1000 / 30) return;
   const delta = Math.min((now - lastFrame) / 1000 || 0, .08); lastFrame = now;
   sceneTime += delta;
   if (now - lastSync >= 200) { syncData(); lastSync = now; }
@@ -368,7 +369,7 @@ function tick(now) {
   renderer.render(state.scene, state.camera);
 }
 function fallback(error) {
-  ready = false; canvas.style.display = 'none'; document.getElementById('stage').style.display = 'block';
+  ready = false; canvas.style.display = 'none'; document.getElementById('stage').style.display = current === 'park' ? 'block' : 'none';
   stage.dataset.renderer = '2d'; stage.querySelector('.scene-controls')?.setAttribute('hidden', '');
   if (error) console.warn('TideStat: using 2D fallback.', error);
 }
@@ -382,7 +383,7 @@ try {
   const observer = new ResizeObserver(resize); observer.observe(stage);
   canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); fallback(); });
   canvas.addEventListener('webglcontextrestored', () => {
-    ready = true; stage.dataset.renderer = '3d'; canvas.style.display = 'block'; document.getElementById('stage').style.display = 'none';
+    ready = true; stage.dataset.renderer = '3d'; canvas.style.display = current === 'park' ? 'block' : 'none'; document.getElementById('stage').style.display = 'none';
     stage.querySelector('.scene-controls')?.removeAttribute('hidden'); activate(window.__tide?.view || 'map');
   });
   window.addEventListener('pagehide', event => {

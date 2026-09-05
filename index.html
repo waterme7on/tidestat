@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>TideStat — 实时访客地图与网站足迹</title>
+<title>TideStat — 实时访问人数与网站足迹</title>
 <script type="importmap">
 {
   "imports": {
@@ -136,8 +136,13 @@
 </style>
 <link rel="stylesheet" href="./scene.css" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='%23143746' stroke='%2386d7dd' stroke-width='2'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="./vendor/leaflet/leaflet.css" />
+<link rel="stylesheet" href="./vendor/markercluster/MarkerCluster.css" />
+<link rel="stylesheet" href="./realtime.css" />
+<script src="./vendor/leaflet/leaflet.js"></script>
+<script src="./vendor/markercluster/leaflet.markercluster.js"></script>
 </head>
-<body>
+<body data-view="map">
 <header>
   <div class="brand">
     <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
@@ -148,19 +153,43 @@
     TideStat
   </div>
   <nav class="tabs" aria-label="视图切换">
-    <button id="tab-map" class="active" aria-pressed="true" type="button">世界地图</button>
+    <button id="tab-map" class="active" aria-pressed="true" type="button">实时访问人数</button>
     <button id="tab-park" aria-pressed="false" type="button">网站足迹</button>
   </nav>
   <div class="live"><span class="dot" aria-hidden="true"></span>实时 · <b id="onlineCount">0</b> 位访客在线<span id="tzNote" style="color:var(--ink-soft);font-size:10px;margin-left:8px;"></span></div>
 </header>
 
 <main>
-  <div class="stage">
+  <div class="workspace">
+    <div class="map-heading map-only">
+      <div><h1>实时访问人数</h1><p>看看此刻，谁正在你的网站上。</p></div>
+      <span class="source-badge" id="mapSource">实时数据</span>
+    </div>
+    <section class="visitor-metrics map-only" aria-label="实时访客统计">
+      <div class="metric-primary">
+        <div class="metric-number"><strong id="realtimeCount">—</strong><span>位访客正在浏览</span></div>
+        <div class="metric-status"><i aria-hidden="true"></i><span id="liveStatus">正在连接访客数据…</span><button id="dataRetry" type="button" hidden>重试</button></div>
+      </div>
+      <div class="metric-secondary"><strong id="countryCount">0</strong><span>国家 / 地区</span></div>
+      <div class="metric-secondary"><strong id="cityCount">0</strong><span>城市</span></div>
+    </section>
+    <div class="stage">
+      <div id="liveMap" role="region" aria-label="实时访客地图，可拖拽、缩放；所有访客也可在右侧列表访问。"></div>
+      <div class="map-caption map-only"><i aria-hidden="true"></i>每个头像，都是一位来访者</div>
+      <div class="map-controls map-only" id="mapControls" role="group" aria-label="地图控制">
+        <button id="mapReset" type="button" aria-label="查看全球" title="查看全球"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 1v4m0 14v4M1 12h4m14 0h4"/><circle cx="12" cy="12" r="2"/></svg></button>
+        <div class="map-zoom"><button id="mapZoomIn" type="button" aria-label="放大地图">+</button><button id="mapZoomOut" type="button" aria-label="缩小地图">−</button></div>
+      </div>
+      <div class="map-empty map-only" id="mapEmpty" hidden><b>目前没有在线访客</b><p>有人来访时，头像会自动出现在这里。</p></div>
+      <div class="tile-notice map-only" id="tileNotice" role="status" hidden><span id="tileNoticeText">底图暂时未能加载，访客人数与列表仍可查看。</span><button id="tileRetry" type="button">重新加载地图</button></div>
     <canvas id="stage" role="img" aria-label="实时访客二维备用视图"></canvas>
     <canvas id="stage3d" role="img" aria-label="实时访客三维场景，可拖拽旋转和滚轮缩放。详细信息见右侧事件与访客时间线。" style="position:absolute;inset:0;width:100%;height:100%;display:none;"></canvas>
     <div class="hint" id="stageHint">LIVE · 实时访客 · 点击右侧事件可追踪访客</div>
   </div>
+              <div class="map-footer map-only"><span>位置为城市级近似 · 头像为匿名生成，不代表本人外貌</span><span id="unknownLocations"></span></div>
+  </div>
   <aside>
+    <div class="panel map-only" id="onlinePanel"><h2>正在访问 <span class="count" id="onlineListCount">0</span></h2><div id="mapVisitors"></div><p id="onlineListEmpty">新的来访者会显示在这里。</p></div>
     <div class="panel" id="visitorDetail">
       <h2>访客时间线 <button id="vdClose" type="button" aria-label="关闭访客时间线" style="border:0;background:none;cursor:pointer;color:var(--ink-soft);font-size:14px;line-height:1;">✕</button></h2>
       <div class="vd-body">
@@ -678,20 +707,23 @@ eventsEl.addEventListener("keydown", e => {
 const vd = document.getElementById("visitorDetail");
 function selectVisitor(id) {
   sim.selectedId = id;
+  window.__tide.selectedId = id;
+  window.__tideMap?.focusVisitor?.(id);
   vd.classList.add("open");
   renderVisitorDetail();
   eventsDirty = true;
 }
 function deselect() {
   sim.selectedId = null;
+  window.__tide.selectedId = null;
   vd.classList.remove("open");
   eventsDirty = true;
 }
 document.getElementById("vdClose").addEventListener("click", deselect);
 
 function renderVisitorDetail() {
-  const v = sim.visitors.get(sim.selectedId);
-  if (!v) return;
+  const v = sim.visitors.get(sim.selectedId) || sim.events.find(e => (e.v.fullId || e.v.id) === sim.selectedId)?.v;
+  if (!v) { deselect(); return; }
   document.getElementById("vdId").textContent = v.id + " · " + v.city[0];
   document.getElementById("vdMeta").textContent =
     `${v.city[1]} · 进入于 ${new Date(performance.timeOrigin + v.enterTs).toLocaleTimeString("zh-CN", { hour12: false })} · 在线 ${Math.round((performance.now() - v.enterTs) / 1000)}s`;
@@ -703,82 +735,80 @@ function renderVisitorDetail() {
 
 const tabMap = document.getElementById("tab-map");
 const tabPark = document.getElementById("tab-park");
+let parkLoading = null;
 function setView(v) {
-  view = v;
-  window.__tide.view = v;
-  tabMap.classList.toggle("active", v === "map");
-  tabPark.classList.toggle("active", v === "park");
-  const c2 = document.getElementById("stage");
-  const c3 = document.getElementById("stage3d");
-  if (window.__tide3d?.ready?.()) {
-    c2.style.display = "none";
-    c3.style.display = "block";
-    window.__tide3d.activate(v);
-  } else {
-    // Keep the existing 2D renderer visible if WebGL is unavailable or still loading.
-    c2.style.display = "block";
-    c3.style.display = "none";
+  view = v === "park" ? "park" : "map";
+  document.body.dataset.view = view;
+  window.__tide.view = view;
+  for (const [button, mode] of [[tabMap,"map"],[tabPark,"park"]]) {
+    button.classList.toggle("active", mode === view);
+    button.setAttribute("aria-pressed", String(mode === view));
   }
-  tabMap.setAttribute("aria-pressed", String(v === "map"));
-  tabPark.setAttribute("aria-pressed", String(v === "park"));
+  const c2 = document.getElementById("stage"), c3 = document.getElementById("stage3d");
+  window.__tideMap?.activate?.(view);
+  window.__tide3d?.activate?.(view);
+  if (view === "map") { c2.style.display = c3.style.display = "none"; return; }
+  const ready = window.__tide3d?.ready?.();
+  c2.style.display = ready ? "none" : "block";
+  c3.style.display = ready ? "block" : "none";
+  // No Three.js download, canvas context or animation loop for the default map.
+  if (!parkLoading) parkLoading = import("./scene.js").then(() => {
+    if (view === "park") setView("park");
+  }).catch(error => console.warn("TideStat: using existing 2D footprint view.", error));
 }
 tabMap.addEventListener("click", () => setView("map"));
 tabPark.addEventListener("click", () => setView("park"));
 
 /* Live 数据源:轮询 /api/live,驱动同一套渲染结构 */
-const liveSeen = new Map(); // id -> {node}
-let liveTimer = 0;
+const liveSeen = new Map();
+let liveTimer = 0, liveBusy = false;
 async function liveTick(now) {
-  let data;
+  if (DEMO || liveBusy) return;
+  liveBusy = true;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
   try {
-    const res = await fetch("/api/live", { cache: "no-store" });
-    data = await res.json();
-  } catch (e) { return; }
-  const seen = new Set();
-  for (const rv of data.visitors) {
-    seen.add(rv.id);
-    const node = pathNode(rv.paths[rv.paths.length - 1]?.path || "/");
-    const epochToRaf = ts => performance.now() - (Date.now() - ts);
-    let v = sim.visitors.get(rv.id);
-    const shortId = rv.id.slice(0, 8);
-    if (!v) {
-      v = {
-        id: shortId, fullId: rv.id,
-        city: [rv.city, rv.country, rv.lat ?? 0, rv.lng ?? 0, 1],
-        enterTs: epochToRaf(rv.firstTs),
-        state: "reading", node, target: node, t: 0,
-        speed: .5, dwell: 4000,
-        visited: rv.paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts) })),
-        bob: Math.random() * Math.PI * 2
-      };
-      sim.visitors.set(rv.id, v);
-      pushEvent(now, "visit", v, nodeById(node).label);
-      liveSeen.set(rv.id, { node });
-      continue;
-    }
-    const prev = liveSeen.get(rv.id);
-    if (!prev || prev.node !== node) {
-      // 真实 pageview:从当前节点走向新节点
-      v.state = "walking";
-      v.node = prev ? prev.node : node;
-      v.target = node;
-      v.t = 0;
-      v.speed = 1 / 2.2;
-      pushEvent(now, "pageview", v, nodeById(node).label);
-    }
-    v.visited = rv.paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts) }));
-    liveSeen.set(rv.id, { node });
-  }
-  // 消失的访客
-  for (const [id, v] of [...sim.visitors.entries()]) {
-    if (!seen.has(id)) {
-      if (v.state !== "leaving") {
-        v.state = "leaving"; v.t = 0;
-        pushEvent(now, "leave", v, nodeById(v.node).label);
-        liveSeen.delete(id);
+    const res = await fetch("/api/live", { cache: "no-store", signal: controller.signal });
+    if (!res.ok) throw new Error("Live API " + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data.visitors)) throw new Error("Invalid visitor response");
+    const seen = new Set(), epochToRaf = ts => Number.isFinite(Number(ts)) ? Number(ts) - performance.timeOrigin : performance.now();
+    for (const rv of data.visitors) {
+      if (!rv || typeof rv.id !== "string" || !Array.isArray(rv.paths)) continue;
+      seen.add(rv.id);
+      const paths = rv.paths.filter(p => p && typeof p.path === "string");
+      const currentPath = paths[paths.length - 1]?.path || "/";
+      const node = pathNode(currentPath);
+      let v = sim.visitors.get(rv.id);
+      if (!v) {
+        v = { id: rv.id.slice(0, 8), fullId: rv.id, enterTs: epochToRaf(rv.firstTs),
+          state: "reading", node, target: node, t: 0, speed: .5, dwell: 4000,
+          bob: Math.random() * Math.PI * 2 };
+        sim.visitors.set(rv.id, v);
       }
+      const isNew = !liveSeen.has(rv.id), prev = liveSeen.get(rv.id);
+      v.city = [rv.city || "未知位置", rv.country || "", rv.lat ?? null, rv.lng ?? null, 1];
+      v.currentPath = currentPath; v.device = rv.device;
+      v.visited = paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts) }));
+      if (isNew) pushEvent(now, "visit", v, nodeById(node).label);
+      else if (prev.node !== node) {
+        v.state = "walking"; v.node = prev.node; v.target = node; v.t = 0; v.speed = 1 / 2.2;
+        pushEvent(now, "pageview", v, nodeById(node).label);
+      }
+      liveSeen.set(rv.id, { node });
     }
-  }
+    // The API already defines online=last 90 seconds. Never accumulate departed visitors.
+    for (const [id,v] of sim.visitors) if (!seen.has(id)) {
+      v.state = "leaving"; pushEvent(now, "leave", v, nodeById(v.node).label);
+      sim.visitors.delete(id); liveSeen.delete(id);
+      if (sim.selectedId === id) deselect();
+    }
+    window.__tide.status = "ready";
+    window.__tide.onlineMs = Number(data.onlineMs) > 0 ? Number(data.onlineMs) : 90000;
+    window.__tide.updatedAt = Date.now();
+  } catch (error) {
+    window.__tide.status = "error"; // Preserve last successful data and visibly mark it stale.
+  } finally { clearTimeout(timeout); liveBusy = false; }
 }
 
 window.__tideSite = SITE;
@@ -786,18 +816,14 @@ window.__tideAvatarTraits = avatarTraits;
 window.__tideLandB64 = LAND_B64;
 window.__tideCities = CITIES;
 window.__tide = window.__tide || {};
-window.__tide.view = "map";
+Object.assign(window.__tide, { view: "map", visitors: sim.visitors, selectedId: null,
+  demo: DEMO, status: DEMO ? "ready" : "loading", onlineMs: 90000,
+  selectVisitor, deselect, refresh: () => liveTick(performance.now()) });
 document.getElementById("tzNote").textContent =
   new Date().toLocaleTimeString("zh-CN", { hour12: false, timeZoneName: "short" }).replace(/^\d{1,2}:\d{2}:\d{2}\s*/, "");
 
-let handed = false;
 let last = performance.now();
 function loop(now) {
-  // 3D 模块就绪后,一次性把画布交给 3D(初始视图为地图)
-  if (!handed && window.__tide3d?.ready?.()) {
-    handed = true;
-    setView(view);
-  }
   const dt = Math.min((now - last) / 1000, .1);
   last = now;
   if (DEMO) {
@@ -830,11 +856,9 @@ function loop(now) {
   window.__tide.visitors = sim.visitors;
   window.__tide.selectedId = sim.selectedId;
   window.__tide.now = now;
-  document.getElementById("onlineCount").textContent = sim.visitors.size;
+  document.getElementById("onlineCount").textContent = [...sim.visitors.values()].filter(v => v.state !== "leaving").length;
 
-  if (view === "map" && !window.__tide3d?.ready?.()) drawMap(now);
-  else if (window.__tide3d?.ready?.()) { /* 3D 模块自渲染 */ }
-  else drawPark(now, dt);
+  if (view === "park" && !window.__tide3d?.ready?.()) drawPark(now, dt);
   flushEvents();
   if (sim.selectedId && sim.visitors.has(sim.selectedId)) renderVisitorDetail();
   requestAnimationFrame(loop);
@@ -851,6 +875,6 @@ if (DEMO) for (let i = 0; i < 9; i++) {
 }
 </script>
 
-<script type="module" src="./scene.js"></script>
+<script type="module" src="./realtime-map.js"></script>
 </body>
 </html>

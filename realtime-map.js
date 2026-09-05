@@ -97,7 +97,7 @@ function focusVisitor(id) {
 function showWorld() {
   if (!map) return;
   fitted = true; map.stop(); map.closePopup();
-  map.fitBounds(world, { padding: [24, 28], animate: false });
+  map.fitBounds(world, { padding: [24, 28], animate: false }); fitted = true;
 }
 function renderList(list) {
   const container = el('mapVisitors'), ids = new Set(list.map(([id]) => id));
@@ -201,6 +201,7 @@ try {
   root.dataset.ready = 'false'; el('tileNotice').hidden = false;
   el('tileNoticeText').textContent = '地图暂不可用，仍可在右侧查看在线访客。';
   el('mapControls').hidden = true; el('tileRetry').hidden = true;
+  map?.remove(); map = null;
   console.warn('TideStat: visitor list remains available.', error);
 }
 el('dataRetry').addEventListener('click', () => bridge().refresh?.());
