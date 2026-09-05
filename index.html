@@ -722,16 +722,18 @@ function selectVisitor(id) {
   vd.classList.add("open"); renderVisitorDetail(true); eventsDirty = true;
 }
 function closeTimeline() {
+  if (!timelineDialog.open && vd.parentElement !== timelineDialog && !window.__tide.timelineOpen) return;
   if (timelineDialog.open) timelineDialog.close();
   if (vd.parentElement === timelineDialog) timelineHome.after(vd);
   window.__tide.timelineOpen = false;
-  if(timelineReturnFocus?.isConnected) timelineReturnFocus.focus({preventScroll:true});
+  const focusTarget = timelineReturnFocus?.isConnected ? timelineReturnFocus : document.getElementById(view === 'park' ? 'footprintReset' : 'mapReset');
   timelineReturnFocus = null;
+  focusTarget?.focus({preventScroll:true});
 }
 function openTimeline(id = sim.selectedId) {
   if (!findVisitor(id)) return;
   timelineReturnFocus = document.activeElement;
-  selectVisitor(id);
+  if (sim.selectedId !== id) selectVisitor(id);
   window.__tideMap?.collapse?.(); window.__tide3d?.collapse?.();
   timelineDialog.append(vd); window.__tide.timelineOpen = true;
   if (!timelineDialog.open) timelineDialog.showModal();
@@ -743,9 +745,19 @@ function deselect() {
   vd.classList.remove("open"); detailSignature=''; eventsDirty = true;
 }
 timelineDialog.addEventListener('cancel', e => {e.preventDefault();closeTimeline();});
-timelineDialog.addEventListener('close', closeTimeline);
+timelineDialog.addEventListener('close', () => { if (!timelineDialog.open) closeTimeline(); });
 timelineDialog.addEventListener('click',e=>{if(e.target===timelineDialog){const r=timelineDialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeTimeline();}});
-document.getElementById("vdClose").addEventListener("click", deselect);
+// Keep keyboard focus inside the timeline even when Close is its only control.
+timelineDialog.addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const controls = [...timelineDialog.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]')].filter(el => el.getClientRects().length);
+  const first = controls[0], last = controls.at(-1);
+  if (!first) { e.preventDefault(); return; }
+  if (controls.length === 1 || (e.shiftKey && document.activeElement === first) || (!e.shiftKey && document.activeElement === last)) {
+    e.preventDefault(); (e.shiftKey ? last : first).focus();
+  }
+});
+document.getElementById("vdClose").addEventListener("click", () => timelineDialog.open ? closeTimeline() : deselect());
 function renderVisitorDetail(force = false) {
   if (!force && performance.now() - detailUpdated < 300) return;
   detailUpdated = performance.now();

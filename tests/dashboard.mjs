@@ -28,6 +28,7 @@ try{
  // Native modal keyboard trap and Escape restore the same sidebar panel.
  await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.getElementById('timelineDialog').contains(document.activeElement)),true);
  await page.keyboard.press('Escape');await page.waitForFunction(()=>!window.__tide.timelineOpen);assert.equal(await page.locator('#visitorDetail').count(),1);
+ assert.equal(await page.evaluate(()=>document.activeElement.textContent),'查看访问时间线 →');
  await page.locator('#mapExpand').click();await page.locator('.online-visitor').filter({hasText:'London'}).evaluate(e=>e.click());
  await page.getByRole('button',{name:'查看访问时间线 →',exact:true}).click();await page.locator('#timelineDialog[open]').waitFor();assert.equal(await page.locator('.map-expanded').count(),0);
  // A visitor departing while the timeline is open must not close it or retain an online count.
@@ -52,7 +53,7 @@ try{
  const demo=await browser.newPage({locale:'en-US',viewport:{width:1440,height:1000},reducedMotion:'reduce'});watch(demo);const api=[];demo.on('request',r=>{if(r.url().includes('/api/'))api.push(r.url());});
  await ready(demo,'/?demo=1');const counts=[];for(let i=0;i<8;i++){counts.push(await demo.evaluate(()=>window.__tide.visitors.size));await demo.waitForTimeout(600);}
  assert.ok(counts.every(n=>n>=100&&n<=150),JSON.stringify(counts));assert.equal(api.length,0);
- await demo.locator('.online-visitor').first().click();await demo.getByRole('button',{name:'View visit timeline →',exact:true}).click();await demo.locator('#timelineDialog[open]').waitFor();
+ await demo.locator('.online-visitor[data-visitor-id="v0050"]').click();await demo.getByRole('button',{name:'View visit timeline →',exact:true}).click();await demo.locator('#timelineDialog[open]').waitFor();
  assert.ok(await demo.locator('#vdTimeline li').count()>=3);assert.match(await demo.locator('#vdId').textContent(),/203\.\*\.\*\./);assert.match(await demo.locator('#vdMeta').textContent(),/Simulated IP/);
  await demo.screenshot({path:'visual-review/timeline-demo-en.png'});await demo.locator('#vdClose').click();
  await demo.screenshot({path:'visual-review/demo-120-en-desktop.png'});
@@ -68,6 +69,12 @@ try{
  const paused=await motion.evaluate(()=>window.__tideMap.camera());await motion.waitForTimeout(700);assert.deepEqual(await motion.evaluate(()=>window.__tideMap.camera()),paused);
  await motion.locator('#mapRotate').click();assert.equal(await motion.locator('#mapRotate').getAttribute('aria-pressed'),'false');
  await motion.locator('#mapRotate').click();await motion.emulateMedia({reducedMotion:'reduce'});await motion.waitForTimeout(100);assert.equal(await motion.locator('#mapRotate').isDisabled(),true);
+ await motion.emulateMedia({reducedMotion:'no-preference'});
+ await motion.locator('#tab-park').click();await motion.waitForFunction(()=>window.__tide3d?.ready());
+ const journeyCamera=await motion.evaluate(()=>window.__tide3d.viewState());
+ await motion.waitForFunction(()=>document.querySelector('.stage').dataset.footprintRotating==='true',null,{timeout:20000});await motion.waitForTimeout(800);
+ assert.notDeepEqual(await motion.evaluate(()=>window.__tide3d.viewState()),journeyCamera);
+ await motion.mouse.move(50,50);await motion.waitForFunction(()=>document.querySelector('.stage').dataset.footprintRotating==='false');
  await motion.close();results.push('Idle globe rotation starts after delay, is slow, immediately pauses on input, supports manual stop and respects reduced-motion');
  // WebGL-less timeline, localization and masked display remain usable.
  const flat=await browser.newPage({locale:'en-US',viewport:{width:390,height:844},reducedMotion:'reduce'});watch(flat);await mock(flat);
@@ -76,4 +83,4 @@ try{
  assert.equal(await flat.locator('#globeMode').textContent(),'2D compatibility mode');await flat.close();
  assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
  await fs.writeFile('visual-review/dashboard-results.json',JSON.stringify({passed:true,results,counts,errors,external},null,2));console.log(results.join('\n'));
-}catch(error){await inspected?.screenshot({path:'visual-review/dashboard-failure.png',fullPage:true}).catch(()=>{});await fs.writeFile('visual-review/dashboard-results.json',JSON.stringify({passed:false,results,errors,external,failure:String(error)},null,2));throw error;}finally{await browser.close();}
+}catch(error){await inspected?.screenshot({path:'visual-review/dashboard-failure.png',fullPage:true}).catch(()=>{});await fs.writeFile('visual-review/dashboard-results.json',JSON.stringify({passed:false,results,errors,external,failure:String(error),stack:error.stack},null,2));throw error;}finally{await browser.close();}

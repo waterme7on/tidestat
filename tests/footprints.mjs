@@ -26,7 +26,11 @@ function watch(p){p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>
 watch(page);
 async function mock(p){await p.route('**/api/live',r=>r.fulfill({status,contentType:'application/json',body:JSON.stringify({onlineMs:90000,visitors})}));}
 async function open(p){await mock(p);await p.goto(base);await p.waitForFunction(()=>window.__tideMap?.ready());await p.locator('#tab-park').click();await p.waitForFunction(()=>window.__tide3d?.ready(),null,{timeout:15000});await p.waitForTimeout(700);}
-async function refresh(p){await p.evaluate(()=>window.__tide.refresh());await p.waitForTimeout(400);}
+async function refresh(p){
+ await p.evaluate(()=>window.__tide.refresh());
+ // Wait for the data bridge AND its rendered state, not a fixed GPU-dependent delay.
+ await p.waitForFunction(({ok,count})=>window.__tide.status===(ok?'ready':'error')&&document.getElementById('footprintCount').textContent===String(count)&&(ok||document.querySelector('.stage').dataset.footprintLights==='0'),{ok:status===200,count:visitors.length},{timeout:10000});
+}
 async function selected(p,id){
  await p.waitForFunction(id=>window.__tide.selectedId===id,id);
  await p.locator('.footprint-journey').waitFor({state:'visible',timeout:5000});
