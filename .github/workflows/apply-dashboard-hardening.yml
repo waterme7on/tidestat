@@ -1,0 +1,89 @@
+# One-time, source-only patch on the already authorized PR branch. Self-removes.
+name: Apply dashboard hardening
+on:
+  push:
+    branches: ['design/footprints-doodle-day-night']
+    paths: ['.github/workflows/apply-dashboard-hardening.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/design/footprints-doodle-day-night' && github.actor == 'waterme7on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/footprints-doodle-day-night
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply exact reviewed source replacements
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import subprocess
+          expected = {
+            'index.html': 'fd20c0a108158f61b803ee6258c33d34c404c899',
+            'globe-map.js': '163e90cd812fcd53b2ddb2f6035fa03ef3e881ea',
+            'scene.js': '5c90e73c8d9a338b1099aa2dd0a504281f42ef11',
+            'i18n.js': '11dc6e07dbc790d95bfc774423596775349d0b02',
+            'worker.js': 'a5a30677bb68403eaef266475dc591dc794ce46d',
+            '.github/workflows/visual-check.yml': '8f0bbfd16b536a48d5192e2a2ee8275054d8a0e9'
+          }
+          for path, sha in expected.items():
+            assert subprocess.check_output(['git', 'hash-object', path], text=True).strip() == sha, path
+          def change(path, old, new):
+            p=Path(path); s=p.read_text()
+            assert s.count(old)==1, (path, s.count(old), old[:80])
+            p.write_text(s.replace(old, new))
+          change('index.html', '''      else if (prev.node !== node) {
+                  v.state = "walking"; v.node = prev.node; v.target = node; v.t = 0; v.speed = 1 / 2.2;
+                  pushEvent(now, "pageview", v, nodeById(node).label);
+                }
+                liveSeen.set(rv.id, { node });''', '''      else if (prev.path !== currentPath) {
+                  // A second article is a new pageview even when both URLs share one visual area.
+                  if (prev.node !== node) {
+                    v.state = "walking"; v.node = prev.node; v.target = node; v.t = 0; v.speed = 1 / 2.2;
+                  }
+                  pushEvent(now, "pageview", v, nodeById(node).label);
+                }
+                liveSeen.set(rv.id, { node, path: currentPath });''')
+          change('index.html', '    window.__tide.status = "ready";', '    window.__tide.status = "ready";\n    window.__tide.truncated = data.truncated === true;')
+          change('index.html', '  demo: DEMO, status: DEMO ? "ready" : "loading", onlineMs: 90000,', '  demo: DEMO, status: DEMO ? "ready" : "loading", onlineMs: 90000, truncated: false,')
+          change('index.html', "  v.node=v.target=v.visited.at(-1).node;v.state='reading';v.dwell=rnd(10000,40000);v.t=0;", "  v.node=v.visited.at(-1).node;v.target=nextNode(v.node);v.state='reading';v.dwell=rnd(10000,40000);v.t=0;")
+          change('globe-map.js', '''  else if (flat) popup = L.popup({ className: 'live-visitor-popup', maxWidth: 280, minWidth: 230, offset: [0, -25] }).setLatLng([loc[1], loc[0]]).setContent(content).openOn(flat);
+          }''', '''  else if (flat) popup = L.popup({ className: 'live-visitor-popup', maxWidth: 280, minWidth: 230, offset: [0, -25] }).setLatLng([loc[1], loc[0]]).setContent(content).openOn(flat);
+            // Native close controls must release our pause state, not just remove the map's DOM.
+            const opened = popup;
+            opened?.once(engine === 'globe' ? 'close' : 'remove', () => {
+              if (popup !== opened) return; // An old popup must not clear a newer selection.
+              popup = null; popupState = null; idleMotion.reset();
+            });
+          }''')
+          change('globe-map.js', "  el('dataRetry').hidden = !failed; document.body.classList.toggle('data-stale', failed);", "  if (!data.demo && !failed && !unavailable && data.truncated) el('liveStatus').textContent += ' · ' + t('仅展示最近 2,000 条事件 · 人数与足迹可能不完整');\n  el('dataRetry').hidden = !failed; document.body.classList.toggle('data-stale', failed);")
+          change('scene.js', "  el('footprintStatus').textContent=data.demo?t('模拟访客演示，不计入真实统计'):data.status==='error'?t('连接中断 · 暂停活动亮灯'):s.unavailable?t('正在读取访客数据…'):t('最近 {seconds} 秒内有活动',{seconds:Math.round((data.onlineMs||90000)/1000)});", "  el('footprintStatus').textContent=data.demo?t('模拟访客演示，不计入真实统计'):data.status==='error'?t('连接中断 · 暂停活动亮灯'):s.unavailable?t('正在读取访客数据…'):t('最近 {seconds} 秒内有活动',{seconds:Math.round((data.onlineMs||90000)/1000)});\n  if (!data.demo && s.fresh && data.truncated) el('footprintStatus').textContent += ' · ' + t('仅展示最近 2,000 条事件 · 人数与足迹可能不完整');")
+          change('i18n.js', '  "最近 {seconds} 秒内有活动": "Active within the last {seconds} seconds",', '  "最近 {seconds} 秒内有活动": "Active within the last {seconds} seconds",\n  "仅展示最近 2,000 条事件 · 人数与足迹可能不完整": "Latest 2,000 events only · Counts and journeys may be incomplete",')
+          change('worker.js', '      const onlineMs = 90 * 1000;', '      const onlineMs = 90 * 1000;\n      const eventLimit = 2000;')
+          change('worker.js', '''         WHERE e.ts > ? ORDER BY e.ts ASC LIMIT 2000`
+                ).bind(now - windowMs).all();
+                const map = new Map();
+                for (const row of results) {''', '''         WHERE e.ts > ? ORDER BY e.ts DESC, e.id DESC LIMIT ?`
+                ).bind(now - windowMs, eventLimit + 1).all();
+                // Keep the newest bounded window, then restore chronological journey order.
+                // A sentinel row makes truncation explicit instead of presenting a partial count as complete.
+                const truncated = results.length > eventLimit;
+                const map = new Map();
+                for (const row of results.slice(0, eventLimit).reverse()) {''')
+          change('worker.js', 'JSON.stringify({ now, onlineMs, visitors })', 'JSON.stringify({ now, onlineMs, visitors, truncated })')
+          change('.github/workflows/visual-check.yml', 'for suite in footprints themes avatars globe globe-lifecycle; do', 'for suite in hardening footprints themes avatars globe globe-lifecycle; do')
+          PY
+          for file in globe-map.js scene.js i18n.js worker.js tests/hardening.mjs; do node --check "$file"; done
+          node tests/privacy.mjs
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html globe-map.js scene.js i18n.js worker.js .github/workflows/visual-check.yml
+          git rm .github/workflows/apply-dashboard-hardening.yml
+          git commit -m 'fix: preserve same-area visits, resume idle rotation and keep newest live events'
+          git push origin HEAD:design/footprints-doodle-day-night
