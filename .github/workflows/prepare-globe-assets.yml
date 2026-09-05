@@ -1,0 +1,47 @@
+# Branch-local asset preparation. Removed after review; no production deployment.
+name: Prepare globe assets
+on:
+  push:
+    branches: ['design/observatory-3d-refresh']
+    paths: ['.github/workflows/prepare-globe-assets.yml']
+permissions:
+  contents: write
+jobs:
+  assets:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/design/observatory-3d-refresh' && github.actor == 'waterme7on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/observatory-3d-refresh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Vendor versioned renderer and public-domain geography
+        run: |
+          npm install --prefix /tmp/globe-assets --ignore-scripts --no-audit --no-fund maplibre-gl@5.6.0 world-atlas@2.0.2 topojson-client@3.1.0
+          mkdir -p vendor/maplibre assets
+          cp /tmp/globe-assets/node_modules/maplibre-gl/dist/maplibre-gl.js /tmp/globe-assets/node_modules/maplibre-gl/dist/maplibre-gl.css /tmp/globe-assets/node_modules/maplibre-gl/LICENSE.txt vendor/maplibre/
+          node <<'JS'
+          const fs = require('node:fs');
+          const topojson = require('/tmp/globe-assets/node_modules/topojson-client');
+          const topology = require('/tmp/globe-assets/node_modules/world-atlas/countries-50m.json');
+          const countries = topojson.feature(topology, topology.objects.countries);
+          fs.writeFileSync('assets/countries-50m.geojson', JSON.stringify(countries, (key, value) => typeof value === 'number' ? Math.round(value * 10000) / 10000 : value));
+          fs.copyFileSync('/tmp/globe-assets/node_modules/world-atlas/LICENSE', 'assets/WORLD-ATLAS-LICENSE');
+          JS
+          sha256sum vendor/maplibre/maplibre-gl.js vendor/maplibre/maplibre-gl.css assets/countries-50m.geojson > assets/globe-assets.sha256
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add vendor/maplibre assets
+          git diff --cached --quiet || git commit -m 'build: vendor MapLibre 5.6 and Natural Earth 50m country boundaries'
+          git push origin HEAD:design/observatory-3d-refresh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: globe-assets
+          path: |
+            vendor/maplibre
+            assets
+          retention-days: 3
