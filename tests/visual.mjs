@@ -74,7 +74,7 @@ try {
   const now = Date.now();
   await live.route('**/api/live', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ now, visitors: [
     { id: 'samehead-first-visitor', city: 'Tokyo', country: 'JP', lat: 35.7, lng: 139.7, firstTs: now - 5000, lastTs: now, paths: [{ path: '/zh', ts: now - 5000 }, { path: '/zh/work', ts: now }] },
-    { id: 'samehead-second-visitor', city: 'London', country: 'GB', lat: 51.5, lng: -.1, firstTs: now - 4000, lastTs: now, paths: [{ path: '/zh/writing', ts: now }] }
+    { id: `samehead-second'visitor"`, city: 'London <img src=x onerror=window.__xss=1>', country: 'GB', lat: 51.5, lng: -.1, firstTs: now - 4000, lastTs: now, paths: [{ path: '/zh/writing', ts: now }] }
   ] }) }));
   await ready(live, '/');
   await live.waitForFunction(() => window.__tide.visitors.size === 2);
@@ -83,10 +83,21 @@ try {
   assert.ok((await live.locator('#vdId').textContent()).includes('Tokyo'));
   assert.equal(await live.evaluate(() => window.__tide.selectedId), 'samehead-first-visitor');
   assert.equal(await live.locator('#onlineCount').textContent(), '2');
-  await live.locator('.ev[data-id="samehead-second-visitor"]').click();
+  await live.locator('.ev').filter({ hasText: 'London' }).click();
   assert.ok((await live.locator('#vdId').textContent()).includes('London'));
+  assert.equal(await live.locator('#events img').count(), 0);
+  assert.equal(await live.evaluate(() => window.__xss), undefined);
+  await live.waitForFunction(() => window.__tide.selectedId === `samehead-second'visitor"`);
   results.push('mocked live API: no demo mixing, full visitor IDs with identical prefixes, working timelines');
   await live.close();
+  const motion = await browser.newPage({ viewport: { width: 1280, height: 800 }, reducedMotion: 'no-preference' });
+  recordErrors(motion);
+  await ready(motion);
+  assert.equal(await motion.locator('[aria-label="自动旋转"]').getAttribute('aria-pressed'), 'true');
+  await motion.locator('[aria-label="自动旋转"]').click();
+  assert.equal(await motion.locator('[aria-label="自动旋转"]').getAttribute('aria-pressed'), 'false');
+  await motion.close();
+  results.push('motion controls: normal preference can pause auto rotation; visitor markup is escaped');
   assert.deepEqual(errors, [], 'No browser runtime, shader, or asset-loading errors');
   const fallback = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await fallback.addInitScript(() => {

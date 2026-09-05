@@ -104,7 +104,7 @@ function geoPosition(lat, lng, radius = 2.13) {
   return new THREE.Vector3(-Math.cos(phi) * Math.cos(theta), Math.sin(phi), Math.cos(phi) * Math.sin(theta)).multiplyScalar(radius).applyMatrix4(tilt);
 }
 function createGlobe() {
-  const state = newScene(4.0, new THREE.Vector3(0, -.15, 0), new THREE.Vector3(-7, 4.1, -9));
+  const state = newScene(4.0, new THREE.Vector3(0, -.9, 0), new THREE.Vector3(-7, 3.35, -9));
   const s = state.scene;
   // A grounded instrument, not an isolated toy sphere.
   shadow(s, 10, 10, -2.91);
@@ -156,7 +156,7 @@ function curveBetween(a, b) {
   return new THREE.QuadraticBezierCurve3(a.clone().setY(.25), mid, b.clone().setY(.25));
 }
 function createPark() {
-  const state = newScene(14.6, new THREE.Vector3(0, .25, 0), new THREE.Vector3(19, 22, 29));
+  const state = newScene(14.6, new THREE.Vector3(0, -2.65, 0), new THREE.Vector3(19, 19.1, 29));
   const s = state.scene;
   shadow(s, 36, 27, -.6);
   box(s, 26, .44, 18, dark, 0, -.24, 0, .20);
@@ -211,7 +211,7 @@ function createPark() {
     curves.set(`${bId}>${aId}`, new THREE.QuadraticBezierCurve3(curve.v2.clone(), curve.v1.clone(), curve.v0.clone()));
     mesh(s, new THREE.TubeGeometry(curve, 40, .068, 6, false), ink).castShadow = false;
     const mat = basic(P.path, { transparent: true, opacity: .5 });
-    const line = mesh(s, new THREE.TubeGeometry(curve, 40, .022, 6, false), mat); line.position.y = .03; line.castShadow = false;
+    const line = mesh(s, new THREE.TubeGeometry(curve, 40, .022, 6, false), mat); line.position.y = .075; line.castShadow = false;
     paths.push({ a: aId, b: bId, material: mat });
   }
   return state;
@@ -316,7 +316,7 @@ function resize() {
     const previousFit = state.fit, oldDistance = camera.position.distanceTo(target);
     camera.aspect = w / h; camera.updateProjectionMatrix();
     const vertical = THREE.MathUtils.degToRad(camera.fov / 2), horizontal = Math.atan(Math.tan(vertical) * camera.aspect);
-    state.fit = radius / Math.sin(Math.min(vertical, horizontal)) * 1.02;
+    state.fit = radius / Math.sin(Math.min(vertical, horizontal)) * (w < 600 ? 1.08 : 1.02);
     const distance = previousFit === 1 ? state.fit : state.fit * THREE.MathUtils.clamp(oldDistance / previousFit, .65, 1.8);
     camera.position.sub(target).normalize().multiplyScalar(distance).add(target);
     controls.minDistance = state.fit * .65; controls.maxDistance = state.fit * 1.8;
@@ -332,8 +332,12 @@ function activate(view) {
 }
 function reset() {
   const state = current === 'park' ? park : globe; if (!state) return;
+  const control = state.controls, damping = control.enableDamping, rotating = control.autoRotate;
+  // Flush OrbitControls inertia before restoring the fitted camera; do not access private fields.
+  control.autoRotate = false; control.enableDamping = false; control.update();
   state.camera.position.copy(state.home).multiplyScalar(state.fit).add(state.target);
-  state.controls.target.copy(state.target); state.controls.update();
+  control.target.copy(state.target); control.update();
+  control.enableDamping = damping; control.autoRotate = rotating;
 }
 function controlsUI() {
   const group = document.createElement('div'); group.className = 'scene-controls'; group.setAttribute('role', 'group'); group.setAttribute('aria-label', '3D 视图控制');
@@ -344,10 +348,12 @@ function controlsUI() {
   };
   button('重置视角', '<path d="M4 10a8 8 0 1 1 1 7M4 4v6h6"/>', reset);
   const rotation = button('自动旋转', '<path d="M7 5a8 8 0 0 1 13 6m-3 8A8 8 0 0 1 4 13M20 5v6h-6M4 19v-6h6"/>', () => {
+    if (media.matches) return;
     autoRotate = !autoRotate; rotation.setAttribute('aria-pressed', String(autoRotate));
   });
   rotation.setAttribute('aria-pressed', String(autoRotate));
-  media.addEventListener('change', () => { autoRotate = !media.matches; rotation.setAttribute('aria-pressed', String(autoRotate)); });
+  rotation.disabled = media.matches;
+  media.addEventListener('change', () => { autoRotate = !media.matches; rotation.disabled = media.matches; rotation.setAttribute('aria-pressed', String(autoRotate)); });
   stage.append(group);
 }
 function tick(now) {

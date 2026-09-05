@@ -641,6 +641,9 @@ function drawHint(text) { hintEl.textContent = text; }
 
 /* ───────────────────────── 事件流 + 访客时间线 ───────────────────────── */
 
+function escapeMarkup(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 const eventsEl = document.getElementById("events");
 let eventsDirty = true;
 function renderEventsThrottled() { eventsDirty = true; }
@@ -650,12 +653,12 @@ function flushEvents() {
   document.getElementById("evCount").textContent = sim.events.length;
   const sel = sim.selectedId;
   eventsEl.innerHTML = sim.events.map(e => `
-    <div class="ev${sel === (e.v.fullId || e.v.id) ? " selected" : ""}" data-id="${e.v.fullId || e.v.id}" role="button" tabindex="0">
+    <div class="ev${sel === (e.v.fullId || e.v.id) ? " selected" : ""}" data-id="${escapeMarkup(e.v.fullId || e.v.id)}" role="button" tabindex="0">
       <i class="${e.type}"></i>
-      <div class="txt"><b>${e.v.city[0]}</b><span> · ${
+      <div class="txt"><b>${escapeMarkup(e.v.city[0])}</b><span> · ${
         e.type === "visit" ? "进入网站" : e.type === "leave" ? "离开(" + e.place + ")" : "浏览 " + e.place
       }</span></div>
-      <time>${new Date(e.ts).toLocaleTimeString("zh-CN", { hour12: false })}</time>
+      <time>${new Date(performance.timeOrigin + e.ts).toLocaleTimeString("zh-CN", { hour12: false })}</time>
     </div>`).join("");
 }
 eventsEl.addEventListener("click", e => {
@@ -691,9 +694,9 @@ function renderVisitorDetail() {
   if (!v) return;
   document.getElementById("vdId").textContent = v.id + " · " + v.city[0];
   document.getElementById("vdMeta").textContent =
-    `${v.city[1]} · 进入于 ${new Date(v.enterTs).toLocaleTimeString("zh-CN", { hour12: false })} · 在线 ${Math.round((performance.now() - v.enterTs) / 1000)}s`;
+    `${v.city[1]} · 进入于 ${new Date(performance.timeOrigin + v.enterTs).toLocaleTimeString("zh-CN", { hour12: false })} · 在线 ${Math.round((performance.now() - v.enterTs) / 1000)}s`;
   document.getElementById("vdTimeline").innerHTML = v.visited.map((x, i) => `
-    <li><i></i><b>${nodeById(x.node).label}</b><time>${new Date(x.arrive).toLocaleTimeString("zh-CN", { hour12: false })}</time></li>`).join("");
+    <li><i></i><b>${nodeById(x.node).label}</b><time>${new Date(performance.timeOrigin + x.arrive).toLocaleTimeString("zh-CN", { hour12: false })}</time></li>`).join("");
 }
 
 /* ───────────────────────── 视图切换 + 主循环 ───────────────────────── */
