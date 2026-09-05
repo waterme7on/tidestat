@@ -29,6 +29,7 @@ jobs:
           node --check scene.js
           node --check globe-map.js
           node --check visitor-avatar.js
+          node tests/avatars.mjs
           node tests/globe.mjs
           node tests/globe-lifecycle.mjs
       - name: Package self-contained visual review

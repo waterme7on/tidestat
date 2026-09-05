@@ -1,0 +1,48 @@
+Notionists Neutral — selected original artwork / DiceBear 9.x
+
+Artwork: "Notionists" by Zoish, dedicated under CC0 1.0 Universal.
+Source: https://heyzoish.gumroad.com/l/notionists
+Creator: https://bio.link/heyzoish
+CC0 legal text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+Style: https://www.dicebear.com/styles/notionists-neutral/
+
+Upstream repository: https://github.com/dicebear/dicebear
+Pinned commit: dc3dc40438791cd0bec9ef50512f2baeed53a633
+Directory: packages/@dicebear/notionists-neutral/src/components/
+
+parts.js contains these SVG fragments, in this fixed order:
+  brows.ts: variant13, variant12, variant09, variant10
+  eyes.ts: variant05, variant04, variant03
+  nose.ts: variant06, variant16, variant17
+  lips.ts: variant30, variant25, variant17, variant04
+
+Path geometry and internal fills are unchanged. TideStat adds the circular paper
+background, selects variants with its own stable ID hash, and retains the original
+560 x 560 canvas and component offsets from src/index.ts. The TypeScript component
+wrappers are replaced by small ES-module arrays; there is no runtime DiceBear API.
+This is a curated local adaptation, not the complete upstream generator; its seed
+mapping is TideStat's own and is not promised to match DiceBear's public API.
+
+Upstream generated code is provided under the MIT License:
+
+MIT License
+
+Copyright (c) 2024 Florian Körner
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
