@@ -21,6 +21,7 @@ jobs:
         run: |
           npm install --no-save --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk
       - name: Globe regression checks
         run: |
           mkdir -p visual-review
@@ -29,6 +30,7 @@ jobs:
           node --check globe-map.js
           node --check visitor-avatar.js
           node tests/globe.mjs
+          node tests/globe-lifecycle.mjs
       - name: Package self-contained visual review
         if: always()
         run: |
