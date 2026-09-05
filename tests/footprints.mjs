@@ -21,16 +21,18 @@ const data=(()=>{const now=Date.now();const points=[['上海','CN',31,121],['伦
  paths:[{path:'/zh',ts:now-20000},{path:'/zh/work',ts:now-10000},{path:['/zh/writing','/zh/work','/zh/writing/dyor','/contact'][i%4],ts:now}]};});})();
 let visitors=data,status=200;
 const page=await browser.newPage({viewport:{width:1440,height:1000},colorScheme:'dark',reducedMotion:'reduce'});
-function watch(p){p.on('pageerror',e=>errors.push(e.message));}
+function watch(p){p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='warn'||m.type()==='error')console.log('[browser]',m.text());});}
 watch(page);
 async function mock(p){await p.route('**/api/live',r=>r.fulfill({status,contentType:'application/json',body:JSON.stringify({onlineMs:90000,visitors})}));}
-async function open(p){await mock(p);await p.goto(base);await p.waitForFunction(()=>window.__tideMap?.ready());await p.locator('#tab-park').click();await p.waitForFunction(()=>window.__tide3d?.ready());await p.waitForTimeout(700);}
+async function open(p){await mock(p);await p.goto(base);await p.waitForFunction(()=>window.__tideMap?.ready());await p.locator('#tab-park').click();await p.waitForFunction(()=>window.__tide3d?.ready(),null,{timeout:15000});await p.waitForTimeout(700);}
 async function refresh(p){await p.evaluate(()=>window.__tide.refresh());await p.waitForTimeout(400);}
 try{
  await open(page);assert.equal(await page.locator('.stage').getAttribute('data-footprint-engine'),'3d');
  assert.equal(await page.locator('#footprintCount').textContent(),'16');assert.equal(await page.locator('#footprintActive').textContent(),'4');
  assert.equal(await page.locator('.footprint-node').count(),7);assert.equal(await page.locator('.footprint-person').count(),16);
  const view=await page.evaluate(()=>window.__tide3d.viewState());await page.waitForTimeout(500);assert.deepEqual(await page.evaluate(()=>window.__tide3d.viewState()),view,'no unsolicited rotation');
+ const pixels=await page.locator('#stage3d').evaluate(c=>{const gl=c.getContext('webgl2'),p=new Uint8Array(4),colors=new Set();for(let x=.15;x<.9;x+=.05)for(let y=.15;y<.9;y+=.05){gl.readPixels(Math.floor(x*c.width),Math.floor(y*c.height),1,1,gl.RGBA,gl.UNSIGNED_BYTE,p);colors.add([...p].join(','));}return colors.size;});
+ assert.ok(pixels>8,'actual rendered buildings, not an empty canvas');
  await page.screenshot({path:'visual-review/footprints-dark-desktop.png'});
  await page.locator('.footprint-node[data-node-id="writing"]').click();assert.equal(await page.locator('.footprint-person').count(),4);
  await page.getByRole('button',{name:'显示全部分区'}).click();assert.equal(await page.locator('.footprint-person').count(),16);

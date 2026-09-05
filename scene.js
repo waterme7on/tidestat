@@ -13,13 +13,13 @@ const palettes = {
   light: { bg: '#f6f8f3', base: '#e5eadd', rim: '#c2cdb8', wall: '#f4f0e5', roof: '#8c9c85', pane: '#b9c9bf', line: '#bac8af', lit: '#678357' },
 };
 const LABELS = { gate: '入口', home: '首页', work: '作品馆', writing: '文章林', dyor: '研究室', about: '关于 / 其他', subscribe: '订阅角' };
-const label = id => LABELS[id] || site.nodes.find(n => n.id === id)?.label || id;
+const label = id => LABELS[id] || site.nodes.find(n => n.id === id)?.label || id || '未分类';
 const objects = new Set(), nodeViews = new Map(), avatars = new Map(), listRows = new Map(), routes = new Map();
 const scene = new THREE.Scene(), camera = new THREE.OrthographicCamera(-15, 15, 12, -12, .1, 200);
 const target = new THREE.Vector3(0, .5, 0), home = new THREE.Vector3(4, 27, 29);
-let renderer, controls, ready = false, disposed = false, active = true, flat = false, overview = false;
+let renderer, controls, observer, ready = false, disposed = false, active = true, flat = false, overview = false;
 let autoRotate = false, frame = 0, last = 0, synced = -Infinity, dirty = true, filter = null, signature = '', stepSignature = '';
-let width = 0, height = 0, snapshotValue, theme = 'dark', savedOverflow = '', flatSVG;
+let depthScale = 1, width = 0, height = 0, snapshotValue, theme = 'dark', savedOverflow = '', flatSVG;
 const own = object => (objects.add(object), object);
 const mat = color => own(new THREE.MeshStandardMaterial({ color, roughness: .85, metalness: 0 }));
 const materials = { base: mat('#242927'), rim: mat('#414a43'), wall: mat('#aaa99f'), roof: mat('#454e47'), pane: mat('#242d29') };
@@ -72,7 +72,7 @@ function buildNode(n) {
   const button = text('button','', 'footprint-node'); button.type='button'; button.dataset.nodeId=n.id;
   const dot = text('i',''); dot.setAttribute('aria-hidden','true'); button.append(dot,text('span',label(n.id)),text('b','0'));
   button.onclick=()=>setFilter(filter===n.id?null:n.id); overlay.append(button);
-  nodeViews.set(n.id,{point, group, button, windows, lamp:lampMat, count:0});
+  nodeViews.set(n.id,{originalZ:point.z,point, group, button, windows, lamp:lampMat, count:0});
 }
 function curve(a,b) {
   const v1=nodeViews.get(a)?.point.clone(), v2=nodeViews.get(b)?.point.clone();
@@ -118,8 +118,8 @@ tools.append(resetButton,planButton,rotateButton,expandButton); stage.append(too
 const mode=text('span','立体漫游', 'footprint-mode park-only'); stage.append(mode);
 const footer=text('div','','footprint-journey park-only'); footer.hidden=true;
 const routeTitle=text('span','', 'footprint-route-title'), chips=text('div','', 'footprint-route-steps');
-const stop=button('取消访客追踪','取消追踪',()=>bridge().deselect?.());footer.append(routeTitle,chips,stop);stage.append(footer);
-const explain=text('div','节点为页面分类 · 虚线为站点结构，亮线为选中访客的访问顺序 · 并非鼠标轨迹','footprint-explain park-only');stage.after(explain);
+const stop=button('取消访客追踪','取消追踪',()=>bridge().deselect?.());footer.append(routeTitle,chips,stop);stage.after(footer);
+const explain=text('div','节点为页面分类 · 虚线为站点结构，亮线为选中访客的访问顺序 · 并非鼠标轨迹','footprint-explain park-only');footer.after(explain);
 const panel=text('section','','panel park-only footprint-panel');panel.id='footprintPanel';
 const panelHead=text('h2','');const panelTitle=text('span','正在逛哪里');const clearFilter=button('显示全部分区','全部',()=>setFilter(null));clearFilter.hidden=true;
 panelHead.append(panelTitle,clearFilter); const roster=text('div','','footprint-roster');const rosterEmpty=text('p','', 'footprint-roster-empty');panel.append(panelHead,roster,rosterEmpty);
@@ -195,7 +195,7 @@ function sync() {
 }
 const projection=new THREE.Vector3();
 function project(p){projection.copy(p).project(camera);return {x:(projection.x+1)*width/2,y:(1-projection.y)*height/2,visible:projection.z>-1&&projection.z<1};}
-function place(node,p){const s=project(p);node.style.transform=`translate3d(${s.x.toFixed(1)}px,${s.y.toFixed(1)}px,0) translate(-50%,-50%)`;node.style.visibility=s.visible?'visible':'hidden';}
+function place(node,p,dx=0){const s=project(p);node.style.transform=`translate3d(${(s.x+dx).toFixed(1)}px,${s.y.toFixed(1)}px,0) translate(-50%,-50%)`;node.style.visibility=s.visible?'visible':'hidden';}
 function layout() {
   camera.updateMatrixWorld(true);
   const s=snapshotValue;if(!s)return;
@@ -208,8 +208,8 @@ function layout() {
     // Keep clusters bounded; every visitor remains selectable in the full native sidebar list.
     const show=i<3||chosen||walking;a.node.hidden=!show||!!(filter&&node!==filter&&!chosen);if(a.node.hidden)continue;
     if(walking){const c=curve(v.node,v.target);if(c)c.getPoint(THREE.MathUtils.clamp(v.t||0,0,1),a.point);else a.point.copy(p);a.point.y=.75;}
-    else a.point.copy(p).add(new THREE.Vector3((Math.min(i,2)-1)*.75,.8,2));
-    place(a.node,a.point);a.node.classList.toggle('is-selected',chosen);
+    else a.point.copy(p).add(new THREE.Vector3(0,.8,2));
+    place(a.node,a.point,walking?0:(Math.min(i,2)-1)*26);a.node.classList.toggle('is-selected',chosen);
     a.node.classList.toggle('is-dimmed',!!bridge().selectedId&&!chosen);
     a.node.title=`${v.city?.[0]||'匿名访客'} · ${pageName(v,site)}`;a.node.setAttribute('aria-label',a.node.title+'，查看足迹');
   }
@@ -236,7 +236,14 @@ function applyTheme(){
 }
 function resize(){
   if(disposed)return;const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight);if(w===width&&h===height)return;
-  width=w;height=h;const aspect=w/h,half=Math.max(12.2,14.9/aspect);camera.left=-half*aspect;camera.right=half*aspect;camera.top=half;camera.bottom=-half;camera.updateProjectionMatrix();
+  width=w;height=h;
+  const nextDepth = w < 600 ? 1.75 : 1;
+  if (nextDepth !== depthScale) {
+    depthScale = nextDepth;
+    for (const n of nodeViews.values()) { n.point.z=n.originalZ*depthScale; n.group.position.copy(n.point); }
+    for (const r of routes.values()) { r.c=curve(r.a,r.b); r.line.geometry.setFromPoints(r.c.getPoints(48)); r.line.computeLineDistances(); }
+  }
+  const aspect=w/h,half=Math.max(12.2,14.9/aspect);camera.left=-half*aspect;camera.right=half*aspect;camera.top=half;camera.bottom=-half;camera.updateProjectionMatrix();
   renderer?.setPixelRatio(Math.min(devicePixelRatio||1,1.75));renderer?.setSize(w,h,false);
   if(flatSVG)flatSVG.setAttribute('viewBox',`0 0 ${w} ${h}`);dirty=true;layout();
 }
@@ -245,14 +252,17 @@ function reset(){
   camera.position.copy(overview||flat?new THREE.Vector3(0,40,.01):home);camera.zoom=1;camera.lookAt(target);camera.updateProjectionMatrix();controls?.update();
   planButton.setAttribute('aria-pressed',String(overview));planButton.textContent=overview?'漫游':'俯瞰';dirty=true;
 }
-function expand(){savedOverflow=document.body.style.overflow;stage.classList.add('footprint-expanded');document.body.style.overflow='hidden';expandButton.textContent='收起';expandButton.setAttribute('aria-label','收起足迹');resize();}
-function collapse(){if(!stage.classList.contains('footprint-expanded'))return;stage.classList.remove('footprint-expanded');document.body.style.overflow=savedOverflow;expandButton.textContent='展开';expandButton.setAttribute('aria-label','展开足迹');resize();expandButton.focus({preventScroll:true});}
+function expand(){stage.append(footer);savedOverflow=document.body.style.overflow;stage.classList.add('footprint-expanded');document.body.style.overflow='hidden';expandButton.textContent='收起';expandButton.setAttribute('aria-label','收起足迹');resize();}
+function collapse(){if(!stage.classList.contains('footprint-expanded'))return;stage.classList.remove('footprint-expanded');stage.after(footer);document.body.style.overflow=savedOverflow;expandButton.textContent='展开';expandButton.setAttribute('aria-label','展开足迹');resize();expandButton.focus({preventScroll:true});}
 function activate(view){active=view==='park';if(controls)controls.enabled=active&&!flat;if(!active){collapse();cancelAnimationFrame(frame);frame=0;return;}resize();sync();start();}
 function tick(time){frame=0;if(disposed||!active||document.hidden)return;
   const dt=Math.min((time-last)/1000,.1);if(time-last<1000/30){start();return;}last=time;
   if(time-synced>200){sync();synced=time;}
   if(controls){controls.autoRotate=autoRotate&&!reduced.matches;controls.update(dt);}
-  layout();if(renderer&&!flat)renderer.render(scene,camera);dirty=false;start();
+  if (dirty || autoRotate || (snapshotValue?.fresh && snapshotValue.moving && !reduced.matches)) {
+    layout();if(renderer&&!flat)renderer.render(scene,camera);dirty=false;
+  }
+  start();
 }
 function start(){if(!frame&&active&&!disposed&&!document.hidden)frame=requestAnimationFrame(tick);}
 function useFlat(){
@@ -271,7 +281,7 @@ try{
   renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power',preserveDrawingBuffer:true});renderer.outputColorSpace=THREE.SRGBColorSpace;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
   controls=new OrbitControls(camera,canvas);controls.target.copy(target);controls.enableDamping=true;controls.enablePan=false;controls.minZoom=.65;controls.maxZoom=2;
-  controls.minPolarAngle=.001;controls.maxPolarAngle=Math.PI*.42;controls.autoRotateSpeed=.35;controls.update();
+  controls.minPolarAngle=.001;controls.maxPolarAngle=Math.PI*.42;controls.autoRotateSpeed=.35;controls.addEventListener('change',()=>{dirty=true;});controls.update();
   stage.dataset.footprintEngine='3d';canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();useFlat();});
 }catch(error){console.warn('TideStat footprints: using local flat view.',error);useFlat();}
 observer=new ResizeObserver(resize);observer.observe(stage);

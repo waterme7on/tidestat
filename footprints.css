@@ -120,3 +120,7 @@ body[data-view="park"] .stage.footprint-expanded { position: fixed; inset: 0; wi
   .footprint-explain { font-size: 9px; }.footprint-roster { max-height: 255px; }
 }
 @media (prefers-reduced-motion: reduce) { .footprint-avatar { transition: none; } }
+
+/* Keep recorded routes below the canvas, never across the buildings. */
+.footprint-journey { position: relative; inset: auto; flex-shrink: 0; }
+.stage.footprint-expanded > .footprint-journey { position: absolute; left: 16px; right: 16px; bottom: 68px; }
