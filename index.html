@@ -136,11 +136,7 @@
 </style>
 <link rel="stylesheet" href="./scene.css" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='%23143746' stroke='%2386d7dd' stroke-width='2'/%3E%3C/svg%3E" />
-<link rel="stylesheet" href="./vendor/leaflet/leaflet.css" />
-<link rel="stylesheet" href="./vendor/markercluster/MarkerCluster.css" />
 <link rel="stylesheet" href="./realtime.css" />
-<script src="./vendor/leaflet/leaflet.js"></script>
-<script src="./vendor/markercluster/leaflet.markercluster.js"></script>
 </head>
 <body data-view="map">
 <header>
@@ -162,7 +158,7 @@
 <main>
   <div class="workspace">
     <div class="map-heading map-only">
-      <div><h1>实时访问人数</h1><p>看看此刻，谁正在你的网站上。</p></div>
+      <div><h1>实时访问人数</h1><p>此刻，世界各地的访客都在这里。</p></div>
       <span class="source-badge" id="mapSource">实时数据</span>
     </div>
     <section class="visitor-metrics map-only" aria-label="实时访客统计">
@@ -875,6 +871,6 @@ if (DEMO) for (let i = 0; i < 9; i++) {
 }
 </script>
 
-<script type="module" src="./realtime-map.js"></script>
+<script type="module" src="./globe-map.js"></script>
 </body>
 </html>

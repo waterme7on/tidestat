@@ -1,11 +1,26 @@
-# 实时访问人数
+# 实时访问人数：头像地球
 
-本次按用户最新要求，只聚焦默认世界地图：常规二维地图 + Q 版匿名头像 + 在线人数，不再展示自创 3D 地球。参考 DataFast 的公开演示，而非无法访问的登录后页面；不是其私有源码的复制。
+依据用户给出的 Nomads.com community 截图调整：深灰海面、低对比大陆与国界、稀疏静态星点、直接落在地理位置上的圆形 Q 版匿名头像。没有底座、光柱、经纬装饰环或自动旋转。
 
-默认地图为 Leaflet 1.9.4 + MarkerCluster 1.5.3，两者文件及许可证自托管。底图来自 OpenStreetMap 标准图层，并不是 Google Maps SDK。保留提供方署名与正常浏览器 HTTP 缓存，仅请求当前视口；没有离线下载、预抓取或瓦片代理。底图需联网，公共 OSM 服务器无 SLA，不是无限商业服务；较高流量应改用合适的地图供应商。政策：https://operations.osmfoundation.org/policies/tiles/
+## 实现
 
-头像仅由匿名访客 ID 确定，本地生成，不将 ID/城市发送给头像服务，也不代表实际外貌。地图瓦片供应商仍会收到查看者浏览器发出的正常网络请求。位置是 Cloudflare 返回的城市级近似值，不请求 GPS；无坐标者只计入人数与列表，不放到 (0,0)。重叠头像按位置聚合，可放大/展开；列表与头像可选择同一完整访客 ID。
+MapLibre GL JS 5.6.0 的原生 globe 投影；不是自制 Three.js 球体，也未复制 Nomads 的源码或会员照片。头像绘制函数从上一版原样提取，同一匿名访客仍是同一张脸。头像使用原生地图 symbol layer，在地球背面会被地图渲染器遮挡。共用同一坐标的人显示头像组，点击可逐一选择。
 
-在线口径保持 API 的 90 秒活动窗口，不是 PV 或历史累计。成功轮询后移除离线访客；断网保留最近数据并明确提示，演示数据单独标识。`worker.js`、D1 与采集 SDK 均未改动。
+Natural Earth 1:50m 国家边界来自 world-atlas 2.0.2，经 topojson-client 3.1.0 转换，四位小数保存；地理轮廓不是手绘。渲染器、样式、地理文件均自托管，没有地图 API key、外部瓦片、图片或字体请求。第三方许可证见 vendor/maplibre/LICENSE.txt、assets/WORLD-ATLAS-LICENSE，文件摘要见 assets/globe-assets.sha256。Natural Earth 的边界表达是其源数据约定，不是法律边界认定；这也不是街道/导航地图。
 
-地图不下载/启动 Three.js；仅点击原有网站足迹页时延迟加载。此轮未继续重设计足迹页。浏览器测试使用固定访客与测试瓦片，避免对公共瓦片服务批量请求；实际底图初始视口另行进行人工截图检查。
+公开参考：https://nomads.com/community
+MapLibre 原生地球：https://maplibre.org/maplibre-gl-js/docs/examples/display-a-globe-with-a-vector-map/
+地理数据许可：https://www.naturalearthdata.com/about/terms-of-use/
+
+## 连续性与降级
+
+在线人数仍使用同一个 /api/live 与90秒活动窗口。采集 SDK、D1、worker.js 与网站足迹 scene.js 未在本轮变更。数据断线显示最近数据/未知状态，不伪装为实时0人。没有坐标的人只显示在列表里。支持拖拽、缩放、地区快捷切换、展开地图、头像/键盘列表选择和时间线。头像是匿名本地生成，不推断真实长相。
+
+WebGL 不可用或上下文丢失时使用同一地理数据和 Leaflet 的二维兼容视图，并明确标记；数据统计继续工作。地理文件失败有独立重试提示，不再受上一版公共瓦片失败影响。前台按350ms同步访客；地图自身按交互/数据更新渲染，不做自动绕球动画；纹理随访客离开清理。
+
+## 验证
+
+PORT=8894 node server.cjs
+node tests/globe.mjs
+
+测试使用固定的模拟 API 访客，地理数据与渲染器均为仓库里的真实静态文件。没有生产数据访问，也不向公共地图服务批量请求。最终结果与截图见 PR 的 Visual review artifact。

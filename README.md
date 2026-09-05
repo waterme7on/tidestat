@@ -1,6 +1,6 @@
 # TideStat
 
-> **最新：实时访问人数**：默认世界地图已改为常规二维底图和 Q 版匿名头像；在线数据、位置缺失、聚合与测试说明见 [docs/realtime-map.md](docs/realtime-map.md)。早先的 Observatory 设计不是默认地图。
+> **最新：实时访问人数**：默认世界地图已改为 Nomads 风格的深色地球与 Q 版匿名头像；在线数据、位置缺失、聚合与测试说明见 [docs/realtime-map.md](docs/realtime-map.md)。地图采用 MapLibre 原生 globe 投影与自托管 Natural Earth 地理数据，不使用早先的 Observatory 仪器地球。
 
 实时访客可视化分析——把「谁在访问你的网站」变成两个一眼可读的 3D 场景:
 
