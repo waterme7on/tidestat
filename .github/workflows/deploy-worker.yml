@@ -13,8 +13,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Deploy
-        run: npx -y wrangler@4.128.0 deploy
+      - name: Apply additive schema and deploy
+        run: |
+          npx -y wrangler@4.128.0 d1 execute DB --remote --file=schema.sql --yes
+          npx -y wrangler@4.128.0 deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -11,7 +11,7 @@ concurrency:
 jobs:
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,26 +22,26 @@ jobs:
           npm install --no-save --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
           sudo apt-get install -y fonts-noto-cjk
-      - name: Footprints, theme, avatar and globe regression checks
+      - name: Dashboard, privacy and existing regression checks
         run: |
           mkdir -p visual-review
           PORT=8894 node server.cjs > /tmp/tidestat-server.log 2>&1 &
-          node --check scene.js
-          node --check footprint-model.js
-          node --check globe-map.js
-          node --check visitor-avatar.js
-          node --check theme.js
-          node tests/footprints.mjs
-          node tests/themes.mjs
-          node tests/avatars.mjs
-          node tests/globe.mjs
-          node tests/globe-lifecycle.mjs
+          for file in scene.js globe-map.js visitor-avatar.js theme.js i18n.js privacy.js idle-motion.js worker.js; do
+            node --check "$file"
+          done
+          failed=0
+          for suite in privacy dashboard footprints themes avatars globe globe-lifecycle; do
+            echo "::group::${suite}"
+            node "tests/${suite}.mjs" || failed=1
+            echo '::endgroup::'
+          done
+          exit "$failed"
       - name: Package self-contained visual review
         if: always()
         run: |
           mkdir -p visual-review/app
-          cp index.html server.cjs scene.js scene.css footprint-model.js footprints.css realtime-map.js realtime.css globe-map.js globe.css visitor-avatar.js theme.js theme.css visual-review/app/
-          cp -R vendor assets tests visual-review/app/
+          cp index.html server.cjs *.js *.css schema.sql visual-review/app/
+          cp -R vendor assets tests docs visual-review/app/
       - uses: actions/upload-artifact@v4
         if: always()
         with:
