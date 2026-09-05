@@ -130,7 +130,7 @@ function createGlobe() {
   positions.forEach((p, i) => { transform.position.copy(p); transform.quaternion.setFromUnitVectors(Y, p.clone().normalize()); transform.updateMatrix(); dots.setMatrixAt(i, transform.matrix); });
   dots.instanceMatrix.needsUpdate = true; s.add(dots);
   // Fine etched meridians stay subordinate to land and live signals.
-  const grid = basic('#477382', { transparent: true, opacity: .18 });
+  const grid = own(new THREE.LineBasicMaterial({ color: '#477382', transparent: true, opacity: .18 }));
   for (const lat of [-60, -30, 0, 30, 60]) {
     const pts = Array.from({ length: 161 }, (_, i) => geoPosition(lat, i / 160 * 360 - 180, 2.106));
     s.add(new THREE.Line(own(new THREE.BufferGeometry().setFromPoints(pts)), grid));
@@ -301,7 +301,7 @@ function animateData(now, delta) {
   for (const b of beacons.values()) {
     // Perspective-correct horizon test: a far-side beacon must never bleed through the globe.
     b.group.visible = b.normal.dot(pos.copy(camera).sub(b.group.position).normalize()) > .03;
-    const pulse = media.matches ? .3 : (now * .55 + b.group.position.x * .37) % 1;
+    const pulse = media.matches ? .3 : ((now * .55 + b.group.position.x * .37) % 1 + 1) % 1;
     b.pulse.scale.setScalar(1 + pulse * 1.5); b.pulse.material.opacity = (1 - pulse) * (b.focused ? .95 : .6);
   }
 }
