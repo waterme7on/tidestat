@@ -16,3 +16,6 @@
 #mapRotate {font-size:18px;}
 @media(max-width:860px){.language-picker {margin-left:auto;}.language-picker select{max-width:122px;}.live {flex-wrap:wrap;}#visitorDetail{max-height:none;} .timeline-dialog {max-height:84dvh;}}
 @media(prefers-reduced-motion:reduce){.timeline-dialog {scroll-behavior:auto;}}
+
+/* Empty histories have no marker/time columns; keep their copy full-width. */
+#vdTimeline li:not(:has(> i)) {display:block;font-size:12px;line-height:1.7;color:var(--ink-soft);}
