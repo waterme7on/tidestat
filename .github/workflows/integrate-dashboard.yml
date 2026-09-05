@@ -1,0 +1,74 @@
+# One-time source transfer, scoped to this reviewed PR branch; no deployment or database access.
+name: Integrate dashboard source
+on:
+  push:
+    branches: ['design/footprints-doodle-day-night']
+    paths: ['.github/workflows/integrate-dashboard.yml']
+permissions:
+  contents: write
+jobs:
+  integrate:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/design/footprints-doodle-day-night' && github.actor == 'waterme7on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/footprints-doodle-day-night
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply allowlisted source files against exact reviewed baseline
+        run: |
+          python3 <<'PY'
+          import gzip, hashlib, json, subprocess
+          from pathlib import Path
+          base='d2c9d5f0b78c730880d8215b9fd59fdd04476522'
+          allowed={'index.html','globe-map.js','scene.js','tests/avatars.mjs','tests/themes.mjs','tests/footprints.mjs','tests/globe.mjs','tests/globe-lifecycle.mjs','i18n.js','dashboard.css','idle-motion.js','privacy.js','tests/privacy.mjs','tests/dashboard.mjs','docs/dashboard.md','worker.js','schema.sql'}
+          parts=sorted(Path('.review-transfer').glob('*.part'))
+          assert len(parts)==18
+          data=b''.join(p.read_bytes() for p in parts)
+          assert hashlib.sha256(data).hexdigest()=='51b8808512a5cc3b6cbfc28a95afa7167d17eede57f043c675628a81ac9987b9'
+          entries=json.loads(gzip.decompress(data))
+          assert {e['path'] for e in entries}==allowed and len(entries)==len(allowed)
+          outputs={}
+          for e in entries:
+            path=Path(e['path'])
+            original=subprocess.run(['git','show',base+':'+e['path']],capture_output=True)
+            if original.returncode==0:
+              assert path.read_bytes()==original.stdout, 'Concurrent source change: '+str(path)
+            else:
+              assert not path.exists(), 'Unexpected new file: '+str(path)
+            if 'changes' in e:
+              assert hashlib.sha256(original.stdout).hexdigest()==e['sha256']
+              lines=original.stdout.decode().splitlines(keepends=True)
+              last=-1
+              for i,j,value in e['changes']:
+                assert 0<=i<=j<=len(lines) and i>=last
+                last=j
+              for i,j,value in reversed(e['changes']):
+                lines[i:j]=[value]
+              output=''.join(lines)
+            else:
+              assert path.exists()==e['exists']
+              output=e['content']
+            assert hashlib.sha256(output.encode()).hexdigest()==e['output_sha256']
+            outputs[path]=output
+          for path,output in outputs.items():
+            path.parent.mkdir(parents=True,exist_ok=True)
+            path.write_text(output)
+            print('Updated:',path)
+          subprocess.run(['git','add','--',*sorted(allowed)],check=True)
+          PY
+          node --check globe-map.js
+          node --check scene.js
+          node --check i18n.js
+          node --check worker.js
+          node tests/privacy.mjs
+          git diff --cached --check
+          git rm -r .review-transfer
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat: localize dashboard, open accessible timelines, mask visitor IPs and enrich idle demo'
+          git push origin HEAD:design/footprints-doodle-day-night
