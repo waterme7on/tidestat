@@ -8,7 +8,7 @@ const bridge = () => window.__tide || {};
 const activeVisitors = () => [...(bridge().visitors || new Map())].filter(([, v]) => v.state !== 'leaving');
 const selected = () => bridge().selectedId;
 const world = [[-55, -170], [76, 180]];
-let map, cluster, tiles, timer, active = true, fitted = true, selection = null, tileFailures = 0;
+let map, cluster, tiles, timer, selectedPopup, active = true, fitted = true, selection = null, tileFailures = 0;
 
 // Stable, intentionally fictional identities. Appearance depends only on the anonymous ID.
 export function avatarSVG(id) {
@@ -62,7 +62,7 @@ function popup(v, id) {
   details.append(text('span', '正在浏览'), text('b', currentPage(v))); card.append(details);
   card.append(text('p', '城市级近似位置，头像为随机生成。', 'visitor-privacy'));
   const button = text('button', '查看访问足迹 →'); button.type = 'button';
-  button.addEventListener('click', () => { bridge().selectVisitor?.(id); el('visitorDetail').scrollIntoView({ behavior: reducedMotion.matches ? 'instant' : 'smooth', block: 'nearest' }); });
+  button.addEventListener('click', () => { el('visitorDetail').scrollIntoView({ behavior: reducedMotion.matches ? 'instant' : 'smooth', block: 'nearest' }); });
   card.append(button); return card;
 }
 function markerIcon(id) {
@@ -82,15 +82,15 @@ function applySelection() {
   for (const [id, row] of rows) row.classList.toggle('is-selected', selected() === id);
 }
 function focusVisitor(id) {
-  // The bridge invokes this immediately; do not repeat the same zoom/spiderfy next sync.
   selection = id;
-  const marker = markers.get(id);
-  if (!marker || !active) { map?.closePopup(); applySelection(); return; }
-  cluster.zoomToShowLayer(marker, () => {
-    if (!active || selected() !== id || !markers.has(id)) return;
-    const v = bridge().visitors?.get(id); if (!v) return;
-    marker.setPopupContent(popup(v, id)); marker.openPopup(); applySelection();
-  });
+  const v = bridge().visitors?.get(id), loc = v && locationOf(v);
+  if (!map || !loc || !active) { map?.closePopup(); applySelection(); return; }
+  // Selection belongs to the visitor, not to an ephemeral clustered marker.
+  // A map-owned popup survives cluster regrouping and live data synchronization.
+  map.setView(loc, Math.max(map.getZoom(), 3), { animate: false });
+  selectedPopup = L.popup({ className: 'live-visitor-popup', maxWidth: 280, minWidth: 210, autoPanPadding: [30, 60], offset: [0, -32], closeButton: true })
+    .setLatLng(loc).setContent(popup(v, id)).openOn(map);
+  applySelection();
 }
 function showWorld() {
   if (!map) return;
@@ -124,7 +124,7 @@ function sync() {
   const list = activeVisitors(), data = bridge(), demo = data.demo;
   const valid = list.filter(([, v]) => locationOf(v)), ids = new Set(valid.map(([id]) => id));
   const countries = new Set(list.map(([, v]) => v.city?.[1]).filter(c => /^[A-Z]{2}$/.test(c || '')));
-  const cities = new Set(valid.map(([, v]) => JSON.stringify([v.city?.[0], v.city?.[1], ...locationOf(v)])));
+  const cities = new Set(list.filter(([, v]) => v.city?.[0] && v.city[0] !== '未知位置').map(([, v]) => JSON.stringify([v.city[0], v.city[1]])));
   const failed = data.status === 'error', unavailable = !demo && (data.status === 'loading' || (failed && !data.updatedAt));
   el('realtimeCount').textContent = unavailable ? '—' : list.length;
   el('countryCount').textContent = unavailable ? '—' : countries.size;
@@ -146,23 +146,22 @@ function sync() {
       const loc = locationOf(v);
       if (!marker) {
         marker = L.marker(loc, { icon: markerIcon(id), title: locationName(v), alt: '匿名访客头像', keyboard: true, riseOnHover: true, visitorId: id, visitorLocation: loc });
-        marker.bindPopup(popup(v, id), { className: 'live-visitor-popup', maxWidth: 280, minWidth: 210, autoPanPadding: [30, 60], closeButton: true });
         marker.on('click', () => bridge().selectVisitor?.(id));
         markers.set(id, marker); added.push(marker);
       } else if (marker.options.visitorLocation[0] !== loc[0] || marker.options.visitorLocation[1] !== loc[1]) {
-        // MarkerCluster temporarily moves displayed LatLng while spiderfied. Compare only source coordinates.
+        // Spiderfied marker coordinates are display-only. Compare the actual source instead.
         cluster.removeLayer(marker); marker.setLatLng(loc); marker.options.visitorLocation = loc; cluster.addLayer(marker);
       }
       marker.getElement()?.setAttribute('aria-label', `${locationName(v)}，${currentPage(v)}，查看访客详情`);
-      if (marker.isPopupOpen()) {
-        const value = marker.getPopup().getContent().querySelector('.visitor-popup-page b');
-        if (value) value.textContent = currentPage(v);
-      }
     }
     if (added.length) cluster.addLayers(added);
     if (selection !== selected()) {
       selection = selected(); applySelection();
       if (selection) focusVisitor(selection); else map.closePopup();
+    }
+    const chosen = data.visitors?.get(selection);
+    if (chosen && selectedPopup && map.hasLayer(selectedPopup)) {
+      selectedPopup.getContent().querySelector('.visitor-popup-page b').textContent = currentPage(chosen);
     }
   }
 }
@@ -179,7 +178,7 @@ try {
   if (!L?.markerClusterGroup) throw new Error('Local map library is unavailable');
   map = L.map(root, { zoomControl: false, attributionControl: true, minZoom: 0, maxZoom: 12, zoomSnap: .25, zoomDelta: 1, worldCopyJump: true, scrollWheelZoom: true, zoomAnimation: !reducedMotion.matches, fadeAnimation: !reducedMotion.matches, markerZoomAnimation: !reducedMotion.matches });
   map.attributionControl.setPrefix('<a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a>');
-  // Standard OSM raster tiles. Visible tiles only; no prefetch, proxy, offline cache or Google key.
+  // Visible tiles only; no prefetch, proxy, offline cache or Google key.
   tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, noWrap: true, keepBuffer: 1, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors' });
   tiles.on('tileerror', () => { tileFailures++; if (tileFailures >= 2) el('tileNotice').hidden = false; });
   tiles.on('tileload', () => { tileFailures = 0; el('tileNotice').hidden = true; });
