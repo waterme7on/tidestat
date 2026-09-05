@@ -37,6 +37,7 @@ try {
   await page.goto(base + '/tests/fixtures/avatar-preview.html');
   await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
   assert.equal(await page.locator('svg[data-avatar-style="notionists-neutral-b"]').count(), 24);
+  await page.screenshot({ path: `${output}/doodle-avatars-b.png`, fullPage: true });
   const raster = await page.evaluate(async () => {
     const { avatarSVG } = await import('/visitor-avatar.js');
     const samples = Array.from({ length: 160 }, (_, i) => avatarSVG('guest-' + i));
@@ -53,16 +54,28 @@ try {
       const canvas = document.createElement('canvas'); canvas.width = canvas.height = size;
       const ctx = canvas.getContext('2d'); ctx.drawImage(image, 0, 0, size, size);
       const bytes = ctx.getImageData(0, 0, size, size).data;
-      let ink = 0;
-      for (let i = 0; i < bytes.length; i += 4) if (bytes[i + 3] > 220 && bytes[i] < 100 && bytes[i+1] < 100 && bytes[i+2] < 100) ink++;
-      if (ink < size * .5 || ink > size * size * .3) throw new Error(`Unreadable ${size}px avatar: ${ink} ink pixels`);
+      const paper = svg.match(/<circle[^>]+fill="#([0-9a-f]{6})"/i)[1];
+      const paperRGB = [0, 2, 4].map(i => parseInt(paper.slice(i, i + 2), 16));
+      const luminance = paperRGB.reduce((sum, value) => sum + value, 0);
+      let ink = 0, coverage = 0;
+      for (let i = 0; i < bytes.length; i += 4) {
+        if (bytes[i + 3] <= 220) continue;
+        const darkness = Math.max(0, 1 - (bytes[i] + bytes[i+1] + bytes[i+2]) / luminance);
+        coverage += darkness;
+        if (darkness > .55) ink++;
+      }
+      // At 32px, original hand-drawn edges are mostly antialiased gray. Test
+      // integrated contrast against the actual paper color rather than requiring
+      // an arbitrary number of nearly pure-black pixels; blank/solid disks fail.
+      if (coverage < size * size * .01 || coverage > size * size * .3) {
+        throw new Error(`Missing or overfilled ${size}px facial ink: ${coverage.toFixed(2)}`);
+      }
       // Circular clipping is self-contained, not a CSS-only effect lost in canvas textures.
       if (bytes[3] !== 0) throw new Error('The SVG corner is not transparent');
-      measurements.push({ size, ink });
+      measurements.push({ size, ink, coverage: Number(coverage.toFixed(2)) });
     }
     return measurements;
   });
-  await page.screenshot({ path: `${output}/doodle-avatars-b.png`, fullPage: true });
   const before = await page.locator('.faces').first().innerHTML();
   await page.reload(); await page.waitForFunction(() => document.documentElement.dataset.ready === 'true');
   assert.equal(await page.locator('.faces').first().innerHTML(), before);
