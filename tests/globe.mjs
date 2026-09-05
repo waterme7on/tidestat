@@ -55,7 +55,7 @@ async function colors(p) {
   });
 }
 try {
-  page = await browser.newPage({ viewport:{width:1440,height:1000}, reducedMotion:'reduce' }); watch(page); await mock(page);
+  page = await browser.newPage({locale:'zh-CN', viewport:{width:1440,height:1000}, reducedMotion:'reduce' }); watch(page); await mock(page);
   await page.goto(base); await settled(page);
   assert.equal(await page.locator('#realtimeCount').textContent(), String(fixture.length));
   assert.equal(await page.locator('#tab-map').textContent(), '实时访问人数');
@@ -129,7 +129,7 @@ try {
   results.push('Live departure removal, genuine zero/empty state, stale error disclosure and recovery');
   await page.close();
 
-  page = await browser.newPage({viewport:{width:900,height:720},reducedMotion:'reduce'}); watch(page); await mock(page);
+  page = await browser.newPage({locale:'zh-CN',viewport:{width:900,height:720},reducedMotion:'reduce'}); watch(page); await mock(page);
   let failGeo = true;
   await page.route('**/assets/countries-50m.geojson',route => failGeo ? route.fulfill({status:503,body:'unavailable'}) : route.continue());
   await page.goto(base); await page.waitForFunction(() => document.getElementById('liveMap').dataset.geography==='error');
@@ -138,7 +138,7 @@ try {
   assert.equal(await page.locator('#tileNotice').isVisible(),false); await page.close();
   results.push('Real local geography failure is visible; successful retry clears the notice');
 
-  page = await browser.newPage({viewport:{width:390,height:844}}); await mock(page);
+  page = await browser.newPage({locale:'zh-CN',viewport:{width:390,height:844}}); await mock(page);
   const fallbackErrors = []; page.on('pageerror',e=>fallbackErrors.push(e.message));
   await page.addInitScript(() => {
     const original = HTMLCanvasElement.prototype.getContext;

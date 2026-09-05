@@ -1,5 +1,7 @@
 /* Native MapLibre globe + local Natural Earth geography. No custom sphere or remote tiles. */
 import { avatarSVG } from './visitor-avatar.js';
+import { idleMotion } from './idle-motion.js';
+const {t,cityName,identity}=window.__tideI18n;
 
 const root = document.getElementById('liveMap');
 const stage = root.parentElement;
@@ -46,7 +48,7 @@ function applyMapTheme() {
   }
   flatLand?.setStyle(flatStyle());
   const key = el('activityKey');
-  if (key) key.textContent = !signal ? '等候访客数据 · 暂停点灯' : dark ? '柔光 = 此处有在线访客' : '圆形头像 = 在线访客';
+  if (key) key.textContent = !signal ? t('等候访客数据 · 暂停点灯') : dark ? t('柔光 = 此处有在线访客') : t('圆形头像 = 在线访客');
   const select = el('mapTheme'); if (select) select.value = window.__tideTheme?.preference || 'system';
 }
 window.addEventListener('tide:themechange', applyMapTheme);
@@ -64,7 +66,7 @@ function script(path, name) {
   });
 }
 function txt(tag, value, className) {
-  const node = document.createElement(tag); node.textContent = String(value ?? '');
+  const node = document.createElement(tag); node.textContent = t(String(value ?? '')); if(value)node.dataset.i18n=String(value);
   if (className) node.className = className; return node;
 }
 function face(id) {
@@ -77,14 +79,14 @@ export function locationOf(v) {
   return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a) <= 85.051129 && Math.abs(b) <= 180 ? [b, a] : null;
 }
 function pageOf(v) {
-  return v.currentPath || window.__tideSite?.nodes.find(n => n.id === (v.state === 'walking' ? v.target : v.node))?.label || '浏览中';
+  return v.currentPath || t(window.__tideSite?.nodes.find(n => n.id === (v.state === 'walking' ? v.target : v.node))?.label || '浏览中');
 }
 function locationName(v) {
   let country = v.city?.[1] || '';
   if (/^[A-Z]{2}$/.test(country)) {
-    try { country = new Intl.DisplayNames(['zh-CN'], { type: 'region' }).of(country); } catch { /* use code */ }
+    try { country = new Intl.DisplayNames([window.__tideI18n.locale], { type: 'region' }).of(country); } catch { /* use code */ }
   }
-  return [v.city?.[0] || '未知位置', country].filter(Boolean).join(' · ');
+  return [cityName(v.city?.[0]), country].filter(Boolean).join(' · ');
 }
 // Only co-located people share a marker; distinct cities remain individual faces, not a heatmap.
 export function groupVisitors(list) {
@@ -102,28 +104,34 @@ function clearPopup() { popup?.remove(); popup = null; popupState = null; }
 function visitorCard(v, id) {
   const card = txt('div', '', 'visitor-popup');
   const head = txt('div', '', 'visitor-popup-head');
-  const copy = txt('div', ''); copy.append(txt('strong', locationName(v)), txt('span', '匿名访客 · ' + String(v.id).slice(0, 8)));
+  const copy = txt('div', ''); copy.append(txt('strong', locationName(v)), txt('span', `${t('匿名访客')} · ${identity(v)}${bridge().demo ? ' · '+t('模拟 IP') : ''}`));
   head.append(face(id), copy); card.append(head);
   const details = txt('div', '', 'visitor-popup-page'); details.append(txt('span', '正在浏览'), txt('b', pageOf(v))); card.append(details);
   card.append(txt('p', '城市级近似位置 · 头像不代表本人外貌', 'visitor-privacy'));
   const button = txt('button', '查看访问时间线 →'); button.type = 'button';
-  button.onclick = () => { collapse(); el('visitorDetail').scrollIntoView({ behavior: reduced.matches ? 'instant' : 'smooth', block: 'nearest' }); el('vdClose').focus({ preventScroll: true }); };
+  button.onclick = () => bridge().openTimeline?.(id);
   card.append(button); return card;
 }
 function showPopup(loc, content) {
   clearPopup();
   if (engine === 'globe') popup = new maplibregl.Popup({ offset: 30, maxWidth: '300px', className: 'live-visitor-popup', closeOnClick: false }).setLngLat(loc).setDOMContent(content).addTo(map);
   else if (flat) popup = L.popup({ className: 'live-visitor-popup', maxWidth: 280, minWidth: 230, offset: [0, -25] }).setLatLng([loc[1], loc[0]]).setContent(content).openOn(flat);
+  // Native close controls must release our pause state, not just remove the map's DOM.
+  const opened = popup;
+  opened?.once(engine === 'globe' ? 'close' : 'remove', () => {
+    if (popup !== opened) return; // An old popup must not clear a newer selection.
+    popup = null; popupState = null; idleMotion.reset();
+  });
 }
 function groupCard(group) {
   const v = bridge().visitors?.get(group.ids[0]);
   const card = txt('div', '', 'group-popup');
-  card.append(txt('strong', `${v?.city?.[0] || '同一位置'} · ${group.ids.length} 位访客`), txt('p', '选择头像查看正在浏览的页面'));
+  card.append(txt('strong', t('{location} · {count} 位访客',{location:cityName(v?.city?.[0] || '同一位置'),count:group.ids.length})), txt('p', '选择头像查看正在浏览的页面'));
   const list = txt('div', '', 'group-people');
   for (const id of group.ids) {
     const visitor = bridge().visitors?.get(id); if (!visitor) continue;
     const button = txt('button', ''); button.type = 'button'; button.append(face(id), txt('span', pageOf(visitor)));
-    button.setAttribute('aria-label', `${locationName(visitor)}，${id.slice(0, 8)}，查看访客详情`);
+    button.setAttribute('aria-label', t('{location}，{identity}，查看访客详情',{location:locationName(visitor),identity:identity(visitor)}));
     button.onclick = () => bridge().selectVisitor?.(id); list.append(button);
   }
   card.append(list); return card;
@@ -158,9 +166,9 @@ function renderList(list) {
       const copy = txt('span', '', 'online-visitor-copy'); copy.append(txt('strong', ''), txt('span', ''));
       row.append(face(id), copy, txt('i', '↗', 'visitor-arrow')); row.onclick = () => bridge().selectVisitor?.(id); rows.set(id, row);
     }
-    row.querySelector('strong').textContent = v.city?.[0] || '未知位置';
+    row.querySelector('strong').textContent = cityName(v.city?.[0]);
     row.querySelector('.online-visitor-copy > span').textContent = pageOf(v);
-    row.setAttribute('aria-label', `${locationName(v)}，正在浏览 ${pageOf(v)}，查看访客详情`);
+    row.setAttribute('aria-label', t('{location}，正在浏览 {page}，查看访客详情',{location:locationName(v),page:pageOf(v)}));
     // Preserve focus and DOM identity; reorder only when the actual arrival order changes.
     if (container.children[i] !== row) container.insertBefore(row, container.children[i] || null);
   });
@@ -176,12 +184,13 @@ function sync() {
   const cities = new Set(list.filter(([, v]) => v.city?.[0] && v.city[0] !== '未知位置').map(([, v]) => JSON.stringify([v.city[0], v.city[1]])));
   el('realtimeCount').textContent = unavailable ? '—' : list.length;
   el('countryCount').textContent = unavailable ? '—' : countries.size; el('cityCount').textContent = unavailable ? '—' : cities.size;
-  el('mapSource').textContent = data.demo ? '演示数据' : '实时数据'; el('mapSource').classList.toggle('is-demo', Boolean(data.demo));
-  el('liveStatus').textContent = data.demo ? '模拟访客演示，不计入真实统计' : failed ? (data.updatedAt ? '连接中断 · 显示最近一次数据' : '暂时无法读取访客数据') : unavailable ? '正在连接访客数据…' : `最近 ${Math.round((data.onlineMs || 90000) / 1000)} 秒内有活动`;
+  el('mapSource').textContent = data.demo ? t('演示数据') : t('实时数据'); el('mapSource').classList.toggle('is-demo', Boolean(data.demo));
+  el('liveStatus').textContent = data.demo ? t('模拟访客演示，不计入真实统计') : failed ? (data.updatedAt ? t('连接中断 · 显示最近一次数据') : t('暂时无法读取访客数据')) : unavailable ? t('正在连接访客数据…') : t('最近 {seconds} 秒内有活动',{seconds:Math.round((data.onlineMs||90000)/1000)});
+  if (!data.demo && !failed && !unavailable && data.truncated) el('liveStatus').textContent += ' · ' + t('仅展示最近 2,000 条事件 · 人数与足迹可能不完整');
   el('dataRetry').hidden = !failed; document.body.classList.toggle('data-stale', failed);
   el('mapEmpty').hidden = list.length > 0 || unavailable || failed;
   const missing = list.filter(([, v]) => !locationOf(v)).length;
-  el('unknownLocations').textContent = missing ? `${missing} 位访客暂未定位` : '';
+  el('unknownLocations').textContent = missing ? t('{count} 位访客暂未定位',{count:missing}) : '';
   renderList(list); groups = groupVisitors(list);
   if (active && ready) {
     if (selection !== selected()) { selection = selected(); if (selection) focusVisitor(selection); else clearPopup(); }
@@ -257,7 +266,7 @@ function showWorld(center = requestedCenter) {
   else if (flat) flat.fitBounds([[-55, -172], [78, 180]], { padding: [28, 28], animate: false });
   fitted = true;
 }
-function setNotice(message, retry = true) { el('tileNotice').hidden = !message; el('tileNoticeText').textContent = message; el('tileRetry').hidden = !retry; }
+function setNotice(message, retry = true) { el('tileNotice').hidden = !message; el('tileNoticeText').dataset.i18n=message; el('tileNoticeText').textContent=t(message); el('tileRetry').hidden = !retry; }
 async function loadGeography() {
   if (geoLoading || disposed) return;
   geoLoading = true; const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 12000);
@@ -281,7 +290,7 @@ function renderFlat() {
     const node = txt('button', '', 'flat-avatar'); node.type = 'button';
     group.ids.slice(0, 3).forEach(id => node.append(face(id)));
     if (group.ids.length > 1) node.append(txt('b', group.ids.length));
-    node.setAttribute('aria-label', `${group.ids.length} 位访客，查看详情`);
+    node.setAttribute('aria-label', t('{count} 位访客，查看详情',{count:group.ids.length}));
     node.onclick = () => clickGroup(group.key);
     const marker = L.marker([group.loc[1], group.loc[0]], { icon: L.divIcon({ html: node, className: 'flat-avatar-marker', iconSize: [48, 48], iconAnchor: [24, 24] }) }).addTo(flat);
     flatMarkers.set(group.key, marker);
@@ -290,13 +299,13 @@ function renderFlat() {
 async function fallback() {
   if (engine === 'flat' || disposed) return;
   ready = false; clearPopup(); map?.remove(); map = null; root.replaceChildren();
-  engine = 'flat'; images.clear(); currentImages.clear(); applied = '';
+  engine = 'flat'; rotationButton.disabled=true; images.clear(); currentImages.clear(); applied = '';
   try {
     css('./vendor/leaflet/leaflet.css'); await script('./vendor/leaflet/leaflet.js', 'L');
     flat = L.map(root, { zoomControl: false, maxZoom: 6, minZoom: 0, zoomAnimation: !reduced.matches });
     flat.attributionControl.setPrefix('Leaflet'); flat.attributionControl.addAttribution('Natural Earth');
     root.dataset.engine = 'flat'; root.dataset.ready = 'true'; ready = true;
-    el('globeMode').textContent = '平面兼容模式'; showWorld(); applyMapTheme();
+    el('globeMode').dataset.i18n='平面兼容模式'; el('globeMode').textContent=t('平面兼容模式'); showWorld(); applyMapTheme();
     if (geography) flatLand = L.geoJSON(geography, { interactive: false, style: flatStyle() }).addTo(flat);
     else loadGeography();
     sync();
@@ -305,7 +314,7 @@ async function fallback() {
 function collapse() {
   if (!stage.classList.contains('map-expanded')) return;
   stage.classList.remove('map-expanded'); document.body.classList.remove('map-is-expanded');
-  el('mapExpand').setAttribute('aria-pressed', 'false'); el('mapExpand').setAttribute('aria-label', '展开地图'); resize();
+  el('mapExpand').setAttribute('aria-pressed', 'false'); el('mapExpand').dataset.i18nAriaLabel='展开地图';el('mapExpand').setAttribute('aria-label', t('展开地图')); resize();
 }
 function resize() {
   if (!ready || !active) return;
@@ -322,18 +331,18 @@ function controls() {
   el('mapZoomOut').onclick = () => { fitted = false; if (map) map.zoomOut({ duration: reduced.matches ? 0 : 240 }); else flat?.zoomOut(); };
   el('mapReset').onclick = () => showWorld();
   el('tileRetry').onclick = loadGeography; el('dataRetry').onclick = () => bridge().refresh?.();
-  const expand = txt('button', '⛶'); expand.id = 'mapExpand'; expand.type = 'button'; expand.setAttribute('aria-label', '展开地图'); expand.setAttribute('aria-pressed', 'false');
+  const expand = txt('button', '⛶'); expand.id = 'mapExpand'; expand.type = 'button'; expand.setAttribute('aria-label', t('展开地图')); expand.setAttribute('aria-pressed', 'false');
   expand.onclick = () => {
     if (stage.classList.contains('map-expanded')) { collapse(); return; }
-    stage.classList.add('map-expanded'); document.body.classList.add('map-is-expanded'); expand.setAttribute('aria-pressed', 'true'); expand.setAttribute('aria-label', '收起地图'); resize();
+    stage.classList.add('map-expanded'); document.body.classList.add('map-is-expanded'); expand.setAttribute('aria-pressed', 'true'); expand.dataset.i18nAriaLabel='收起地图';expand.setAttribute('aria-label', t('收起地图')); resize();
   };
   el('mapControls').prepend(expand);
-  const presets = txt('div', '', 'globe-regions map-only'); presets.setAttribute('role', 'group'); presets.setAttribute('aria-label', '快速查看地区');
+  const presets = txt('div', '', 'globe-regions map-only'); presets.setAttribute('role', 'group'); presets.setAttribute('aria-label', t('快速查看地区'));
   for (const [label, center] of regions) { const b = txt('button', label); b.type = 'button'; b.onclick = () => showWorld(center); presets.append(b); }
   stage.append(presets);
   const picker = txt('label', '', 'theme-picker map-only');
   const icon = txt('span', '◐'); icon.setAttribute('aria-hidden', 'true');
-  const select = document.createElement('select'); select.id = 'mapTheme'; select.setAttribute('aria-label', '地图主题');
+  const select = document.createElement('select'); select.id = 'mapTheme'; select.setAttribute('aria-label', t('地图主题'));
   for (const [value, label] of [['system','跟随系统'], ['light','浅色 · 白天'], ['dark','深色 · 夜间']]) {
     const option = txt('option', label); option.value = value; select.append(option);
   }
@@ -343,12 +352,34 @@ function controls() {
   const key = txt('span', '', 'activity-key map-only'); key.id = 'activityKey'; stage.append(key);
   applyMapTheme();
   const mode = txt('span', '地球视图', 'globe-mode map-only'); mode.id = 'globeMode'; stage.append(mode);
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && active) { collapse(); clearPopup(); bridge().deselect?.(); } });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && active && !bridge().timelineOpen) { collapse(); clearPopup(); bridge().deselect?.(); } });
 }
+let rotationFrame=0,rotationTime=0,inViewport=true;
+const viewportObserver=new IntersectionObserver(entries=>{inViewport=entries[0].isIntersecting;if(!inViewport)idleMotion.reset();});viewportObserver.observe(root);
+function rotateIdle(now){
+  rotationFrame=requestAnimationFrame(rotateIdle);
+  const dt=Math.min((now-rotationTime)/1000 || 0,.05);rotationTime=now;
+  const moving=inViewport&&active&&ready&&engine==='globe'&&idleMotion.canRotate()&&!popupState&&!map.isMoving()&&map.getZoom()<=homeZoom()+1;
+  root.dataset.rotating=String(Boolean(moving));
+  if(moving){fitted=false;const center=map.getCenter();map.jumpTo({center:[center.lng-dt*.45,center.lat]});}
+}
+const rotationButton=txt('button','↻','idle-rotation');rotationButton.id='mapRotate';rotationButton.type='button';
+rotationButton.dataset.i18nAriaLabel='空闲时自动旋转';rotationButton.setAttribute('aria-label',t('空闲时自动旋转'));
+rotationButton.onclick=()=>idleMotion.toggle();el('mapControls').append(rotationButton);
+const unsubscribeMotion=idleMotion.subscribe(()=>{rotationButton.disabled=idleMotion.reduced||engine==='flat';rotationButton.setAttribute('aria-pressed',String(idleMotion.enabled&&!idleMotion.reduced));});
+window.addEventListener('tide:languagechange',()=>{
+  window.__tideI18n.applyDOM(stage);applyMapTheme();sync();
+  if(popupState?.type==='visitor'){
+    const v=bridge().visitors?.get(popupState.id);
+    if(v){if(engine==='globe')popup?.setDOMContent(visitorCard(v,popupState.id));else popup?.setContent(visitorCard(v,popupState.id));}
+  }else if(popupState?.type==='group'){
+    const g=groups.get(popupState.key);if(g){if(engine==='globe')popup?.setDOMContent(groupCard(g));else popup?.setContent(groupCard(g));}
+  }
+});
 async function init() {
   css('./vendor/maplibre/maplibre-gl.css'); controls();
-  stage.querySelector('.map-caption').textContent = '拖拽探索世界 · 点击头像查看访客';
-  el('liveMap').setAttribute('aria-label', '实时访客地球地图，可拖拽旋转、缩放；所有访客也可在右侧列表访问。');
+  stage.querySelector('.map-caption').dataset.i18n='拖拽探索世界 · 点击头像查看访客';stage.querySelector('.map-caption').textContent=t('拖拽探索世界 · 点击头像查看访客');
+  el('liveMap').setAttribute('aria-label', t('实时访客地球地图，可拖拽旋转、缩放；所有访客也可在右侧列表访问。'));
   stage.dataset.renderer = 'maplibre';
   const params = new URLSearchParams(location.search);
   if (params.has('longitude') && params.has('latitude')) {
@@ -398,7 +429,7 @@ async function init() {
     });
     map.on('load', () => {
       ready = true; root.dataset.ready = 'true'; applyMapTheme();
-      map.getCanvas().setAttribute('aria-label', '访客地球地图：拖拽旋转，滚轮缩放，点击圆形头像查看详情');
+      map.getCanvas().setAttribute('aria-label', t('访客地球地图：拖拽旋转，滚轮缩放，点击圆形头像查看详情'));
       loadGeography(); sync();
     });
     map.on('webglcontextlost', () => { fallback(); });
@@ -406,7 +437,7 @@ async function init() {
   } catch { await fallback(); }
   observer = new ResizeObserver(resize); observer.observe(root);
 }
-window.__tideMap = { activate, focusVisitor, showWorld, ready: () => ready,
+window.__tideMap = { collapse, activate, focusVisitor, showWorld, ready: () => ready,
   // Public coordinates are also used by accessible navigation and regression tests.
   appearance: () => ({ scheme: scheme(), locations: groups.size,
     lightOpacity: map && ready ? map.getPaintProperty('visitor-light-haze', 'circle-opacity') : null,
@@ -416,6 +447,6 @@ window.__tideMap = { activate, focusVisitor, showWorld, ready: () => ready,
 };
 window.addEventListener('pagehide', event => {
   if (event.persisted) return;
-  disposed = true; window.removeEventListener('tide:themechange', applyMapTheme); reduced.removeEventListener('change', applyMapTheme); clearInterval(timer); observer?.disconnect(); clearPopup(); map?.remove(); flat?.remove();
+  disposed = true; cancelAnimationFrame(rotationFrame);viewportObserver.disconnect();unsubscribeMotion(); window.removeEventListener('tide:themechange', applyMapTheme); reduced.removeEventListener('change', applyMapTheme); clearInterval(timer); observer?.disconnect(); clearPopup(); map?.remove(); flat?.remove();
 });
-init(); sync(); timer = setInterval(sync, 350);
+init(); sync(); timer = setInterval(sync, 350);rotationFrame=requestAnimationFrame(rotateIdle);

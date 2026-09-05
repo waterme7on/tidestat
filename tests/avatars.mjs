@@ -30,7 +30,7 @@ const browser = await chromium.launch({
   ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
 });
-const page = await browser.newPage({ viewport: { width: 1180, height: 640 }, reducedMotion: 'reduce' });
+const page = await browser.newPage({locale:'zh-CN', viewport: { width: 1180, height: 640 }, reducedMotion: 'reduce' });
 page.on('pageerror', e => errors.push(e.message));
 page.on('request', r => { if (/^https?:/.test(r.url()) && !r.url().startsWith(base + '/')) external.push(r.url()); });
 try {

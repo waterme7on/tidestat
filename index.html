@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="color-scheme" content="light dark" />
 <script src="./theme.js"></script>
+<script src="./i18n.js"></script>
 <title>TideStat — 实时访问人数与网站足迹</title>
 <script type="importmap">
 {
@@ -141,6 +142,7 @@
 <link rel="stylesheet" href="./realtime.css" />
 <link rel="stylesheet" href="./globe.css" />
 <link rel="stylesheet" href="./theme.css" />
+<link rel="stylesheet" href="./dashboard.css" />
 </head>
 <body data-view="map">
 <header>
@@ -152,46 +154,47 @@
     </svg>
     TideStat
   </div>
-  <nav class="tabs" aria-label="视图切换">
-    <button id="tab-map" class="active" aria-pressed="true" type="button">实时访问人数</button>
-    <button id="tab-park" aria-pressed="false" type="button">网站足迹</button>
+  <nav class="tabs" aria-label="视图切换" data-i18n-aria-label="视图切换">
+    <button id="tab-map" class="active" aria-pressed="true" type="button" data-i18n="实时访问人数">实时访问人数</button>
+    <button id="tab-park" aria-pressed="false" type="button" data-i18n="网站足迹">网站足迹</button>
   </nav>
-  <div class="live"><span class="dot" aria-hidden="true"></span>实时 · <b id="onlineCount">0</b> 位访客在线<span id="tzNote" style="color:var(--ink-soft);font-size:10px;margin-left:8px;"></span></div>
+  <label class="language-picker"><span class="sr-only" data-i18n="语言">语言</span><select id="languageSelect" aria-label="语言" data-i18n-aria-label="语言"><option value="system" data-i18n="跟随浏览器">跟随浏览器</option><option value="zh">中文</option><option value="en">English</option></select></label>
+  <div class="live"><span class="dot" aria-hidden="true"></span><span id="headerSource" data-i18n="实时">实时</span> · <b id="onlineCount">0</b> <span data-i18n="位访客在线">位访客在线</span><span id="tzNote" style="color:var(--ink-soft);font-size:10px;margin-left:8px;"></span></div>
 </header>
 
 <main>
   <div class="workspace">
     <div class="map-heading map-only">
-      <div><h1>实时访问人数</h1><p>此刻，世界各地的访客都在这里。</p></div>
-      <span class="source-badge" id="mapSource">实时数据</span>
+      <div><h1 data-i18n="实时访问人数">实时访问人数</h1><p data-i18n="此刻，世界各地的访客都在这里。">此刻，世界各地的访客都在这里。</p></div>
+      <span class="source-badge" id="mapSource" data-i18n="实时数据">实时数据</span>
     </div>
-    <section class="visitor-metrics map-only" aria-label="实时访客统计">
+    <section class="visitor-metrics map-only" aria-label="实时访客统计" data-i18n-aria-label="实时访客统计">
       <div class="metric-primary">
-        <div class="metric-number"><strong id="realtimeCount">—</strong><span>位访客正在浏览</span></div>
-        <div class="metric-status"><i aria-hidden="true"></i><span id="liveStatus">正在连接访客数据…</span><button id="dataRetry" type="button" hidden>重试</button></div>
+        <div class="metric-number"><strong id="realtimeCount">—</strong><span data-i18n="位访客正在浏览">位访客正在浏览</span></div>
+        <div class="metric-status"><i aria-hidden="true"></i><span id="liveStatus" data-i18n="正在连接访客数据…">正在连接访客数据…</span><button id="dataRetry" type="button" hidden data-i18n="重试">重试</button></div>
       </div>
-      <div class="metric-secondary"><strong id="countryCount">0</strong><span>国家 / 地区</span></div>
-      <div class="metric-secondary"><strong id="cityCount">0</strong><span>城市</span></div>
+      <div class="metric-secondary"><strong id="countryCount">0</strong><span data-i18n="国家 / 地区">国家 / 地区</span></div>
+      <div class="metric-secondary"><strong id="cityCount">0</strong><span data-i18n="城市">城市</span></div>
     </section>
     <div class="stage">
-      <div id="liveMap" role="region" aria-label="实时访客地图，可拖拽、缩放；所有访客也可在右侧列表访问。"></div>
-      <div class="map-caption map-only"><i aria-hidden="true"></i>每个头像，都是一位来访者</div>
-      <div class="map-controls map-only" id="mapControls" role="group" aria-label="地图控制">
-        <button id="mapReset" type="button" aria-label="查看全球" title="查看全球"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 1v4m0 14v4M1 12h4m14 0h4"/><circle cx="12" cy="12" r="2"/></svg></button>
-        <div class="map-zoom"><button id="mapZoomIn" type="button" aria-label="放大地图">+</button><button id="mapZoomOut" type="button" aria-label="缩小地图">−</button></div>
+      <div id="liveMap" role="region" aria-label="实时访客地图，可拖拽、缩放；所有访客也可在右侧列表访问。" data-i18n-aria-label="实时访客地图，可拖拽、缩放；所有访客也可在右侧列表访问。"></div>
+      <div class="map-caption map-only"><i aria-hidden="true"></i><span data-i18n="每个头像，都是一位来访者">每个头像，都是一位来访者</span></div>
+      <div class="map-controls map-only" id="mapControls" role="group" aria-label="地图控制" data-i18n-aria-label="地图控制">
+        <button id="mapReset" type="button" aria-label="查看全球" data-i18n-aria-label="查看全球" title="查看全球" data-i18n-title="查看全球"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 1v4m0 14v4M1 12h4m14 0h4"/><circle cx="12" cy="12" r="2"/></svg></button>
+        <div class="map-zoom"><button id="mapZoomIn" type="button" aria-label="放大地图" data-i18n-aria-label="放大地图">+</button><button id="mapZoomOut" type="button" aria-label="缩小地图" data-i18n-aria-label="缩小地图">−</button></div>
       </div>
-      <div class="map-empty map-only" id="mapEmpty" hidden><b>目前没有在线访客</b><p>有人来访时，头像会自动出现在这里。</p></div>
-      <div class="tile-notice map-only" id="tileNotice" role="status" hidden><span id="tileNoticeText">底图暂时未能加载，访客人数与列表仍可查看。</span><button id="tileRetry" type="button">重新加载地图</button></div>
-    <canvas id="stage" role="img" aria-label="实时访客二维备用视图"></canvas>
-    <canvas id="stage3d" role="img" aria-label="实时访客三维场景，可拖拽旋转和滚轮缩放。详细信息见右侧事件与访客时间线。" style="position:absolute;inset:0;width:100%;height:100%;display:none;"></canvas>
+      <div class="map-empty map-only" id="mapEmpty" hidden><b data-i18n="目前没有在线访客">目前没有在线访客</b><p data-i18n="有人来访时，头像会自动出现在这里。">有人来访时，头像会自动出现在这里。</p></div>
+      <div class="tile-notice map-only" id="tileNotice" role="status" hidden><span id="tileNoticeText" data-i18n="底图暂时未能加载，访客人数与列表仍可查看。">底图暂时未能加载，访客人数与列表仍可查看。</span><button id="tileRetry" type="button" data-i18n="重新加载地图">重新加载地图</button></div>
+    <canvas id="stage" role="img" aria-label="实时访客二维备用视图" data-i18n-aria-label="实时访客二维备用视图"></canvas>
+    <canvas id="stage3d" role="img" aria-label="实时访客三维场景，可拖拽旋转和滚轮缩放。详细信息见右侧事件与访客时间线。" data-i18n-aria-label="实时访客三维场景，可拖拽旋转和滚轮缩放。详细信息见右侧事件与访客时间线。" style="position:absolute;inset:0;width:100%;height:100%;display:none;"></canvas>
     <div class="hint" id="stageHint">LIVE · 实时访客 · 点击右侧事件可追踪访客</div>
   </div>
-              <div class="map-footer map-only"><span>位置为城市级近似 · 头像为匿名生成，不代表本人外貌</span><span id="unknownLocations"></span></div>
+              <div class="map-footer map-only"><span data-i18n="位置为城市级近似 · 头像为匿名生成，不代表本人外貌">位置为城市级近似 · 头像为匿名生成，不代表本人外貌</span><span id="unknownLocations"></span></div>
   </div>
   <aside>
-    <div class="panel map-only" id="onlinePanel"><h2>正在访问 <span class="count" id="onlineListCount">0</span></h2><div id="mapVisitors"></div><p id="onlineListEmpty">新的来访者会显示在这里。</p></div>
+    <div class="panel map-only" id="onlinePanel"><h2><span data-i18n="正在访问">正在访问</span> <span class="count" id="onlineListCount">0</span></h2><div id="mapVisitors"></div><p id="onlineListEmpty" data-i18n="新的来访者会显示在这里。">新的来访者会显示在这里。</p></div>
     <div class="panel" id="visitorDetail">
-      <h2>访客时间线 <button id="vdClose" type="button" aria-label="关闭访客时间线" style="border:0;background:none;cursor:pointer;color:var(--ink-soft);font-size:14px;line-height:1;">✕</button></h2>
+      <h2 id="timelineTitle"><span data-i18n="访客时间线">访客时间线</span> <button id="vdClose" type="button" aria-label="关闭访客时间线" data-i18n-aria-label="关闭访客时间线" style="border:0;background:none;cursor:pointer;color:var(--ink-soft);font-size:14px;line-height:1;">✕</button></h2>
       <div class="vd-body">
         <div class="vd-id" id="vdId"></div>
         <div class="vd-meta" id="vdMeta"></div>
@@ -199,7 +202,7 @@
       </div>
     </div>
     <div class="panel" style="flex:1;">
-      <h2>实时事件 · 时间为本机时区 <span class="count" id="evCount"></span></h2>
+      <h2><span data-i18n="实时事件 · 时间为本机时区">实时事件 · 时间为本机时区</span> <span class="count" id="evCount"></span></h2>
       <div id="events" role="log" aria-live="polite"></div>
     </div>
   </aside>
@@ -207,6 +210,7 @@
 
 <script>
 "use strict";
+const {t, nodeLabel, cityName, identity, time: displayTime} = window.__tideI18n;
 
 /* ───────────────────────── 数据底座(为真实埋点预留同构结构) ───────────────────────── */
 
@@ -323,7 +327,7 @@ function spawnVisitor(now) {
   const id = "v" + String(sim.nextId++).padStart(4, "0");
   const city = weightedCity();
   const v = {
-    id, city, enterTs: now,
+    id, city, enterTs: now, maskedIp: `203.*.*.${1 + (sim.nextId % 254)}`,
     state: "walking",                 // walking | reading | leaving
     node: "gate", target: "home",
     t: 0, speed: rnd(.35, .6),        // 归一化路径速度/秒
@@ -339,6 +343,7 @@ function pushEvent(ts, type, v, place) {
   sim.events.unshift({ ts, type, v, place });
   if (sim.events.length > 42) sim.events.pop();
   renderEventsThrottled();
+  if (sim.selectedId === (v.fullId || v.id)) renderVisitorDetail(true);
 }
 
 function stepVisitor(v, dt, now) {
@@ -371,7 +376,7 @@ function stepVisitor(v, dt, now) {
     v.t += dt * v.speed * 1.25;
     if (v.t >= 1) {
       pushEvent(now, "leave", v, nodeById(v.node).label);
-      if (sim.selectedId === v.id) deselect();
+      if (sim.selectedId === v.id && !window.__tide.timelineOpen) deselect();
       sim.visitors.delete(v.id);
     }
   }
@@ -678,17 +683,17 @@ let eventsDirty = true;
 function renderEventsThrottled() { eventsDirty = true; }
 function flushEvents() {
   if (!eventsDirty) return;
+  if (eventsEl.contains(document.activeElement)) return; // do not destroy keyboard focus during live bursts
   eventsDirty = false;
   document.getElementById("evCount").textContent = sim.events.length;
-  const sel = sim.selectedId;
-  eventsEl.innerHTML = sim.events.map(e => `
-    <div class="ev${sel === (e.v.fullId || e.v.id) ? " selected" : ""}" data-id="${escapeMarkup(e.v.fullId || e.v.id)}" role="button" tabindex="0">
-      <i class="${e.type}"></i>
-      <div class="txt"><b>${escapeMarkup(e.v.city[0])}</b><span> · ${
-        e.type === "visit" ? "进入网站" : e.type === "leave" ? "离开(" + e.place + ")" : "浏览 " + e.place
-      }</span></div>
-      <time>${new Date(performance.timeOrigin + e.ts).toLocaleTimeString("zh-CN", { hour12: false })}</time>
-    </div>`).join("");
+  eventsEl.innerHTML = sim.events.map(e => {
+    const id = e.v.fullId || e.v.id;
+    const place = t(e.place);
+    const action = e.type === "visit" ? t("进入网站") : e.type === "leave" ? t("离开（{page}）", {page:place}) : t("浏览 {page}",{page:place});
+    return `<div class="ev${sim.selectedId === id ? " selected" : ""}" data-id="${escapeMarkup(id)}" role="button" tabindex="0">
+      <i class="${e.type}"></i><div class="txt"><b>${escapeMarkup(cityName(e.v.city[0]))}</b><span> · ${escapeMarkup(action)}</span></div>
+      <time>${displayTime(performance.timeOrigin + e.ts)}</time></div>`;
+  }).join("");
 }
 eventsEl.addEventListener("click", e => {
   const row = e.target.closest(".ev");
@@ -705,31 +710,75 @@ eventsEl.addEventListener("keydown", e => {
 });
 
 const vd = document.getElementById("visitorDetail");
+const timelineHome = document.createComment('visitor-timeline-home'); vd.before(timelineHome);
+const timelineDialog = document.createElement('dialog'); timelineDialog.id='timelineDialog';
+timelineDialog.className='timeline-dialog'; timelineDialog.setAttribute('aria-labelledby','timelineTitle'); document.body.append(timelineDialog);
+let selectedSnapshot = null, timelineReturnFocus = null, detailSignature = '', detailUpdated = 0;
+function findVisitor(id) { return sim.visitors.get(id) || sim.events.find(e => (e.v.fullId || e.v.id) === id)?.v || (selectedSnapshot?.id === id ? selectedSnapshot.visitor : null); }
 function selectVisitor(id) {
-  sim.selectedId = id;
-  window.__tide.selectedId = id;
+  const v = findVisitor(id); if (!v) return;
+  selectedSnapshot = {id, visitor: {...v, visited:(v.visited || []).map(x=>({...x}))}};
+  sim.selectedId = id; window.__tide.selectedId = id;
   window.__tideMap?.focusVisitor?.(id);
-  vd.classList.add("open");
-  renderVisitorDetail();
-  eventsDirty = true;
+  vd.classList.add("open"); renderVisitorDetail(true); eventsDirty = true;
+}
+function closeTimeline() {
+  if (!timelineDialog.open && vd.parentElement !== timelineDialog && !window.__tide.timelineOpen) return;
+  if (timelineDialog.open) timelineDialog.close();
+  if (vd.parentElement === timelineDialog) timelineHome.after(vd);
+  window.__tide.timelineOpen = false;
+  const focusTarget = timelineReturnFocus?.isConnected ? timelineReturnFocus : document.getElementById(view === 'park' ? 'footprintReset' : 'mapReset');
+  timelineReturnFocus = null;
+  focusTarget?.focus({preventScroll:true});
+}
+function openTimeline(id = sim.selectedId) {
+  if (!findVisitor(id)) return;
+  timelineReturnFocus = document.activeElement;
+  if (sim.selectedId !== id) selectVisitor(id);
+  window.__tideMap?.collapse?.(); window.__tide3d?.collapse?.();
+  timelineDialog.append(vd); window.__tide.timelineOpen = true;
+  if (!timelineDialog.open) timelineDialog.showModal();
+  renderVisitorDetail(true); document.getElementById('vdClose').focus({preventScroll:true});
 }
 function deselect() {
-  sim.selectedId = null;
-  window.__tide.selectedId = null;
-  vd.classList.remove("open");
-  eventsDirty = true;
+  closeTimeline(); selectedSnapshot = null;
+  sim.selectedId = null; window.__tide.selectedId = null;
+  vd.classList.remove("open"); detailSignature=''; eventsDirty = true;
 }
-document.getElementById("vdClose").addEventListener("click", deselect);
-
-function renderVisitorDetail() {
-  const v = sim.visitors.get(sim.selectedId) || sim.events.find(e => (e.v.fullId || e.v.id) === sim.selectedId)?.v;
-  if (!v) { deselect(); return; }
-  document.getElementById("vdId").textContent = v.id + " · " + v.city[0];
-  document.getElementById("vdMeta").textContent =
-    `${v.city[1]} · 进入于 ${new Date(performance.timeOrigin + v.enterTs).toLocaleTimeString("zh-CN", { hour12: false })} · 在线 ${Math.round((performance.now() - v.enterTs) / 1000)}s`;
-  document.getElementById("vdTimeline").innerHTML = v.visited.map((x, i) => `
-    <li><i></i><b>${nodeById(x.node).label}</b><time>${new Date(performance.timeOrigin + x.arrive).toLocaleTimeString("zh-CN", { hour12: false })}</time></li>`).join("");
+timelineDialog.addEventListener('cancel', e => {e.preventDefault();closeTimeline();});
+timelineDialog.addEventListener('close', () => { if (!timelineDialog.open) closeTimeline(); });
+timelineDialog.addEventListener('click',e=>{if(e.target===timelineDialog){const r=timelineDialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeTimeline();}});
+// Keep keyboard focus inside the timeline even when Close is its only control.
+timelineDialog.addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const controls = [...timelineDialog.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]')].filter(el => el.getClientRects().length);
+  const first = controls[0], last = controls.at(-1);
+  if (!first) { e.preventDefault(); return; }
+  if (controls.length === 1 || (e.shiftKey && document.activeElement === first) || (!e.shiftKey && document.activeElement === last)) {
+    e.preventDefault(); (e.shiftKey ? last : first).focus();
+  }
+});
+document.getElementById("vdClose").addEventListener("click", () => timelineDialog.open ? closeTimeline() : deselect());
+function renderVisitorDetail(force = false) {
+  if (!force && performance.now() - detailUpdated < 300) return;
+  detailUpdated = performance.now();
+  const v = findVisitor(sim.selectedId); if (!v) {deselect();return;}
+  const live = sim.visitors.has(sim.selectedId) && v.state !== 'leaving';
+  selectedSnapshot={id:sim.selectedId,visitor:{...v,visited:(v.visited||[]).map(x=>({...x}))}};
+  document.getElementById("vdId").textContent = `${t('匿名访客')} · ${identity(v)} · ${cityName(v.city?.[0])}`;
+  document.getElementById("vdMeta").textContent = `${v.city?.[1] || ''} · ` + t(live?'进入于 {time} · 在线 {seconds}s':'进入于 {time} · 已离线', {time:displayTime(performance.timeOrigin+v.enterTs),seconds:Math.max(0,Math.round((performance.now()-v.enterTs)/1000))}) + (DEMO ? ` · ${t('模拟 IP')}` : '');
+  const sig=JSON.stringify([sim.selectedId,v.visited,window.__tideI18n.language]);
+  if(sig===detailSignature)return; detailSignature=sig;
+  const list=document.getElementById('vdTimeline');list.replaceChildren();
+  for(const x of v.visited||[]){
+    const li=document.createElement('li'), dot=document.createElement('i'), copy=document.createElement('div'), label=document.createElement('b'), time=document.createElement('time');
+    label.textContent=nodeLabel(x.node);copy.append(label);
+    if(x.path){const path=document.createElement('small');path.textContent=x.path;copy.append(path);}
+    time.textContent=displayTime(performance.timeOrigin+x.arrive);li.append(dot,copy,time);list.append(li);
+  }
+  if(!list.children.length){const empty=document.createElement('li');empty.textContent=t('尚无已记录路径');list.append(empty);}
 }
+window.addEventListener('tide:languagechange',()=>{eventsDirty=true;if(sim.selectedId)renderVisitorDetail(true);document.getElementById('tzNote').textContent=new Date().toLocaleTimeString(window.__tideI18n.locale,{hour12:false,timeZoneName:'short'}).replace(/^\d{1,2}:\d{2}:\d{2}\s*/, '');});
 
 /* ───────────────────────── 视图切换 + 主循环 ───────────────────────── */
 
@@ -788,24 +837,30 @@ async function liveTick(now) {
       }
       const isNew = !liveSeen.has(rv.id), prev = liveSeen.get(rv.id);
       v.city = [rv.city || "未知位置", rv.country || "", rv.lat ?? null, rv.lng ?? null, 1];
-      v.currentPath = currentPath; v.device = rv.device;
-      v.visited = paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts) }));
+      v.currentPath = currentPath; v.device = rv.device; v.maskedIp = rv.maskedIp || null;
+      v.visited = paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts), path: p.path }));
       if (isNew) pushEvent(now, "visit", v, nodeById(node).label);
-      else if (prev.node !== node) {
-        v.state = "walking"; v.node = prev.node; v.target = node; v.t = 0; v.speed = 1 / 2.2;
+      else if (prev.path !== currentPath) {
+        // A second article is a new pageview even when both URLs share one visual area.
+        if (prev.node !== node) {
+          v.state = "walking"; v.node = prev.node; v.target = node; v.t = 0; v.speed = 1 / 2.2;
+        }
         pushEvent(now, "pageview", v, nodeById(node).label);
       }
-      liveSeen.set(rv.id, { node });
+      liveSeen.set(rv.id, { node, path: currentPath });
     }
     // The API already defines online=last 90 seconds. Never accumulate departed visitors.
     for (const [id,v] of sim.visitors) if (!seen.has(id)) {
       v.state = "leaving"; pushEvent(now, "leave", v, nodeById(v.node).label);
       sim.visitors.delete(id); liveSeen.delete(id);
-      if (sim.selectedId === id) deselect();
+      if (sim.selectedId === id && !window.__tide.timelineOpen) deselect();
     }
     window.__tide.status = "ready";
+    window.__tide.truncated = data.truncated === true;
     window.__tide.onlineMs = Number(data.onlineMs) > 0 ? Number(data.onlineMs) : 90000;
     window.__tide.updatedAt = Date.now();
+    // Dialog updates must not wait for a throttled WebGL animation frame.
+    if (sim.selectedId) renderVisitorDetail(true);
   } catch (error) {
     window.__tide.status = "error"; // Preserve last successful data and visibly mark it stale.
   } finally { clearTimeout(timeout); liveBusy = false; }
@@ -817,21 +872,22 @@ window.__tideLandB64 = LAND_B64;
 window.__tideCities = CITIES;
 window.__tide = window.__tide || {};
 Object.assign(window.__tide, { view: "map", visitors: sim.visitors, selectedId: null,
-  demo: DEMO, status: DEMO ? "ready" : "loading", onlineMs: 90000,
-  selectVisitor, deselect, refresh: () => liveTick(performance.now()) });
+  demo: DEMO, status: DEMO ? "ready" : "loading", onlineMs: 90000, truncated: false,
+  selectVisitor, deselect, openTimeline, timelineOpen: false, refresh: () => liveTick(performance.now()) });
 document.getElementById("tzNote").textContent =
-  new Date().toLocaleTimeString("zh-CN", { hour12: false, timeZoneName: "short" }).replace(/^\d{1,2}:\d{2}:\d{2}\s*/, "");
+  new Date().toLocaleTimeString(window.__tideI18n.locale, { hour12: false, timeZoneName: "short" }).replace(/^\d{1,2}:\d{2}:\d{2}\s*/, "");
 
 let last = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, .1);
   last = now;
   if (DEMO) {
-    // 模拟推进
     sim.spawnTimer -= dt;
-    if (sim.spawnTimer <= 0 && sim.visitors.size < 22) {
-      spawnVisitor(now);
-      sim.spawnTimer = rnd(.6, 2.4);
+    const targetPopulation = 110 + Math.round(15 * (1 + Math.sin(now / 45000)));
+    if (sim.spawnTimer <= 0) {
+      const activeCount=[...sim.visitors.values()].filter(v=>v.state!=='leaving').length;
+      for(let i=0;i<Math.min(4,targetPopulation-activeCount)&&sim.visitors.size<150;i++)spawnVisitor(now);
+      sim.spawnTimer=.3;
     }
     for (const v of [...sim.visitors.values()]) stepVisitor(v, dt, now);
   } else {
@@ -856,22 +912,25 @@ function loop(now) {
   window.__tide.visitors = sim.visitors;
   window.__tide.selectedId = sim.selectedId;
   window.__tide.now = now;
+  document.getElementById("headerSource").textContent = t(DEMO ? "演示" : "实时");
   document.getElementById("onlineCount").textContent = [...sim.visitors.values()].filter(v => v.state !== "leaving").length;
 
   if (view === "park" && !window.__tide3d?.ready?.()) drawPark(now, dt);
   flushEvents();
-  if (sim.selectedId && sim.visitors.has(sim.selectedId)) renderVisitorDetail();
+  if (sim.selectedId) renderVisitorDetail();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
-// 预热:仅 demo 模式(真实模式绝不能混入模拟访客)
-if (DEMO) for (let i = 0; i < 9; i++) {
-  spawnVisitor(performance.now() - rnd(2000, 26000));
-  const v = [...sim.visitors.values()].pop();
-  v.state = "reading"; v.node = v.target = pick(SITE.nodes.slice(1)).id;
-  v.visited = [{ node: v.node, arrive: performance.now() - rnd(1000, 20000) }];
-  v.t = 0;
+// A large, explicitly simulated audience. Never runs in live mode or calls /api/collect.
+if (DEMO) for (let i = 0; i < 120; i++) {
+  const now=performance.now(), entered=now-rnd(15000,90000);
+  spawnVisitor(entered); const v=[...sim.visitors.values()].at(-1);
+  // Cycle the first visitors through every city, then keep the existing weighted distribution.
+  if(i<CITIES.length)v.city=CITIES[i];
+  let node='gate';const count=3+i%4;v.visited=[];
+  for(let j=0;j<count;j++){v.visited.push({node,arrive:entered+(now-entered)*j/count});node=nextNode(node);}
+  v.node=v.visited.at(-1).node;v.target=nextNode(v.node);v.state='reading';v.dwell=rnd(10000,40000);v.t=0;
 }
 </script>
 
