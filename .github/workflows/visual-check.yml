@@ -11,7 +11,7 @@ concurrency:
 jobs:
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,14 +22,16 @@ jobs:
           npm install --no-save --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
           sudo apt-get install -y fonts-noto-cjk
-      - name: Theme, avatar and globe regression checks
+      - name: Footprints, theme, avatar and globe regression checks
         run: |
           mkdir -p visual-review
           PORT=8894 node server.cjs > /tmp/tidestat-server.log 2>&1 &
           node --check scene.js
+          node --check footprint-model.js
           node --check globe-map.js
           node --check visitor-avatar.js
           node --check theme.js
+          node tests/footprints.mjs
           node tests/themes.mjs
           node tests/avatars.mjs
           node tests/globe.mjs
@@ -38,7 +40,7 @@ jobs:
         if: always()
         run: |
           mkdir -p visual-review/app
-          cp index.html server.cjs scene.js scene.css realtime-map.js realtime.css globe-map.js globe.css visitor-avatar.js theme.js theme.css visual-review/app/
+          cp index.html server.cjs scene.js scene.css footprint-model.js footprints.css realtime-map.js realtime.css globe-map.js globe.css visitor-avatar.js theme.js theme.css visual-review/app/
           cp -R vendor assets tests visual-review/app/
       - uses: actions/upload-artifact@v4
         if: always()
