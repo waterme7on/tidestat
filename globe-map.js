@@ -15,7 +15,42 @@ const rows = new Map(), images = new Map(), flatMarkers = new Map();
 let map, flat, flatLand, popup, groups = new Map(), engine = 'loading';
 let active = true, ready = false, disposed = false, fitted = true, selection = null;
 let timer, observer, geography, geoLoading = false, imageSerial = 0, rendering = false;
+let lightStatus = '';
 let applied = '', currentImages = new Set(), requestedCenter = HOME, popupState = null;
+
+// Update paint only: never setStyle, rebuild the map, change the camera or regenerate B faces.
+const THEMES = {
+  dark: { ocean: '#1e1f20', land: '#0c0d0e', border: '#303134', ring: '#c2d5c2', stroke: '#d3e1d2' },
+  light: { ocean: '#e3eced', land: '#fafbf7', border: '#c6d2c0', ring: '#819d68', stroke: '#5f7b4d' },
+};
+const scheme = () => window.__tideTheme?.resolved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+const palette = () => THEMES[scheme()];
+const flatStyle = () => ({ fillColor: palette().land, fillOpacity: 1, color: palette().border, weight: .55 });
+function applyMapTheme() {
+  const colors = palette(), dark = scheme() === 'dark';
+  const signal = Boolean(bridge().demo || bridge().status === 'ready');
+  if (disposed) return;
+  root.dataset.theme = scheme();
+  if (map && ready && engine === 'globe') {
+    for (const [id, prop, value] of [
+      ['ocean', 'background-color', colors.ocean], ['land', 'fill-color', colors.land],
+      ['borders', 'line-color', colors.border], ['selected-person', 'circle-color', colors.ring],
+      ['selected-person', 'circle-stroke-color', colors.stroke],
+      ['visitor-light-haze', 'circle-opacity', dark && signal ? .34 : 0],
+      ['visitor-light-warmth', 'circle-opacity', dark && signal ? .22 : 0],
+    ]) {
+      if (!map.getLayer(id)) continue;
+      map.setPaintProperty(id, `${prop}-transition`, { duration: reduced.matches ? 0 : 220, delay: 0 });
+      map.setPaintProperty(id, prop, value);
+    }
+  }
+  flatLand?.setStyle(flatStyle());
+  const key = el('activityKey');
+  if (key) key.textContent = !signal ? '等候访客数据 · 暂停点灯' : dark ? '柔光 = 此处有在线访客' : '圆形头像 = 在线访客';
+  const select = el('mapTheme'); if (select) select.value = window.__tideTheme?.preference || 'system';
+}
+window.addEventListener('tide:themechange', applyMapTheme);
+reduced.addEventListener('change', applyMapTheme);
 
 function asset(path) { return new URL(path, import.meta.url).href; }
 function css(path) {
@@ -134,6 +169,8 @@ function renderList(list) {
 function sync() {
   if (disposed || document.hidden) return;
   const list = liveVisitors(), data = bridge(), failed = data.status === 'error';
+  const statusKey = `${data.demo}:${data.status}`;
+  if (lightStatus !== statusKey) { lightStatus = statusKey; applyMapTheme(); }
   const unavailable = !data.demo && (data.status === 'loading' || (failed && !data.updatedAt));
   const countries = new Set(list.map(([, v]) => v.city?.[1]).filter(c => /^[A-Z]{2}$/.test(c || '')));
   const cities = new Set(list.filter(([, v]) => v.city?.[0] && v.city[0] !== '未知位置').map(([, v]) => JSON.stringify([v.city[0], v.city[1]])));
@@ -197,7 +234,7 @@ async function renderGlobe(signature) {
   rendering = true;
   try {
     const snapshot = [...groups.values()], focus = selected();
-    const features = await Promise.all(snapshot.map(async group => ({ type: 'Feature', geometry: { type: 'Point', coordinates: group.loc }, properties: { key: group.key, image: await groupImage(group), selected: group.ids.includes(focus) ? 1 : 0 } })));
+    const features = await Promise.all(snapshot.map(async group => ({ type: 'Feature', geometry: { type: 'Point', coordinates: group.loc }, properties: { key: group.key, count: group.ids.length, image: await groupImage(group), selected: group.ids.includes(focus) ? 1 : 0 } })));
     if (disposed || engine !== 'globe') return;
     currentImages = new Set(features.map(f => f.properties.image));
     map.getSource('people').setData({ type: 'FeatureCollection', features: features.filter(f => f.properties.image) });
@@ -232,7 +269,7 @@ async function loadGeography() {
     if (data.type !== 'FeatureCollection' || !data.features?.length) throw new Error('Invalid geography');
     if (disposed) return; geography = data;
     if (engine === 'globe') map.getSource('countries').setData(data);
-    else if (flat) { if (flatLand) flat.removeLayer(flatLand); flatLand = L.geoJSON(data, { interactive: false, style: { fillColor: '#0c0d0e', fillOpacity: 1, color: '#303134', weight: .55 } }).addTo(flat); }
+    else if (flat) { if (flatLand) flat.removeLayer(flatLand); flatLand = L.geoJSON(data, { interactive: false, style: flatStyle() }).addTo(flat); }
     root.dataset.geography = 'ready'; setNotice('');
   } catch {
     root.dataset.geography = 'error'; setNotice('地图边界暂未载入，访客人数与头像仍可查看。');
@@ -259,8 +296,8 @@ async function fallback() {
     flat = L.map(root, { zoomControl: false, maxZoom: 6, minZoom: 0, zoomAnimation: !reduced.matches });
     flat.attributionControl.setPrefix('Leaflet'); flat.attributionControl.addAttribution('Natural Earth');
     root.dataset.engine = 'flat'; root.dataset.ready = 'true'; ready = true;
-    el('globeMode').textContent = '平面兼容模式'; showWorld();
-    if (geography) flatLand = L.geoJSON(geography, { interactive: false, style: { fillColor: '#0c0d0e', fillOpacity: 1, color: '#303134', weight: .55 } }).addTo(flat);
+    el('globeMode').textContent = '平面兼容模式'; showWorld(); applyMapTheme();
+    if (geography) flatLand = L.geoJSON(geography, { interactive: false, style: flatStyle() }).addTo(flat);
     else loadGeography();
     sync();
   } catch { root.dataset.ready = 'false'; setNotice('地图暂不可用，请通过右侧列表查看在线访客。', false); }
@@ -294,11 +331,22 @@ function controls() {
   const presets = txt('div', '', 'globe-regions map-only'); presets.setAttribute('role', 'group'); presets.setAttribute('aria-label', '快速查看地区');
   for (const [label, center] of regions) { const b = txt('button', label); b.type = 'button'; b.onclick = () => showWorld(center); presets.append(b); }
   stage.append(presets);
+  const picker = txt('label', '', 'theme-picker map-only');
+  const icon = txt('span', '◐'); icon.setAttribute('aria-hidden', 'true');
+  const select = document.createElement('select'); select.id = 'mapTheme'; select.setAttribute('aria-label', '地图主题');
+  for (const [value, label] of [['system','跟随系统'], ['light','浅色 · 白天'], ['dark','深色 · 夜间']]) {
+    const option = txt('option', label); option.value = value; select.append(option);
+  }
+  select.value = window.__tideTheme?.preference || 'system';
+  select.onchange = () => window.__tideTheme?.setPreference(select.value);
+  picker.append(icon, select); stage.append(picker);
+  const key = txt('span', '', 'activity-key map-only'); key.id = 'activityKey'; stage.append(key);
+  applyMapTheme();
   const mode = txt('span', '地球视图', 'globe-mode map-only'); mode.id = 'globeMode'; stage.append(mode);
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && active) { collapse(); clearPopup(); bridge().deselect?.(); } });
 }
 async function init() {
-  css('./vendor/maplibre/maplibre-gl.css'); css('./globe.css'); controls();
+  css('./vendor/maplibre/maplibre-gl.css'); controls();
   stage.querySelector('.map-caption').textContent = '拖拽探索世界 · 点击头像查看访客';
   el('liveMap').setAttribute('aria-label', '实时访客地球地图，可拖拽旋转、缩放；所有访客也可在右侧列表访问。');
   stage.dataset.renderer = 'maplibre';
@@ -315,10 +363,20 @@ async function init() {
       pitchWithRotate: false, dragRotate: false, renderWorldCopies: false,
       canvasContextAttributes: { antialias: true, preserveDrawingBuffer: true },
       style: { version: 8, projection: { type: 'globe' }, sources: { countries: { type: 'geojson', data: EMPTY, tolerance: .45, maxzoom: 7, attribution: '<a href="https://www.naturalearthdata.com/about/terms-of-use/" target="_blank" rel="noopener">Natural Earth</a>' }, people: { type: 'geojson', data: EMPTY } }, layers: [
-        { id: 'ocean', type: 'background', paint: { 'background-color': '#1e1f20' } },
-        { id: 'land', type: 'fill', source: 'countries', paint: { 'fill-color': '#0c0d0e' } },
-        { id: 'borders', type: 'line', source: 'countries', paint: { 'line-color': '#303134', 'line-width': .5, 'line-opacity': .65 } },
-        { id: 'selected-person', type: 'circle', source: 'people', filter: ['==', ['get', 'selected'], 1], paint: { 'circle-radius': 25, 'circle-color': '#c2d5c2', 'circle-opacity': .4, 'circle-stroke-width': 1.5, 'circle-stroke-color': '#d3e1d2' } },
+        { id: 'ocean', type: 'background', paint: { 'background-color': palette().ocean } },
+        { id: 'land', type: 'fill', source: 'countries', paint: { 'fill-color': palette().land } },
+        { id: 'borders', type: 'line', source: 'countries', paint: { 'line-color': palette().border, 'line-width': .5, 'line-opacity': .65 } },
+        // Gentle light under actual online locations. No fabricated cities or always-on animation.
+        { id: 'visitor-light-haze', type: 'circle', source: 'people', paint: {
+          'circle-radius': ['interpolate', ['linear'], ['min', ['get', 'count'], 8], 1, 37, 8, 53],
+          'circle-color': '#e6a75d', 'circle-blur': .9, 'circle-opacity': scheme() === 'dark' ? .34 : 0,
+          'circle-pitch-alignment': 'map', 'circle-pitch-scale': 'viewport'
+        } },
+        { id: 'visitor-light-warmth', type: 'circle', source: 'people', paint: {
+          'circle-radius': 27, 'circle-color': '#f4cb85', 'circle-blur': .75,
+          'circle-opacity': scheme() === 'dark' ? .22 : 0, 'circle-pitch-alignment': 'map', 'circle-pitch-scale': 'viewport'
+        } },
+        { id: 'selected-person', type: 'circle', source: 'people', filter: ['==', ['get', 'selected'], 1], paint: { 'circle-radius': 25, 'circle-color': palette().ring, 'circle-opacity': .4, 'circle-stroke-width': 1.5, 'circle-stroke-color': palette().stroke } },
         { id: 'avatars', type: 'symbol', source: 'people', layout: { 'icon-image': ['get', 'image'], 'icon-size': .82, 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'icon-pitch-alignment': 'viewport', 'icon-rotation-alignment': 'viewport', 'symbol-sort-key': ['get', 'selected'] } }
       ] }
     });
@@ -339,7 +397,7 @@ async function init() {
       const key = hits[0]?.properties?.key; if (key) clickGroup(key);
     });
     map.on('load', () => {
-      ready = true; root.dataset.ready = 'true';
+      ready = true; root.dataset.ready = 'true'; applyMapTheme();
       map.getCanvas().setAttribute('aria-label', '访客地球地图：拖拽旋转，滚轮缩放，点击圆形头像查看详情');
       loadGeography(); sync();
     });
@@ -350,11 +408,14 @@ async function init() {
 }
 window.__tideMap = { activate, focusVisitor, showWorld, ready: () => ready,
   // Public coordinates are also used by accessible navigation and regression tests.
+  appearance: () => ({ scheme: scheme(), locations: groups.size,
+    lightOpacity: map && ready ? map.getPaintProperty('visitor-light-haze', 'circle-opacity') : null,
+    land: map && ready ? map.getPaintProperty('land', 'fill-color') : flatLand?.options.style?.fillColor }),
   camera: () => map ? { center: map.getCenter().toArray(), zoom: map.getZoom(), projection: map.getProjection().type } : { projection: 'mercator' },
   projectVisitor: id => { const v = bridge().visitors?.get(id), loc = v && locationOf(v); if (!loc || !map) return null; const p = map.project(loc); return { x: p.x, y: p.y }; }
 };
 window.addEventListener('pagehide', event => {
   if (event.persisted) return;
-  disposed = true; clearInterval(timer); observer?.disconnect(); clearPopup(); map?.remove(); flat?.remove();
+  disposed = true; window.removeEventListener('tide:themechange', applyMapTheme); reduced.removeEventListener('change', applyMapTheme); clearInterval(timer); observer?.disconnect(); clearPopup(); map?.remove(); flat?.remove();
 });
 init(); sync(); timer = setInterval(sync, 350);
