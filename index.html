@@ -343,6 +343,7 @@ function pushEvent(ts, type, v, place) {
   sim.events.unshift({ ts, type, v, place });
   if (sim.events.length > 42) sim.events.pop();
   renderEventsThrottled();
+  if (sim.selectedId === (v.fullId || v.id)) renderVisitorDetail(true);
 }
 
 function stepVisitor(v, dt, now) {
@@ -763,7 +764,7 @@ function renderVisitorDetail(force = false) {
   detailUpdated = performance.now();
   const v = findVisitor(sim.selectedId); if (!v) {deselect();return;}
   const live = sim.visitors.has(sim.selectedId) && v.state !== 'leaving';
-  if(live)selectedSnapshot={id:sim.selectedId,visitor:{...v,visited:(v.visited||[]).map(x=>({...x}))}};
+  selectedSnapshot={id:sim.selectedId,visitor:{...v,visited:(v.visited||[]).map(x=>({...x}))}};
   document.getElementById("vdId").textContent = `${t('匿名访客')} · ${identity(v)} · ${cityName(v.city?.[0])}`;
   document.getElementById("vdMeta").textContent = `${v.city?.[1] || ''} · ` + t(live?'进入于 {time} · 在线 {seconds}s':'进入于 {time} · 已离线', {time:displayTime(performance.timeOrigin+v.enterTs),seconds:Math.max(0,Math.round((performance.now()-v.enterTs)/1000))}) + (DEMO ? ` · ${t('模拟 IP')}` : '');
   const sig=JSON.stringify([sim.selectedId,v.visited,window.__tideI18n.language]);
@@ -854,6 +855,8 @@ async function liveTick(now) {
     window.__tide.status = "ready";
     window.__tide.onlineMs = Number(data.onlineMs) > 0 ? Number(data.onlineMs) : 90000;
     window.__tide.updatedAt = Date.now();
+    // Dialog updates must not wait for a throttled WebGL animation frame.
+    if (sim.selectedId) renderVisitorDetail(true);
   } catch (error) {
     window.__tide.status = "error"; // Preserve last successful data and visibly mark it stale.
   } finally { clearTimeout(timeout); liveBusy = false; }
