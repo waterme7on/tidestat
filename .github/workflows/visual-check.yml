@@ -1,9 +1,8 @@
 name: Visual review
 on:
-  push:
-    branches: ['design/observatory-3d-refresh']
   pull_request:
     branches: [main]
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -12,28 +11,29 @@ concurrency:
 jobs:
   browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install browser tooling
+      - name: Install pinned browser tooling
         run: |
           npm install --no-save --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Browser regression checks
+      - name: Map regression checks
         run: |
           mkdir -p visual-review
           PORT=8894 node server.cjs > /tmp/tidestat-server.log 2>&1 &
           node --check scene.js
-          node tests/visual.mjs
+          node --check realtime-map.js
+          node tests/map.mjs
       - name: Package self-contained visual review
         if: always()
         run: |
           mkdir -p visual-review/app
-          cp index.html server.cjs scene.js scene.css visual-review/app/
-          cp -R vendor visual-review/app/
+          cp index.html server.cjs scene.js scene.css realtime-map.js realtime.css visual-review/app/
+          cp -R vendor tests visual-review/app/
       - uses: actions/upload-artifact@v4
         if: always()
         with:
