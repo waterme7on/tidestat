@@ -1,0 +1,72 @@
+name: Apply dashboard review fixes
+on:
+  push:
+    branches: ['design/footprints-doodle-day-night']
+    paths: ['.github/workflows/polish-dashboard.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/design/footprints-doodle-day-night' && github.actor == 'waterme7on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/footprints-doodle-day-night
+          fetch-depth: 0
+      - name: Apply exact reviewed source changes
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import subprocess
+          for name in ['index.html','tests/dashboard.mjs','tests/footprints.mjs']:
+            original=subprocess.check_output(['git','show','d499949d491f63c50e94f22f2a4f01795c37fe3c:'+name])
+            assert Path(name).read_bytes()==original, 'Concurrent change: '+name
+          p=Path('index.html');s=p.read_text()
+          s=s.replace('function closeTimeline() {\n', 'function closeTimeline() {\n  if (!timelineDialog.open && vd.parentElement !== timelineDialog && !window.__tide.timelineOpen) return;\n')
+          s=s.replace('  selectVisitor(id);\n  window.__tideMap?.collapse?.();', '  if (sim.selectedId !== id) selectVisitor(id);\n  window.__tideMap?.collapse?.();')
+          s=s.replace('  if(timelineReturnFocus?.isConnected) timelineReturnFocus.focus({preventScroll:true});\n  timelineReturnFocus = null;', '''  const focusTarget = timelineReturnFocus?.isConnected ? timelineReturnFocus : document.getElementById(view === 'park' ? 'footprintReset' : 'mapReset');
+            timelineReturnFocus = null;
+            focusTarget?.focus({preventScroll:true});''')
+          s=s.replace("timelineDialog.addEventListener('close', closeTimeline);", "timelineDialog.addEventListener('close', () => { if (!timelineDialog.open) closeTimeline(); });")
+          s=s.replace('document.getElementById("vdClose").addEventListener("click", deselect);', '''// Keep keyboard focus inside the timeline even when Close is its only control.
+          timelineDialog.addEventListener('keydown', e => {
+            if (e.key !== 'Tab') return;
+            const controls = [...timelineDialog.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex="0"]')].filter(el => el.getClientRects().length);
+            const first = controls[0], last = controls.at(-1);
+            if (!first) { e.preventDefault(); return; }
+            if (controls.length === 1 || (e.shiftKey && document.activeElement === first) || (!e.shiftKey && document.activeElement === last)) {
+              e.preventDefault(); (e.shiftKey ? last : first).focus();
+            }
+          });
+          document.getElementById("vdClose").addEventListener("click", () => timelineDialog.open ? closeTimeline() : deselect());''')
+          p.write_text(s)
+          p=Path('tests/dashboard.mjs');s=p.read_text()
+          s=s.replace("await demo.locator('.online-visitor').first().click();await demo.getByRole('button'", "await demo.locator('.online-visitor[data-visitor-id=\"v0050\"]').click();await demo.getByRole('button'",1)
+          s=s.replace("await page.locator('#visitorDetail').count(),1);", "await page.locator('#visitorDetail').count(),1);\n assert.equal(await page.evaluate(()=>document.activeElement.textContent),'查看访问时间线 →');",1)
+          s=s.replace("failure:String(error)","failure:String(error),stack:error.stack")
+          s=s.replace("await motion.close();results.push", """await motion.emulateMedia({reducedMotion:'no-preference'});
+           await motion.locator('#tab-park').click();await motion.waitForFunction(()=>window.__tide3d?.ready());
+           const journeyCamera=await motion.evaluate(()=>window.__tide3d.viewState());
+           await motion.waitForFunction(()=>document.querySelector('.stage').dataset.footprintRotating==='true',null,{timeout:20000});await motion.waitForTimeout(800);
+           assert.notDeepEqual(await motion.evaluate(()=>window.__tide3d.viewState()),journeyCamera);
+           await motion.mouse.move(50,50);await motion.waitForFunction(()=>document.querySelector('.stage').dataset.footprintRotating==='false');
+           await motion.close();results.push""")
+          p.write_text(s)
+          p=Path('tests/footprints.mjs');s=p.read_text()
+          s=s.replace("async function refresh(p){await p.evaluate(()=>window.__tide.refresh());await p.waitForTimeout(400);}","""async function refresh(p){
+           await p.evaluate(()=>window.__tide.refresh());
+           // Wait for the data bridge AND its rendered state, not a fixed GPU-dependent delay.
+           await p.waitForFunction(({ok,count})=>window.__tide.status===(ok?'ready':'error')&&document.getElementById('footprintCount').textContent===String(count)&&(ok||document.querySelector('.stage').dataset.footprintLights==='0'),{ok:status===200,count:visitors.length},{timeout:10000});
+          }""")
+          p.write_text(s)
+          PY
+          node --check tests/dashboard.mjs
+          node --check tests/footprints.mjs
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html tests/dashboard.mjs tests/footprints.mjs
+          git commit -m 'fix: trap and restore timeline focus; wait for rendered live state in regression checks'
+          git push origin HEAD:design/footprints-doodle-day-night
