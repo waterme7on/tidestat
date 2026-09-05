@@ -68,8 +68,16 @@ try{
  await motion.mouse.move(30,30);await motion.waitForTimeout(80);assert.equal(await motion.locator('#liveMap').getAttribute('data-rotating'),'false');
  const paused=await motion.evaluate(()=>window.__tideMap.camera());await motion.waitForTimeout(700);assert.deepEqual(await motion.evaluate(()=>window.__tideMap.camera()),paused);
  await motion.locator('#mapRotate').click();assert.equal(await motion.locator('#mapRotate').getAttribute('aria-pressed'),'false');
- await motion.locator('#mapRotate').click();await motion.emulateMedia({reducedMotion:'reduce'});await motion.waitForTimeout(100);assert.equal(await motion.locator('#mapRotate').isDisabled(),true);
+ await motion.locator('#mapRotate').click();await motion.emulateMedia({reducedMotion:'reduce'});
+ // Media-query change notifications are asynchronous: wait for observable state, not a 100ms guess.
+ await motion.waitForFunction(()=>matchMedia('(prefers-reduced-motion: reduce)').matches&&document.getElementById('mapRotate').disabled&&document.getElementById('mapRotate').getAttribute('aria-pressed')==='false'&&document.getElementById('liveMap').dataset.rotating==='false',null,{timeout:5000});
+ assert.equal(await motion.locator('#mapRotate').isDisabled(),true);
+ const reducedCamera=await motion.evaluate(()=>window.__tideMap.camera());
+ await motion.waitForTimeout(12500); // Beyond the real 12-second idle threshold: reduced motion must still prevent rotation.
+ assert.deepEqual(await motion.evaluate(()=>window.__tideMap.camera()),reducedCamera);
+ assert.equal(await motion.locator('#liveMap').getAttribute('data-rotating'),'false');
  await motion.emulateMedia({reducedMotion:'no-preference'});
+ await motion.waitForFunction(()=>!matchMedia('(prefers-reduced-motion: reduce)').matches&&!document.getElementById('mapRotate').disabled&&document.getElementById('mapRotate').getAttribute('aria-pressed')==='true',null,{timeout:5000});
  await motion.locator('#tab-park').click();await motion.waitForFunction(()=>window.__tide3d?.ready());
  const journeyCamera=await motion.evaluate(()=>window.__tide3d.viewState());
  await motion.waitForFunction(()=>document.querySelector('.stage').dataset.footprintRotating==='true',null,{timeout:20000});await motion.waitForTimeout(800);
