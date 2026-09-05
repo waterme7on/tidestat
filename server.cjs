@@ -1,12 +1,18 @@
-const http = require('http'), fs = require('fs'), path = require('path');
-const ROOT = '/root/tidestat/';
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript' };
+// Local preview only. Production assets and /api/* are still served by worker.js.
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = __dirname;
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml' };
 http.createServer((req, res) => {
-  let f = req.url.split('?')[0];
-  if (f === '/' || f === '') f = '/index.html';
-  const file = ROOT + f.slice(1);
-  try {
+  let pathname;
+  try { pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname); }
+  catch { res.writeHead(400); res.end('Bad request'); return; }
+  const file = path.resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
+  if (!file.startsWith(root + path.sep)) { res.writeHead(403); res.end('Forbidden'); return; }
+  fs.readFile(file, (error, data) => {
+    if (error) { res.writeHead(404); res.end('Not found'); return; }
     res.setHeader('Content-Type', types[path.extname(file)] || 'application/octet-stream');
-    res.end(fs.readFileSync(file));
-  } catch { res.statusCode = 404; res.end('nf'); }
-}).listen(8893, '127.0.0.1', () => console.log('up'));
+    res.end(data);
+  });
+}).listen(Number(process.env.PORT) || 8893, '127.0.0.1', () => console.log('TideStat preview ready'));

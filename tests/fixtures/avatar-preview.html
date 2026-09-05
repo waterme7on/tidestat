@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B · 呆萌涂鸦贴纸头像</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:44px 48px;background:#101213;color:#ecece8;font:15px system-ui,sans-serif}h1{font-size:27px;letter-spacing:-.04em;margin:0 0 10px;font-weight:600}p{color:#a6ada9;margin:0 0 32px;line-height:1.8}.row{display:flex;align-items:center;gap:24px;padding:24px 0;border-top:1px solid #303435;flex-wrap:wrap}.row>b{width:60px;color:#a6ada9;font:12px ui-monospace,monospace;font-weight:400}.faces{display:flex;gap:28px;align-items:center;flex-wrap:wrap}.face{display:block;flex:none}.face svg{display:block;width:100%;height:100%}footer{border-top:1px solid #303435;padding-top:22px;margin-top:4px;color:#a6ada9;font-size:11px;line-height:1.8}@media(max-width:700px){body{padding:24px}.faces{gap:16px}.row>b{width:100%}}
+</style>
+<h1>B · 呆萌涂鸦贴纸头像</h1><p>黑色手绘表情，奶白圆底，少量淡黄与淡绿。相同访客在不同尺寸下保持一致。</p>
+<div id="samples"></div>
+<footer>Notionists Neutral — Zoish / CC0 1.0 · 路径来自 DiceBear 9.x<br>固定测试种子 · 实际 SVG 渲染 · 不是真实访客外貌</footer>
+<script type="module">
+import { avatarSVG } from '../../visitor-avatar.js';
+const ids = ['guest-000','guest-001','guest-002','guest-003','guest-004','guest-005','guest-006','guest-007'];
+for (const size of [96,48,32]) {
+ const row=document.createElement('section');row.className='row';
+ const label=document.createElement('b');label.textContent=size+'px';row.append(label);
+ const faces=document.createElement('div');faces.className='faces';
+ for (const id of ids) {const face=document.createElement('span');face.className='face';face.dataset.seed=id;face.style.width=face.style.height=size+'px';face.innerHTML=avatarSVG(id);faces.append(face)}
+ row.append(faces);document.getElementById('samples').append(row);
+}
+document.documentElement.dataset.ready='true';
+</script></html>

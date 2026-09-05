@@ -3,12 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>TideStat — 实时访客地图与网站足迹</title>
+<meta name="color-scheme" content="light dark" />
+<script src="./theme.js"></script>
+<title>TideStat — 实时访问人数与网站足迹</title>
 <script type="importmap">
 {
   "imports": {
-    "three": "/vendor/three.module.js",
-    "three/addons/controls/OrbitControls.js": "/vendor/OrbitControls.js"
+    "three": "./vendor/three.module.js",
+    "three/addons/controls/OrbitControls.js": "./vendor/OrbitControls.js"
   }
 }
 </script>
@@ -134,8 +136,13 @@
     .live { margin-left: 0; }
   }
 </style>
+<link rel="stylesheet" href="./scene.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='%23143746' stroke='%2386d7dd' stroke-width='2'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="./realtime.css" />
+<link rel="stylesheet" href="./globe.css" />
+<link rel="stylesheet" href="./theme.css" />
 </head>
-<body>
+<body data-view="map">
 <header>
   <div class="brand">
     <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
@@ -146,21 +153,45 @@
     TideStat
   </div>
   <nav class="tabs" aria-label="视图切换">
-    <button id="tab-map" class="active" type="button">世界地图</button>
-    <button id="tab-park" type="button">网站足迹</button>
+    <button id="tab-map" class="active" aria-pressed="true" type="button">实时访问人数</button>
+    <button id="tab-park" aria-pressed="false" type="button">网站足迹</button>
   </nav>
   <div class="live"><span class="dot" aria-hidden="true"></span>实时 · <b id="onlineCount">0</b> 位访客在线<span id="tzNote" style="color:var(--ink-soft);font-size:10px;margin-left:8px;"></span></div>
 </header>
 
 <main>
-  <div class="stage">
-    <canvas id="stage"></canvas>
-    <canvas id="stage3d" style="position:absolute;inset:0;width:100%;height:100%;display:none;"></canvas>
+  <div class="workspace">
+    <div class="map-heading map-only">
+      <div><h1>实时访问人数</h1><p>此刻，世界各地的访客都在这里。</p></div>
+      <span class="source-badge" id="mapSource">实时数据</span>
+    </div>
+    <section class="visitor-metrics map-only" aria-label="实时访客统计">
+      <div class="metric-primary">
+        <div class="metric-number"><strong id="realtimeCount">—</strong><span>位访客正在浏览</span></div>
+        <div class="metric-status"><i aria-hidden="true"></i><span id="liveStatus">正在连接访客数据…</span><button id="dataRetry" type="button" hidden>重试</button></div>
+      </div>
+      <div class="metric-secondary"><strong id="countryCount">0</strong><span>国家 / 地区</span></div>
+      <div class="metric-secondary"><strong id="cityCount">0</strong><span>城市</span></div>
+    </section>
+    <div class="stage">
+      <div id="liveMap" role="region" aria-label="实时访客地图，可拖拽、缩放；所有访客也可在右侧列表访问。"></div>
+      <div class="map-caption map-only"><i aria-hidden="true"></i>每个头像，都是一位来访者</div>
+      <div class="map-controls map-only" id="mapControls" role="group" aria-label="地图控制">
+        <button id="mapReset" type="button" aria-label="查看全球" title="查看全球"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 1v4m0 14v4M1 12h4m14 0h4"/><circle cx="12" cy="12" r="2"/></svg></button>
+        <div class="map-zoom"><button id="mapZoomIn" type="button" aria-label="放大地图">+</button><button id="mapZoomOut" type="button" aria-label="缩小地图">−</button></div>
+      </div>
+      <div class="map-empty map-only" id="mapEmpty" hidden><b>目前没有在线访客</b><p>有人来访时，头像会自动出现在这里。</p></div>
+      <div class="tile-notice map-only" id="tileNotice" role="status" hidden><span id="tileNoticeText">底图暂时未能加载，访客人数与列表仍可查看。</span><button id="tileRetry" type="button">重新加载地图</button></div>
+    <canvas id="stage" role="img" aria-label="实时访客二维备用视图"></canvas>
+    <canvas id="stage3d" role="img" aria-label="实时访客三维场景，可拖拽旋转和滚轮缩放。详细信息见右侧事件与访客时间线。" style="position:absolute;inset:0;width:100%;height:100%;display:none;"></canvas>
     <div class="hint" id="stageHint">LIVE · 实时访客 · 点击右侧事件可追踪访客</div>
   </div>
+              <div class="map-footer map-only"><span>位置为城市级近似 · 头像为匿名生成，不代表本人外貌</span><span id="unknownLocations"></span></div>
+  </div>
   <aside>
+    <div class="panel map-only" id="onlinePanel"><h2>正在访问 <span class="count" id="onlineListCount">0</span></h2><div id="mapVisitors"></div><p id="onlineListEmpty">新的来访者会显示在这里。</p></div>
     <div class="panel" id="visitorDetail">
-      <h2>访客时间线 <button id="vdClose" type="button" style="border:0;background:none;cursor:pointer;color:var(--ink-soft);font-size:14px;line-height:1;">✕</button></h2>
+      <h2>访客时间线 <button id="vdClose" type="button" aria-label="关闭访客时间线" style="border:0;background:none;cursor:pointer;color:var(--ink-soft);font-size:14px;line-height:1;">✕</button></h2>
       <div class="vd-body">
         <div class="vd-id" id="vdId"></div>
         <div class="vd-meta" id="vdMeta"></div>
@@ -639,6 +670,9 @@ function drawHint(text) { hintEl.textContent = text; }
 
 /* ───────────────────────── 事件流 + 访客时间线 ───────────────────────── */
 
+function escapeMarkup(value) {
+  return String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 const eventsEl = document.getElementById("events");
 let eventsDirty = true;
 function renderEventsThrottled() { eventsDirty = true; }
@@ -648,12 +682,12 @@ function flushEvents() {
   document.getElementById("evCount").textContent = sim.events.length;
   const sel = sim.selectedId;
   eventsEl.innerHTML = sim.events.map(e => `
-    <div class="ev${sel === e.v.id ? " selected" : ""}" data-id="${e.v.id}">
+    <div class="ev${sel === (e.v.fullId || e.v.id) ? " selected" : ""}" data-id="${escapeMarkup(e.v.fullId || e.v.id)}" role="button" tabindex="0">
       <i class="${e.type}"></i>
-      <div class="txt"><b>${e.v.city[0]}</b><span> · ${
+      <div class="txt"><b>${escapeMarkup(e.v.city[0])}</b><span> · ${
         e.type === "visit" ? "进入网站" : e.type === "leave" ? "离开(" + e.place + ")" : "浏览 " + e.place
       }</span></div>
-      <time>${new Date(e.ts).toLocaleTimeString("zh-CN", { hour12: false })}</time>
+      <time>${new Date(performance.timeOrigin + e.ts).toLocaleTimeString("zh-CN", { hour12: false })}</time>
     </div>`).join("");
 }
 eventsEl.addEventListener("click", e => {
@@ -662,108 +696,119 @@ eventsEl.addEventListener("click", e => {
   selectVisitor(row.dataset.id);
 });
 
+eventsEl.addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const row = e.target.closest(".ev");
+  if (!row) return;
+  e.preventDefault();
+  selectVisitor(row.dataset.id);
+});
+
 const vd = document.getElementById("visitorDetail");
 function selectVisitor(id) {
   sim.selectedId = id;
+  window.__tide.selectedId = id;
+  window.__tideMap?.focusVisitor?.(id);
   vd.classList.add("open");
   renderVisitorDetail();
   eventsDirty = true;
 }
 function deselect() {
   sim.selectedId = null;
+  window.__tide.selectedId = null;
   vd.classList.remove("open");
   eventsDirty = true;
 }
 document.getElementById("vdClose").addEventListener("click", deselect);
 
 function renderVisitorDetail() {
-  const v = sim.visitors.get(sim.selectedId);
-  if (!v) return;
+  const v = sim.visitors.get(sim.selectedId) || sim.events.find(e => (e.v.fullId || e.v.id) === sim.selectedId)?.v;
+  if (!v) { deselect(); return; }
   document.getElementById("vdId").textContent = v.id + " · " + v.city[0];
   document.getElementById("vdMeta").textContent =
-    `${v.city[1]} · 进入于 ${new Date(v.enterTs).toLocaleTimeString("zh-CN", { hour12: false })} · 在线 ${Math.round((performance.now() - v.enterTs) / 1000)}s`;
+    `${v.city[1]} · 进入于 ${new Date(performance.timeOrigin + v.enterTs).toLocaleTimeString("zh-CN", { hour12: false })} · 在线 ${Math.round((performance.now() - v.enterTs) / 1000)}s`;
   document.getElementById("vdTimeline").innerHTML = v.visited.map((x, i) => `
-    <li><i></i><b>${nodeById(x.node).label}</b><time>${new Date(x.arrive).toLocaleTimeString("zh-CN", { hour12: false })}</time></li>`).join("");
+    <li><i></i><b>${nodeById(x.node).label}</b><time>${new Date(performance.timeOrigin + x.arrive).toLocaleTimeString("zh-CN", { hour12: false })}</time></li>`).join("");
 }
 
 /* ───────────────────────── 视图切换 + 主循环 ───────────────────────── */
 
 const tabMap = document.getElementById("tab-map");
 const tabPark = document.getElementById("tab-park");
+let parkLoading = null;
 function setView(v) {
-  view = v;
-  window.__tide.view = v;
-  tabMap.classList.toggle("active", v === "map");
-  tabPark.classList.toggle("active", v === "park");
-  const c2 = document.getElementById("stage");
-  const c3 = document.getElementById("stage3d");
-  if (window.__tide3d?.ready?.()) {
-    c2.style.display = "none";
-    c3.style.display = "block";
-    window.__tide3d.activate(v);
-  } else if (v === "park") {
-    c2.style.display = "none";
-    c3.style.display = "block";
-    window.__tide3d?.activate?.(v);
+  view = v === "park" ? "park" : "map";
+  document.body.dataset.view = view;
+  window.__tide.view = view;
+  for (const [button, mode] of [[tabMap,"map"],[tabPark,"park"]]) {
+    button.classList.toggle("active", mode === view);
+    button.setAttribute("aria-pressed", String(mode === view));
   }
+  const c2 = document.getElementById("stage"), c3 = document.getElementById("stage3d");
+  window.__tideMap?.activate?.(view);
+  window.__tide3d?.activate?.(view);
+  if (view === "map") { c2.style.display = c3.style.display = "none"; return; }
+  const ready = window.__tide3d?.ready?.();
+  c2.style.display = ready ? "none" : "block";
+  c3.style.display = ready ? "block" : "none";
+  // No Three.js download, canvas context or animation loop for the default map.
+  if (!parkLoading) parkLoading = import("./scene.js").then(() => {
+    if (view === "park") setView("park");
+  }).catch(error => console.warn("TideStat: using existing 2D footprint view.", error));
 }
 tabMap.addEventListener("click", () => setView("map"));
 tabPark.addEventListener("click", () => setView("park"));
 
 /* Live 数据源:轮询 /api/live,驱动同一套渲染结构 */
-const liveSeen = new Map(); // id -> {node}
-let liveTimer = 0;
+const liveSeen = new Map();
+let liveTimer = 0, liveBusy = false;
 async function liveTick(now) {
-  let data;
+  if (DEMO || liveBusy) return;
+  liveBusy = true;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
   try {
-    const res = await fetch("/api/live", { cache: "no-store" });
-    data = await res.json();
-  } catch (e) { return; }
-  const seen = new Set();
-  for (const rv of data.visitors) {
-    seen.add(rv.id);
-    const node = pathNode(rv.paths[rv.paths.length - 1]?.path || "/");
-    const epochToRaf = ts => performance.now() - (Date.now() - ts);
-    let v = sim.visitors.get(rv.id);
-    const shortId = rv.id.slice(0, 8);
-    if (!v) {
-      v = {
-        id: shortId, fullId: rv.id,
-        city: [rv.city, rv.country, rv.lat ?? 0, rv.lng ?? 0, 1],
-        enterTs: epochToRaf(rv.firstTs),
-        state: "reading", node, target: node, t: 0,
-        speed: .5, dwell: 4000,
-        visited: rv.paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts) })),
-        bob: Math.random() * Math.PI * 2
-      };
-      sim.visitors.set(rv.id, v);
-      pushEvent(now, "visit", v, nodeById(node).label);
-      liveSeen.set(rv.id, { node });
-      continue;
-    }
-    const prev = liveSeen.get(rv.id);
-    if (!prev || prev.node !== node) {
-      // 真实 pageview:从当前节点走向新节点
-      v.state = "walking";
-      v.node = prev ? prev.node : node;
-      v.target = node;
-      v.t = 0;
-      v.speed = 1 / 2.2;
-      pushEvent(now, "pageview", v, nodeById(node).label);
-    }
-    v.visited = rv.paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts) }));
-    liveSeen.set(rv.id, { node });
-  }
-  // 消失的访客
-  for (const [id, v] of [...sim.visitors.entries()]) {
-    if (!seen.has(id)) {
-      if (v.state !== "leaving") {
-        v.state = "leaving"; v.t = 0;
-        pushEvent(now, "leave", v, nodeById(v.node).label);
-        liveSeen.delete(id);
+    const res = await fetch("/api/live", { cache: "no-store", signal: controller.signal });
+    if (!res.ok) throw new Error("Live API " + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data.visitors)) throw new Error("Invalid visitor response");
+    const seen = new Set(), epochToRaf = ts => Number.isFinite(Number(ts)) ? Number(ts) - performance.timeOrigin : performance.now();
+    for (const rv of data.visitors) {
+      if (!rv || typeof rv.id !== "string" || !Array.isArray(rv.paths)) continue;
+      seen.add(rv.id);
+      const paths = rv.paths.filter(p => p && typeof p.path === "string");
+      const currentPath = paths[paths.length - 1]?.path || "/";
+      const node = pathNode(currentPath);
+      let v = sim.visitors.get(rv.id);
+      if (!v) {
+        v = { id: rv.id.slice(0, 8), fullId: rv.id, enterTs: epochToRaf(rv.firstTs),
+          state: "reading", node, target: node, t: 0, speed: .5, dwell: 4000,
+          bob: Math.random() * Math.PI * 2 };
+        sim.visitors.set(rv.id, v);
       }
+      const isNew = !liveSeen.has(rv.id), prev = liveSeen.get(rv.id);
+      v.city = [rv.city || "未知位置", rv.country || "", rv.lat ?? null, rv.lng ?? null, 1];
+      v.currentPath = currentPath; v.device = rv.device;
+      v.visited = paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts) }));
+      if (isNew) pushEvent(now, "visit", v, nodeById(node).label);
+      else if (prev.node !== node) {
+        v.state = "walking"; v.node = prev.node; v.target = node; v.t = 0; v.speed = 1 / 2.2;
+        pushEvent(now, "pageview", v, nodeById(node).label);
+      }
+      liveSeen.set(rv.id, { node });
     }
-  }
+    // The API already defines online=last 90 seconds. Never accumulate departed visitors.
+    for (const [id,v] of sim.visitors) if (!seen.has(id)) {
+      v.state = "leaving"; pushEvent(now, "leave", v, nodeById(v.node).label);
+      sim.visitors.delete(id); liveSeen.delete(id);
+      if (sim.selectedId === id) deselect();
+    }
+    window.__tide.status = "ready";
+    window.__tide.onlineMs = Number(data.onlineMs) > 0 ? Number(data.onlineMs) : 90000;
+    window.__tide.updatedAt = Date.now();
+  } catch (error) {
+    window.__tide.status = "error"; // Preserve last successful data and visibly mark it stale.
+  } finally { clearTimeout(timeout); liveBusy = false; }
 }
 
 window.__tideSite = SITE;
@@ -771,18 +816,14 @@ window.__tideAvatarTraits = avatarTraits;
 window.__tideLandB64 = LAND_B64;
 window.__tideCities = CITIES;
 window.__tide = window.__tide || {};
-window.__tide.view = "map";
+Object.assign(window.__tide, { view: "map", visitors: sim.visitors, selectedId: null,
+  demo: DEMO, status: DEMO ? "ready" : "loading", onlineMs: 90000,
+  selectVisitor, deselect, refresh: () => liveTick(performance.now()) });
 document.getElementById("tzNote").textContent =
   new Date().toLocaleTimeString("zh-CN", { hour12: false, timeZoneName: "short" }).replace(/^\d{1,2}:\d{2}:\d{2}\s*/, "");
 
-let handed = false;
 let last = performance.now();
 function loop(now) {
-  // 3D 模块就绪后,一次性把画布交给 3D(初始视图为地图)
-  if (!handed && window.__tide3d?.ready?.()) {
-    handed = true;
-    setView(view);
-  }
   const dt = Math.min((now - last) / 1000, .1);
   last = now;
   if (DEMO) {
@@ -813,12 +854,11 @@ function loop(now) {
   }
   window.__tide = window.__tide || {};
   window.__tide.visitors = sim.visitors;
+  window.__tide.selectedId = sim.selectedId;
   window.__tide.now = now;
-  document.getElementById("onlineCount").textContent = sim.visitors.size;
+  document.getElementById("onlineCount").textContent = [...sim.visitors.values()].filter(v => v.state !== "leaving").length;
 
-  if (view === "map") drawMap(now);
-  else if (window.__tide3d?.ready?.()) { /* 3D 模块自渲染 */ }
-  else drawPark(now, dt);
+  if (view === "park" && !window.__tide3d?.ready?.()) drawPark(now, dt);
   flushEvents();
   if (sim.selectedId && sim.visitors.has(sim.selectedId)) renderVisitorDetail();
   requestAnimationFrame(loop);
@@ -835,494 +875,6 @@ if (DEMO) for (let i = 0; i < 9; i++) {
 }
 </script>
 
-<script type="module">
-import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-
-const canvas3d = document.getElementById("stage3d");
-let renderer, scene, camera, controls, ready = false;
-let globeScene, globeCamera, globeControls, globeReady = false;
-
-/* ── 暖纸绘本 · 统一色板(设计师调色处)──
-   对比策略:纸底最亮 → 海/地面中明度(冷) → 陆点/屋顶中饱和 → 光束/信号唯一暖色 */
-const P = {
-  fog: "#f0ebdf",
-  ground: "#e7dfcc",          // 沙盘纸面(比背景深一档,暖)
-  groundRing: "#f1ecdf",      // 内圈亮
-  rim: "#cfc4a8",             // 圆盘边缘
-  shadowRing: "rgba(38,44,58,.10)",
-  buildingBody: "#fbf9f3",    // 奶白体
-  roofGate: "#3b6fd4",        // 入口:标志蓝
-  roofCore: "#d98e5f",        // 首页:陶土(暖焦点)
-  roofArea: "#9ab87a",        // 内容区:鼠尾草
-  roofLab: "#7d9bbf",         // 实验室:灰蓝
-  roofHouse: "#c9b458",       // 小屋:芥末
-  ink: "#2c3547",             // 墨(窗/门/字)
-  windowLit: "#3a4457",
-  pathGlow: "#5b7fb9",        // 小径墨蓝
-  treeDark: "#7fa368",
-  treeLite: "#93b57a",
-  label: "#2c3547",
-  sea: "#cfe0f4",             // 海:纸蓝
-  land: "#2f7d5c",            // 陆:墨绿
-  beam: "#e8863a",            // 信号:唯一暖色
-  star: "#b9b39f"
-};
-const walkers = new Map();     // visitor -> {sprite, tex, canvas, g}
-const beacons = new Map();     // city -> beacon
-const NODE = {}, CURVES = {};
-
-function nodePos(n) { return NODE[n.id]; }
-const SITE = window.__tideSite;
-function nodeById(id) { return SITE.nodes.find(n => n.id === id); }
-
-function init() {
-  renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true, preserveDrawingBuffer: true });
-  renderer.setClearColor(0x000000, 0);
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color("#efe9da");
-  scene.fog = new THREE.Fog(P.fog, 30, 75);
-  camera = new THREE.PerspectiveCamera(45, 1, .1, 200);
-  camera.position.set(0, 13, 21);
-  controls = new OrbitControls(camera, canvas3d);
-  controls.enableDamping = true;
-  controls.dampingFactor = .08;
-  controls.maxPolarAngle = Math.PI * .49;
-  controls.minDistance = 8; controls.maxDistance = 42;
-  controls.target.set(0, .6, 0);
-  controls.autoRotate = true; controls.autoRotateSpeed = .6;
-
-  scene.add(new THREE.HemisphereLight("#ffffff", "#d9cfb8", 1.15));
-  const sun = new THREE.DirectionalLight("#fff2dc", 1.25);
-  sun.position.set(9, 18, 7);
-  scene.add(sun);
-
-  // 沙盘:投影 + 纸面 + 内圈亮 + 边缘
-  const shadow = new THREE.Mesh(
-    new THREE.CircleGeometry(16.4, 72),
-    new THREE.MeshBasicMaterial({ color: P.shadowRing, transparent: true })
-  );
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.position.y = -0.14;
-  scene.add(shadow);
-  const ground = new THREE.Mesh(
-    new THREE.CircleGeometry(16, 72),
-    new THREE.MeshToonMaterial({ color: P.ground })
-  );
-  ground.rotation.x = -Math.PI / 2;
-  scene.add(ground);
-  const groundIn = new THREE.Mesh(
-    new THREE.CircleGeometry(10.5, 72),
-    new THREE.MeshToonMaterial({ color: P.groundRing })
-  );
-  groundIn.rotation.x = -Math.PI / 2;
-  groundIn.position.y = .01;
-  scene.add(groundIn);
-  const rim = new THREE.Mesh(
-    new THREE.RingGeometry(15.72, 16, 96),
-    new THREE.MeshBasicMaterial({ color: P.rim, side: THREE.DoubleSide })
-  );
-  rim.rotation.x = -Math.PI / 2;
-  rim.position.y = .02;
-  scene.add(rim);
-
-  // 节点建筑
-  for (const n of SITE.nodes) {
-    const x = (n.x - .5) * 26, z = (n.y - .5) * 15;
-    const g = new THREE.Group();
-    g.position.set(x, 0, z);
-    NODE[n.id] = new THREE.Vector3(x, 0, z);
-    const roofCol = n.kind === "gate" ? P.roofGate
-      : n.kind === "core" ? P.roofCore
-      : n.kind === "lab" ? P.roofLab
-      : n.kind === "house" ? P.roofHouse
-      : P.roofArea;
-    const mat = new THREE.MeshToonMaterial({ color: roofCol });
-    const white = new THREE.MeshToonMaterial({ color: P.buildingBody });
-    const lit = new THREE.MeshBasicMaterial({ color: P.ink });
-    const windows = (w, h, d, y0) => {
-      const wg = new THREE.Group();
-      const rows = Math.max(1, Math.round(h / .5));
-      for (let r = 0; r < rows; r++) {
-        const win = new THREE.Mesh(new THREE.PlaneGeometry(d * .55, .12), lit);
-        win.position.set(w / 2 + .005, y0 + .25 + r * .45, 0);
-        win.rotation.y = Math.PI / 2;
-        wg.add(win);
-        const win2 = win.clone();
-        win2.position.x = -(w / 2 + .005);
-        win2.rotation.y = -Math.PI / 2;
-        wg.add(win2);
-      }
-      return wg;
-    };
-    if (n.kind === "gate") {
-      const arch = new THREE.Mesh(new THREE.BoxGeometry(3.4, .4, .9), mat); arch.position.y = 2.35;
-      const glowBar = new THREE.Mesh(new THREE.BoxGeometry(3.4, .07, .94), white); glowBar.position.y = 2.18;
-      const p1 = new THREE.Mesh(new THREE.CylinderGeometry(.3, .34, 2.2, 12), mat); p1.position.set(-1.3, 1.1, 0);
-      const p2 = p1.clone(); p2.position.x = 1.3;
-      g.add(arch, glowBar, p1, p2);
-    } else if (n.kind === "house") {
-      const body = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.2, 1.7), white); body.position.y = .6;
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.6, .9, 4), mat);
-      roof.rotation.y = Math.PI / 4; roof.position.y = 1.65;
-      const win = new THREE.Mesh(new THREE.PlaneGeometry(.5, .4), lit);
-      win.position.set(0, .55, .87);
-      const door = new THREE.Mesh(new THREE.PlaneGeometry(.34, .62), new THREE.MeshBasicMaterial({ color: P.ink }));
-      door.position.set(.55, .31, .87);
-      g.add(body, roof, win, door);
-    } else if (n.kind === "lab") {
-      const base = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.35, 1, 10), white); base.position.y = .5;
-      const dome = new THREE.Mesh(new THREE.SphereGeometry(1.05, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat);
-      dome.position.y = 1;
-      const band = new THREE.Mesh(new THREE.CylinderGeometry(1.16, 1.16, .08, 10), white); band.position.y = .92;
-      g.add(base, dome, band);
-    } else if (n.kind === "core") {
-      const t1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.1, 1.5), mat); t1.position.y = 1.05;
-      const t2 = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.9, 1.1), white); t2.position.set(1.2, 1.45, .4);
-      g.add(t1, t2, windows(1.5, 2.1, 1.5, 0), windows(1.1, 2.9, 1.1, .4));
-    } else {
-      const b1 = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.5, 1.6), white); b1.position.y = .75;
-      const b2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.2, 1.2), mat); b2.position.set(-.6, 1.1, .3);
-      g.add(b1, b2, windows(2.1, 1.5, 1.6, 0), windows(1.2, 2.2, 1.2, .1));
-    }
-    // 树
-    for (let i = 0; i < 2; i++) {
-      const tr = new THREE.Group();
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.08, .12, .55, 6), new THREE.MeshToonMaterial({ color: "#8a6b47" }));
-      const crown = new THREE.Mesh(new THREE.SphereGeometry(.42, 10, 8), new THREE.MeshToonMaterial({ color: i ? P.treeLite : P.treeDark }));
-      crown.position.y = .5;
-      tr.add(trunk, crown);
-      const a = (n.x * 7 + i * 2.6) % (Math.PI * 2);
-      tr.position.set(Math.cos(a) * 2.5, .25, Math.sin(a) * 2.5);
-      g.add(tr);
-    }
-    // 标签
-    const label = new THREE.Sprite(makeTextSprite(n.label));
-    label.scale.set(2.6, .8, 1);
-    label.position.y = 3.4;
-    g.add(label);
-    scene.add(g);
-  }
-
-  // 小径:每条边一条上拱曲线
-  for (const [aId, bId] of SITE.edges.map(e => [e[0], e[1]])) {
-    const a = NODE[aId], b = NODE[bId];
-    const mid = a.clone().add(b).multiplyScalar(.5);
-    mid.y = .32 + a.distanceTo(b) * .06;
-    const curve = new THREE.CatmullRomCurve3([a.clone().setY(.02), mid, b.clone().setY(.02)]);
-    CURVES[aId + ">" + bId] = curve;
-    CURVES[bId + ">" + aId] = curve;
-    const tube = new THREE.Mesh(
-      new THREE.TubeGeometry(curve, 40, .05, 6, false),
-      new THREE.MeshBasicMaterial({ color: P.pathGlow, transparent: true, opacity: .65 })
-    );
-    scene.add(tube);
-  }
-  ready = true;
-  resize3d();
-}
-
-function makeTextSprite(text) {
-  const c = document.createElement("canvas");
-  c.width = 256; c.height = 80;
-  const g = c.getContext("2d");
-  g.font = "700 46px ui-sans-serif, system-ui";
-  g.textAlign = "center"; g.textBaseline = "middle";
-  g.fillStyle = P.label;
-  g.fillText(text, 128, 40);
-  const tex = new THREE.CanvasTexture(c);
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
-  return mat;
-}
-
-function avatarTexture(v) {
-  const c = document.createElement("canvas");
-  c.width = 128; c.height = 128;
-  const g = c.getContext("2d");
-  const traits = window.__tideAvatarTraits(v.fullId || v.id);
-  window.__tidePaintAvatar(g, 64, 64, 44, traits, v.state);
-  const tex = new THREE.CanvasTexture(c);
-  return { tex, c, g };
-}
-
-function syncWalkers() {
-  const now = window.__tide.now || performance.now();
-  const seen = new Set();
-  const crowd = new Map();
-  for (const v of (window.__tide.visitors || new Map()).values()) {
-    if (v.state === "reading") {
-      const k = v.node, i = crowd.get(k) || 0;
-      crowd.set(k, i + 1);
-      v._ringIdx = i;
-    }
-  }
-  for (const [id, v] of (window.__tide.visitors || new Map())) {
-    seen.add(id);
-    if (!walkers.has(id)) {
-      walkers.set(id, { sprite: null });
-      const { tex, c, g } = avatarTexture(v);
-      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
-      const sprite = new THREE.Sprite(mat);
-      sprite.scale.set(1.15, 1.15, 1);
-      sprite.position.y = 1.1;
-      walkers.set(id, { sprite, tex, c, g, lastState: v.state });
-      scene.add(sprite);
-    }
-    const w = walkers.get(id);
-    // 状态变化时重绘表情
-    if (w.lastState !== v.state) {
-      w.g.clearRect(0, 0, 128, 128);
-      const traits = window.__tideAvatarTraits(v.fullId || v.id);
-      window.__tidePaintAvatar(w.g, 64, 64, 44, traits, v.state);
-      w.tex.needsUpdate = true;
-      w.lastState = v.state;
-    }
-    w.sprite.material.opacity = v.state === "leaving" ? Math.max(0, 1 - v.t) : 1;
-    // 位置
-    let p;
-    if (v.state === "reading") {
-      const ang = (v._ringIdx || 0) * (Math.PI / 3.2) + .55;
-      const base = NODE[v.node];
-      p = new THREE.Vector3(base.x + Math.cos(ang) * 1.5, 1.1 + Math.sin(now / 700 + v.bob) * .12, base.z + 1.2 + Math.sin(ang) * 1.4);
-    } else {
-      const curve = CURVES[v.node + ">" + v.target] || CURVES[v.target + ">" + v.node];
-      const tt = v.state === "walking" ? (v.t < .5 ? 2 * v.t * v.t : 1 - Math.pow(-2 * v.t + 2, 2) / 2) : Math.min(v.t, 1);
-      const pt = curve ? curve.getPoint(Math.min(1, Math.max(0, tt))) : NODE[v.node];
-      p = new THREE.Vector3(pt.x, 1.1 + Math.abs(Math.sin(now / 110 + v.bob)) * .16, pt.z);
-    }
-    w.sprite.position.lerp(p, .35);
-  }
-  for (const [id, w] of [...walkers.entries()]) {
-    if (!seen.has(id)) {
-      scene.remove(w.sprite);
-      w.tex.dispose();
-      walkers.delete(id);
-    }
-  }
-}
-
-function resize3d() {
-  if (!renderer) return;
-  const w = canvas3d.parentElement.clientWidth, h = canvas3d.parentElement.clientHeight;
-  renderer.setSize(w, h, false);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-}
-window.addEventListener("resize", resize3d);
-
-
-/* ── 3D 地球仪(世界地图视图) ── */
-function initGlobe() {
-  globeScene = new THREE.Scene();
-  globeScene.background = new THREE.Color("#f2eee2");
-  globeCamera = new THREE.PerspectiveCamera(42, 1, .1, 100);
-  globeCamera.position.set(0, 1.2, 6.4);
-  globeControls = new OrbitControls(globeCamera, canvas3d);
-  globeControls.enableDamping = true;
-  globeControls.dampingFactor = .08;
-  globeControls.enablePan = false;
-  globeControls.minDistance = 4.2; globeControls.maxDistance = 11;
-  globeControls.autoRotate = true; globeControls.autoRotateSpeed = .55;
-  globeScene.add(new THREE.HemisphereLight("#ffffff", "#d9d2bd", 1.0));
-  const sun = new THREE.DirectionalLight("#fff2dc", .9);
-  sun.position.set(5, 3, 5);
-  globeScene.add(sun);
-  const sea = new THREE.Mesh(
-    new THREE.SphereGeometry(2, 48, 48),
-    new THREE.MeshToonMaterial({ color: "#8fb8e8" })
-  );
-  globeScene.add(sea);
-  const glow = new THREE.Mesh(
-    new THREE.SphereGeometry(2.22, 48, 48),
-    new THREE.ShaderMaterial({
-      transparent: true,
-      side: THREE.BackSide,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      vertexShader: "varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
-      fragmentShader: "varying vec3 vN; void main(){ float i = pow(0.7 - dot(vN, vec3(0.0, 0.0, 1.0)), 2.6); gl_FragColor = vec4(0.55, 0.62, 0.78, 1.0) * i; }"
-    })
-  );
-  globeScene.add(glow);
-  const raw = atob(window.__tideLandB64);
-  const MW = 96, MH = 48;
-  const tiltM = new THREE.Matrix4().makeRotationZ(-23 * Math.PI / 180);
-  const dots = [];
-  for (let i = 0; i < MW * MH; i++) {
-    if (!(raw.charCodeAt(i >> 3) & (1 << (i & 7)))) continue;
-    const cx = i % MW, cy = (i / MW) | 0;
-    const lon = cx / (MW - 1) * 360 - 180;
-    const lat = 90 - cy / (MH - 1) * 180;
-    const phi = (90 - lat) * Math.PI / 180;
-    const theta = (lon + 180) * Math.PI / 180;
-    const v = new THREE.Vector3(
-      -Math.sin(phi) * Math.cos(theta),
-      Math.cos(phi),
-      Math.sin(phi) * Math.sin(theta)
-    ).multiplyScalar(2.01);
-    v.applyMatrix4(tiltM);
-    dots.push(v);
-  }
-  const inst = new THREE.InstancedMesh(
-    new THREE.SphereGeometry(.028, 6, 6),
-    new THREE.MeshToonMaterial({ color: P.land }),
-    dots.length
-  );
-  const m4 = new THREE.Matrix4();
-  dots.forEach((v, i) => { m4.setPosition(v); inst.setMatrixAt(i, m4); });
-  globeScene.add(inst);
-
-  globeReady = true;
-}
-
-function haloTexture() {
-  const c = document.createElement("canvas");
-  c.width = c.height = 64;
-  const g = c.getContext("2d");
-  const grad = g.createRadialGradient(32, 32, 2, 32, 32, 30);
-  grad.addColorStop(0, "rgba(232,134,58,.85)");
-  grad.addColorStop(1, "rgba(232,134,58,0)");
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 64, 64);
-  return new THREE.CanvasTexture(c);
-}
-
-const DEG = Math.PI / 180;
-function cityVec(city) {
-  const v = new THREE.Vector3(
-    -Math.cos(city[2] * DEG) * Math.cos((city[3] + 180) * DEG),
-    Math.sin(city[2] * DEG),
-    Math.cos(city[2] * DEG) * Math.sin((city[3] + 180) * DEG)
-  ).multiplyScalar(2.02);
-  return v.applyMatrix4(new THREE.Matrix4().makeRotationZ(-23 * Math.PI / 180));
-}
-
-function syncBeacons(now) {
-  const byCity = new Map();
-  for (const v of (window.__tide.visitors || new Map()).values()) {
-    const k = v.city[0];
-    if (!byCity.has(k)) byCity.set(k, []);
-    byCity.get(k).push(v);
-  }
-  const camPos = globeCamera ? globeCamera.position : null;
-  const seen = new Set();
-  for (const [name, list] of byCity) {
-    seen.add(name);
-    let b = beacons.get(name);
-    if (!b) {
-      const group = new THREE.Group();
-      const base = cityVec(list[0].city);
-      const normal = base.clone().normalize();
-      group.position.copy(base);
-      group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
-      const beamMat = new THREE.MeshBasicMaterial({
-        color: P.beam, transparent: true, opacity: .8
-      });
-      const pillar = new THREE.Mesh(
-        new THREE.CylinderGeometry(.013, .026, 1, 8),
-        beamMat
-      );
-      pillar.geometry.translate(0, .5, 0);
-      const cap = new THREE.Mesh(
-        new THREE.SphereGeometry(.036, 10, 8),
-        new THREE.MeshBasicMaterial({ color: P.beam })
-      );
-      cap.position.y = 1;
-      const halo = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: haloTexture(), transparent: true, opacity: .75,
-        blending: THREE.AdditiveBlending, depthWrite: false
-      }));
-      halo.scale.setScalar(.42);
-      halo.position.y = .05;
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(.05, .08, 24),
-        new THREE.MeshBasicMaterial({ color: P.beam, transparent: true, side: THREE.DoubleSide })
-      );
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.y = .02;
-      group.add(pillar, cap, halo, ring);
-      globeScene.add(group);
-      b = { group, pillar, ring };
-      beacons.set(name, b);
-    }
-    // 背面剔除:光柱只在朝向相机的一面显示
-    if (camPos) {
-      const facing = b.group.position.clone().normalize().dot(camPos.clone().normalize());
-      b.group.visible = facing > .28;
-      if (!b.group.visible) continue;
-    }
-    b.n = list.length;
-    const pulse = .5 + Math.sin(now / 420 + b.group.position.x * 7) * .5;
-    b.pillar.scale.y = .5 + Math.min(list.length, 8) * .3;
-    b.ring.scale.setScalar(1 + pulse * 1.3);
-    b.ring.material.opacity = .75 - pulse * .45;
-    if (list.length >= 3 && !b.label) {
-      b.label = new THREE.Sprite(makeTextSprite(name + " · " + list.length));
-      b.label.scale.set(1.7, .55, 1);
-      b.label.position.y = Math.max(1, b.pillar.scale.y) + .5;
-      b.group.add(b.label);
-    } else if (b.label && list.length < 3) {
-      b.group.remove(b.label); b.label = null;
-    } else if (b.label) {
-      b.label.position.y = Math.max(1, b.pillar.scale.y) + .5;
-    }
-  }
-  for (const [name, b] of [...beacons.entries()]) {
-    if (!seen.has(name)) {
-      globeScene.remove(b.group);
-      beacons.delete(name);
-    }
-  }
-}
-
-let lastView = null;
-let lastSync = 0;
-let lastFrame = 0;
-function tick3d() {
-  requestAnimationFrame(tick3d);
-  const now = performance.now();
-  if (now - lastFrame < 33) return;   // 3D 上限 ~30fps,足够顺滑且省电
-  lastFrame = now;
-  if (!ready && window.__tideSite) init();
-  if (!globeReady && window.__tideLandB64) initGlobe();
-  const view = window.__tide.view || "map";
-  const w = canvas3d.parentElement.clientWidth, h = canvas3d.parentElement.clientHeight;
-  if (renderer && lastView !== view) {
-    renderer.setSize(w, h, false);
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    camera.aspect = w / h; camera.updateProjectionMatrix();
-    globeCamera.aspect = w / h; globeCamera.updateProjectionMatrix();
-  }
-  lastView = view;
-  if (!renderer) return;
-  // 数据同步 200ms 一次;渲染每帧
-  if (now - lastSync > 200) {
-    lastSync = now;
-    if (view === "park" && ready) syncWalkers();
-    else if (globeReady) syncBeacons(now);
-  }
-  if (view === "park" && ready) {
-    controls.update();
-    renderer.render(scene, camera);
-  } else if (globeReady) {
-    globeControls.update();
-    renderer.render(globeScene, globeCamera);
-  }
-}
-window.__tide3d = {
-  ready: () => ready || globeReady,
-  activate(v) {
-    if (v === "map" && !globeReady) initGlobe();
-    if (v === "park" && !ready) init();
-    resize3d();
-    const hint = document.getElementById("stageHint");
-    if (hint) hint.textContent = v === "map"
-      ? "LIVE · 拖拽旋转地球 · 光柱高度 = 该城市当前在线数"
-      : "LIVE · 拖拽旋转 · 滚轮缩放 · 每个头像是一位访客";
-  }
-};
-tick3d();
-</script>
+<script type="module" src="./globe-map.js"></script>
 </body>
 </html>
