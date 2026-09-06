@@ -60,9 +60,16 @@ export default {
      if(!v){v={id:row.visitor_id,maskedIp:validMaskedIp(row.masked_ip),city:row.city||'未知',country:row.country||'',lat:row.lat,lng:row.lng,device:row.device||'desktop',firstTs:row.ts,lastTs:row.ts,paths:[],events:[]};map.set(v.id,v);}
      v.lastTs=row.ts;if(row.lat!=null){v.lat=row.lat;v.lng=row.lng;}if(row.city)v.city=row.city;
      const previous=v.paths.at(-1);if(!previous||previous.path!==row.path)v.paths.push({path:row.path,ts:row.ts});if(v.paths.length>12)v.paths.shift();
-     if(row.type!=='heartbeat')v.events.push({type:row.type,path:row.path,ts:row.ts});if(v.events.length>12)v.events.shift();
+     if(row.type!=='heartbeat')v.events.push({id:row.event_id,type:row.type,path:row.path,ts:row.ts});if(v.events.length>12)v.events.shift();
     }
-    return json({now,onlineMs,visitors:[...map.values()].filter(v=>now-v.lastTs<onlineMs),truncated:results.length>limit});
+    const {results:payments}=await env.DB.prepare('SELECT provider,payment_id,visitor_id,ts,amount_minor,currency FROM story_payments WHERE site_id=? AND ts>? AND ts<=? ORDER BY ts DESC LIMIT ?').bind(site,now-600000,now,limit+1).all();
+    for(const payment of payments.slice(0,limit)) {
+     const visitor=map.get(payment.visitor_id);
+     if(visitor && now-visitor.lastTs<onlineMs)visitor.events.push({id:`${payment.provider}:${payment.payment_id}`,type:payment.amount_minor<0?'refund':'payment',ts:payment.ts,path:'',amountMinor:payment.amount_minor,currency:payment.currency});
+    }
+    const visitors=[...map.values()].filter(v=>now-v.lastTs<onlineMs);
+    for(const visitor of visitors)visitor.events=visitor.events.sort((a,b)=>a.ts-b.ts||a.id.localeCompare(b.id)).slice(-12);
+    return json({now,onlineMs,visitors,truncated:results.length>limit||payments.length>limit});
    }
    if(['/api/revenue','/api/stories'].includes(url.pathname) && request.method==='GET') {
     const days=Math.min(365,Math.max(1,Number(url.searchParams.get('days')||30))),to=url.searchParams.has('to')?Number(url.searchParams.get('to')):Date.now(),from=url.searchParams.has('from')?Number(url.searchParams.get('from')):to-days*86400000;

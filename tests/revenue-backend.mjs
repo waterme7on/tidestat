@@ -60,7 +60,7 @@ test('API read token protects site scope; origin protects writes; aggregate impo
 test('returning contribution and ordered funnel use observed timestamps',async()=>{
  const {db}=database();for(const e of [event(),event('one','signup','visitor1','session1','signup',now-9000),event('one','checkout','visitor1','session2','checkout',now-8000)])await ingest(db,e,{});
  await savePayment(db,'stripe','one',payment('cs2',{tidestat_site_id:'one',tidestat_visitor_id:'visitor1',tidestat_session_id:'session2'}),new Headers());
- const r=await report(db,'one',now-20000,now+1000);assert.equal(r.stories[0].returning,true);assert.equal(r.overview.currencies[0].returningRevenue,1900);assert.deepEqual(r.funnel.map(s=>s.visitors),[1,1,1,1]);assert.equal(r.leaks[0].visitors,0);
+ const r=await report(db,'one',now-20000,now+1000);assert.equal(r.stories[0].returning,true);assert.equal(r.overview.currencies[0].returningRevenue,1900);assert.deepEqual(r.funnel.map(s=>s.visitors),[1,1,1]);assert.equal(r.leaks[0].visitors,0);
 });
 test('late explicit metadata reconciles; invoices dedupe initial checkout and renewals count once',async()=>{
  const {db}=database();const first=payment();first.data.object.invoice='in_first';first.data.object.payment_intent='pi_first';
@@ -110,8 +110,24 @@ test('Stripe second precision includes same-second browser steps without includi
  const p=payment('cs_precision');p.created=second/1000;await savePayment(db,'stripe','one',p,new Headers());
  const result=await report(db,'one',second-10000,second+2000);
  assert.equal(result.stories[0].sessionCount,1);assert.deepEqual(result.stories[0].timeline.map(e=>e.type),['page_view','signup','checkout']);
- assert.deepEqual(result.funnel.map(s=>s.visitors),[2,1,1,1]);assert.equal(result.leaks[0].visitors,0);
+ assert.deepEqual(result.funnel.map(s=>s.visitors),[2,1,1]);assert.equal(result.leaks[0].visitors,0);
  // The tolerance must not admit this visitor's events in the next second either.
  await ingest(db,event('one','next-second','visitor1','session2','page_view',second+1000),{});
  const next=await report(db,'one',second-10000,second+2000);assert.equal(next.stories[0].sessionCount,1);assert.equal(next.stories[0].timeline.length,3);
+});
+test('guest checkout enters commerce funnel without inventing a signup',async()=>{
+ const {db}=database();await ingest(db,event(),{});await ingest(db,event('one','guest-checkout','visitor1','session1','checkout',now-9000),{});
+ await savePayment(db,'shopify','one',{id:900,financial_status:'paid',total_price:'19.00',currency:'USD',processed_at:new Date(now).toISOString(),note_attributes:[{name:'tidestat_site_id',value:'one'},{name:'tidestat_visitor_id',value:'visitor1'},{name:'tidestat_session_id',value:'session1'}]},new Headers({'x-shopify-topic':'orders/paid','x-shopify-webhook-id':'guest-order'}));
+ const result=await report(db,'one',now-20000,now+1000);
+ assert.deepEqual(result.funnel.map(s=>[s.name,s.visitors]),[['page_view',1],['checkout',1],['payment',1]]);
+ assert.deepEqual(result.signupFunnel.map(s=>s.visitors),[1,0,0,0]);
+});
+test('live stream includes only same-site verified payments with stable event IDs',async()=>{
+ const {db}=database();await ingest(db,event('one','behavior-one'),{});await ingest(db,event('two','behavior-two'),{});
+ await savePayment(db,'stripe','one',payment('cs_live_one'),new Headers());
+ const other=payment('cs_live_other',{tidestat_site_id:'two',tidestat_visitor_id:'visitor1',tidestat_session_id:'session1'});await savePayment(db,'stripe','two',other,new Headers());
+ const env={DB:db,SITES_JSON:JSON.stringify({one:{readToken:'secret'}})};
+ const response=await worker.fetch(new Request('https://tide.test/api/live?site=one',{headers:{authorization:'Bearer secret'}}),env);
+ const live=await response.json(),events=live.visitors[0].events;
+ assert.equal(events.find(e=>e.type==='page_view').id,'behavior-one');assert.equal(events.find(e=>e.type==='payment').id,'stripe:cs_live_one');assert.equal(events.find(e=>e.type==='payment').amountMinor,1900);assert.equal(events.some(e=>e.id==='stripe:cs_live_other'),false);
 });

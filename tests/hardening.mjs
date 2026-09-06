@@ -56,6 +56,12 @@ async function ready(page, query = '') {
   await page.waitForFunction(() => window.__tideMap?.ready() && document.getElementById('liveMap').dataset.geography === 'ready', null, { timeout: 30000 });
 }
 try {
+  await check('Revenue milestones enter the live stream once and preserve verified payment labels', async () => {
+    const reader=visitor('revenue-reader');
+    reader.events=[{id:'signup',type:'signup',ts:Date.now()-2000,path:'/signup'},{id:'checkout',type:'checkout',ts:Date.now()-1000,path:'/checkout'},{id:'stripe:pi',type:'payment',ts:Date.now(),amountMinor:1900,currency:'USD'}];
+    const page=await pageFor(()=>({visitors:[reader],onlineMs:90000}));
+    try {await ready(page);await page.waitForFunction(()=>document.querySelector('#events i.payment'));assert.match(await page.locator('#events').textContent(),/Verified payment/);assert.match(await page.locator('#events').textContent(),/19/);await page.evaluate(()=>window.__tide.refresh());await page.waitForTimeout(100);assert.equal(await page.locator('#events i.payment').count(),1);assert.equal(await page.locator('#events i.checkout').count(),1);}finally{await page.close();}
+  });
   await check('Same-category URL changes create one event each and retain literal timeline paths', async () => {
     const reader = visitor('same-category-reader');
     let data = { visitors: [reader], onlineMs: 90000, truncated: false };

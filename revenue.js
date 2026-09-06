@@ -155,18 +155,20 @@ export function summarize(events, payments, visitors, sessions, from, to, option
     return {timelineTruncated:timeline.length>200,id:`${p.provider}:${p.payment_id}`,visitorId:p.visitor_id,sessionId:p.session_id,source,landingPage:v?.landing_page||null,provider:p.provider,paymentId:p.payment_id,amountMinor:p.amount_minor,currency:p.currency,ts:p.ts,attribution:p.attribution,returning,sessionCount:priorSessions.length,durationMs:v?Math.max(0,p.ts-v.first_ts):null,journey,timeline:timeline.slice(-200).map(e=>({id:e.event_id,type:e.type,path:e.path,ts:e.ts,sessionId:e.session_id,properties:JSON.parse(e.properties||'{}')}))};
   }).filter(Boolean);
   // Ordered visitor funnel within this window. Paid is tied to the same visitor and follows checkout.
-  const stageNames=['page_view','signup','checkout','payment'];
-  const stages=stageNames.map(name=>({name,visitors:0}));
+  const stages=['page_view','checkout','payment'].map(name=>({name,visitors:0}));
+  const signupStages=['page_view','signup','checkout','payment'].map(name=>({name,visitors:0}));
   const checkoutVisitors=new Set(),paidAfterCheckout=new Set();
   for(const visitor of activeVisitors) {
     const timeline=(windowEvents.get(visitor)||[]).sort((a,b)=>a.ts-b.ts);
-    let position=0,lastTs=0;
-    for(const e of timeline)if(e.type===stageNames[position]){stages[position].visitors++;lastTs=e.ts;position++;}
-    if(position===3 && (visitorPayments.get(visitor)||[]).some(p=>p.amount_minor>0&&paymentCutoff(p)>=lastTs))stages[3].visitors++;
+    for(const funnel of [stages,signupStages]) {
+      let position=0,lastTs=0;
+      for(const e of timeline)if(e.type===funnel[position]?.name){funnel[position].visitors++;lastTs=e.ts;position++;}
+      if(position===funnel.length-1 && (visitorPayments.get(visitor)||[]).some(p=>p.amount_minor>0&&paymentCutoff(p)>=lastTs))funnel[position].visitors++;
+    }
     const checkout=timeline.find(e=>e.type==='checkout');
     if(checkout){checkoutVisitors.add(visitor);if((visitorPayments.get(visitor)||[]).some(p=>p.amount_minor>0&&paymentCutoff(p)>=checkout.ts))paidAfterCheckout.add(visitor);}
   }
-  return {overview:{visitors:activeVisitors.size,sessions:activeSessions.size,customers:new Set(payments.filter(p=>p.amount_minor>0).map(p=>p.visitor_id).filter(Boolean)).size,conversion:activeVisitors.size?new Set(payments.filter(p=>p.amount_minor>0).map(p=>p.visitor_id).filter(id=>activeVisitors.has(id))).size/activeVisitors.size:0,currencies:[...currencies.values()].map(c=>({...c,customers:c.customers.size,revenuePerVisitor:activeVisitors.size?c.revenue/activeVisitors.size:0}))},stories,storyCount,nextOffset:storyOffset+storyLimit<storyCount?storyOffset+storyLimit:null,sources:[...sources.values()],pages:[...pages.values()],journeys:[...journeys.values()],funnel:stages,leaks:[{name:'Checkout without observed payment',visitors:checkoutVisitors.size-paidAfterCheckout.size,entered:checkoutVisitors.size,converted:paidAfterCheckout.size}],definitions:{revenue:'Net observed receipts in minor units: paid checkouts, paid invoices and orders less successful observed refunds. Gross includes taxes/shipping; fees excluded. No MRR inference.',attribution:'First observed visitor source; payment links require matching site, visitor and session metadata.',funnel:'Ordered page_view → signup → checkout → payment in selected window.',leaks:'Observed checkout visitors without a later linked payment in this window. Not confirmed lost revenue.',pages:'First observed landing page credited once per payment.'}};
+  return {overview:{visitors:activeVisitors.size,sessions:activeSessions.size,customers:new Set(payments.filter(p=>p.amount_minor>0).map(p=>p.visitor_id).filter(Boolean)).size,conversion:activeVisitors.size?new Set(payments.filter(p=>p.amount_minor>0).map(p=>p.visitor_id).filter(id=>activeVisitors.has(id))).size/activeVisitors.size:0,currencies:[...currencies.values()].map(c=>({...c,customers:c.customers.size,revenuePerVisitor:activeVisitors.size?c.revenue/activeVisitors.size:0}))},stories,storyCount,nextOffset:storyOffset+storyLimit<storyCount?storyOffset+storyLimit:null,sources:[...sources.values()],pages:[...pages.values()],journeys:[...journeys.values()],funnel:stages,signupFunnel:signupStages,leaks:[{name:'Checkout without observed payment',visitors:checkoutVisitors.size-paidAfterCheckout.size,entered:checkoutVisitors.size,converted:paidAfterCheckout.size}],definitions:{revenue:'Net observed receipts in minor units: paid checkouts, paid invoices and orders less successful observed refunds. Gross includes taxes/shipping; fees excluded. No MRR inference.',attribution:'First observed visitor source; payment links require matching site, visitor and session metadata.',funnel:'Ordered page_view → checkout → payment in selected window; includes guest checkout.',signupFunnel:'Ordered page_view → signup → checkout → payment in selected window.',leaks:'Observed checkout visitors without a later linked payment in this window. Not confirmed lost revenue.',pages:'First observed landing page credited once per payment.'}};
 }
 export async function report(db, site, from, to, options={}) {
   const queries=[

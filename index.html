@@ -144,7 +144,7 @@
 <link rel="stylesheet" href="./globe.css" />
 <link rel="stylesheet" href="./theme.css" />
 <link rel="stylesheet" href="./dashboard.css" />
-<style>.revenue-entry { display:inline-flex; align-items:center; padding:8px 12px; color:var(--ink); font-size:12px; text-decoration:none; border-radius:8px; } .revenue-entry:hover { background:var(--blue-soft); } .revenue-entry:focus-visible { outline:2px solid var(--green); }</style>
+<style>.revenue-entry { display:inline-flex; align-items:center; padding:8px 12px; color:var(--ink); font-size:12px; text-decoration:none; border-radius:8px; } .ev i.payment { background:var(--green); } .ev i.refund { background:var(--accent-warm); } .ev i.signup,.ev i.checkout,.ev i.purchase { background:var(--blue); } .revenue-entry:hover { background:var(--blue-soft); } .revenue-entry:focus-visible { outline:2px solid var(--green); }</style>
 </head>
 <body data-view="map">
 <header>
@@ -693,7 +693,8 @@ function flushEvents() {
   eventsEl.innerHTML = sim.events.map(e => {
     const id = e.v.fullId || e.v.id;
     const place = t(e.place);
-    const action = e.type === "visit" ? t("进入网站") : e.type === "leave" ? t("离开（{page}）", {page:place}) : t("浏览 {page}",{page:place});
+    const labels = window.__tideI18n.language === 'en' ? {signup:'Signed up',checkout:'Started checkout',purchase:'Purchase reported (unverified)',payment:'Verified payment',refund:'Verified refund'} : {signup:'完成注册',checkout:'进入结账',purchase:'购买事件（未验证）',payment:'已验证付款',refund:'已验证退款'};
+    const action = labels[e.type] ? labels[e.type] + ' · ' + place : e.type === "visit" ? t("进入网站") : e.type === "leave" ? t("离开（{page}）", {page:place}) : t("浏览 {page}",{page:place});
     return `<div class="ev${sim.selectedId === id ? " selected" : ""}" data-id="${escapeMarkup(id)}" role="button" tabindex="0">
       <i class="${e.type}"></i><div class="txt"><b>${escapeMarkup(cityName(e.v.city[0]))}</b><span> · ${escapeMarkup(action)}</span></div>
       <time>${displayTime(performance.timeOrigin + e.ts)}</time></div>`;
@@ -815,6 +816,7 @@ tabPark.addEventListener("click", () => setView("park"));
 
 /* Live 数据源:轮询 /api/live,驱动同一套渲染结构 */
 const liveSeen = new Map();
+const liveEventSeen = new Set();
 let liveTimer = 0, liveBusy = false;
 async function liveTick(now) {
   if (DEMO || liveBusy) return;
@@ -852,6 +854,19 @@ async function liveTick(now) {
           v.state = "walking"; v.node = prev.node; v.target = node; v.t = 0; v.speed = 1 / 2.2;
         }
         pushEvent(now, "pageview", v, nodeById(node).label);
+      }
+      for (const event of rv.events || []) {
+        if (!['signup','checkout','purchase','payment','refund'].includes(event.type)) continue;
+        const key = rv.id + ':' + (event.id || `${event.type}:${event.ts}:${event.path}`);
+        if (liveEventSeen.has(key)) continue;
+        liveEventSeen.add(key);
+        if (liveEventSeen.size > 5000) liveEventSeen.delete(liveEventSeen.values().next().value);
+        let label = event.path || currentPath;
+        if (['payment','refund'].includes(event.type) && Number.isFinite(event.amountMinor) && /^[A-Z]{3}$/.test(event.currency || '')) {
+          const format = new Intl.NumberFormat(undefined, {style:'currency',currency:event.currency});
+          label = format.format(event.amountMinor / 10 ** format.resolvedOptions().maximumFractionDigits);
+        }
+        pushEvent(epochToRaf(event.ts), event.type, v, label);
       }
       liveSeen.set(rv.id, { node, path: currentPath });
     }

@@ -102,7 +102,7 @@
 <li>
 <a href="#deployment">Deploy the Worker and initialize D1</a>. Configure one website and its allowed origin.</li>
 <li>Install the SDK or Shopify adapter. Honor the visitor’s consent choice.</li>
-<li>Observe page views, then instrument a signup and checkout.</li>
+<li>Observe page views, then instrument checkout and any signup step your website uses.</li>
 <li>Pass the SDK attribution context to your payment creation flow.</li>
 <li>Send a signed test payment and inspect its Revenue Story.</li>
 </ol>
@@ -183,7 +183,7 @@ const attribution = tide.attribution();</code>
   data-site=&quot;my-site&quot;
   data-consent=&quot;true&quot;&gt;&lt;/script&gt;</code>
 </pre>
-<p>It exposes <code>window.tidestat</code>. The module option is required; an old classic script tag will not work. Use your own deployed asset URL. Run <code>npm run build</code> to publish the SDK at <code>/sdk/index.js</code>. Keep the SDK asset origin and collection endpoint aligned with your deployment.</p>
+<p>It exposes <code>window.tidestat</code>. The module option is required; an old classic script tag will not work. The canonical <code>/t.js</code> module flow has been verified in a cross-origin browser test; merchant payment setup still requires your own end-to-end verification. Use your own deployed asset URL. Run <code>npm run build</code> to publish the SDK at <code>/sdk/index.js</code>. Keep the SDK asset origin and collection endpoint aligned with your deployment.</p>
 <h2>Existing websites</h2>
 <p>The <code>/t.js</code> endpoint redirects to the browser module wrapper. Use a module script and explicit site configuration when migrating an old tag. Migrating to the canonical SDK adds session context and business events. Remove the old script after enabling the new integration to avoid duplicate page views. Historical legacy events are not retroactively linked to payments.</p>
 <h2>Automatic versus intentional tracking</h2>
@@ -390,11 +390,11 @@ Content-Type: application/json
 <h2>Revenue Stories</h2>
 <p>Start with a payment or visitor. Inspect the ordered visits, key behavior, conversion steps and payment link. Use site and date controls to narrow your investigation, then examine a returning visitor’s sessions.</p>
 <h2>Revenue Journeys & Sources</h2>
-<p>Compare observed paths and first-touch sources by verified revenue, visitors and revenue per visitor. Page revenue describes payments associated with the reported attribution model; it does not mean the page alone caused the payment.</p>
+<p>Compare observed paths and first-touch sources by verified revenue, visitors and revenue per visitor. Page revenue describes payments associated with the reported attribution model; it does not mean the page alone caused the payment. Journeys shows two ordered funnels: the commerce funnel (<code>page_view → checkout → payment</code>) includes guest checkout, while the separate signup funnel (<code>page_view → signup → checkout → payment</code>) measures paths that require registration.</p>
 <h2>Revenue Leaks</h2>
 <p>Find observed conversion-step drop-off, such as visitors who started checkout without a linked payment in the reporting window. These are candidates for investigation, not proof of permanently lost sales. Delayed webhooks, unlinked payments and purchases outside the window can inflate apparent drop-off.</p>
 <h2>Keep the website alive</h2>
-<p>The real-time visitor count, map and Website Footprints remain ways to see people moving through your website. Use the event stream and footprints to understand the concrete path behind an aggregate insight. A live signal is not a revenue signal until there is payment evidence.</p>
+<p>The real-time visitor count, map and Website Footprints remain ways to see people moving through your website. The live event stream includes signup, checkout and unverified browser purchase signals alongside explicitly labeled verified payments and refunds. Open the same visitor’s Revenue Story from the stream to connect those signals with the observed path. A live signal is not a revenue signal until there is payment evidence.</p>
 <div class="notice">
 <strong>Interpret insights as descriptions</strong>Rules can summarize recorded paths and differences. They do not establish causation, predict guaranteed revenue or invent missing events.</div>
 <div class="pager">

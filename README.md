@@ -2,7 +2,7 @@
 
 **See the story behind every dollar.**
 
-TideStat connects acquisition → visitor → session → behavior → conversion → verified payment → revenue. The real-time map, anonymous visitor characters, Website Footprints, movement and live event stream remain part of the experience: they provide the observed website journey behind a payment.
+TideStat connects acquisition → visitor → session → behavior → conversion → verified payment → revenue. The real-time map, anonymous visitor characters, Website Footprints, movement and live event stream remain part of the experience: they provide the observed website journey behind a payment. The stream distinguishes unverified signup/checkout/purchase signals from verified payment/refund events and links to the same visitor’s Revenue Story. Journeys shows both a guest-compatible commerce funnel (`page_view → checkout → payment`) and a separate signup funnel (`page_view → signup → checkout → payment`).
 
 ## Documentation
 
@@ -65,6 +65,6 @@ npm test --prefix packages/browser-sdk
 node --test tests/revenue-backend.mjs
 ```
 
-Existing scene and privacy checks remain under `tests/`. Browser checks require their browser dependencies and a running local server. Local tests cannot establish successful deployment, live webhook registration or merchant checkout behavior.
+Existing scene and privacy checks remain under `tests/`. Browser checks require their browser dependencies and a running local server. The canonical `/t.js` module flow has also passed a cross-origin browser check. Local tests cannot establish successful deployment, live webhook registration or merchant checkout behavior.
 
 Earlier implementation notes remain in [docs/realtime-map.md](docs/realtime-map.md), [docs/footprints.md](docs/footprints.md), [docs/avatars.md](docs/avatars.md) and [docs/themes.md](docs/themes.md). They describe their individual surfaces; the Revenue Story documentation above governs the new integration and attribution contract.
