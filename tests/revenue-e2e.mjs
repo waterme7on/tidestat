@@ -40,5 +40,13 @@ try {
  await page.locator('#visitorSearch').fill('');
  await page.locator('#refresh').click();await page.waitForFunction(()=>document.querySelector('#metrics').textContent.includes('$14.00')&&document.querySelectorAll('#storyList [data-story]').length===2);
  assert.match(await page.locator('#storyList').textContent(),/Refund/);
+ const storefront=createServer((_req,res)=>{res.setHeader('Content-Type','text/html');res.end(`<script type="module" data-site="unrelated"></script><script type="module" src="${base}/t.js" data-site="store" data-consent="true"></script>`);});
+ await new Promise(resolve=>storefront.listen(0,'127.0.0.1',resolve));
+ try {
+  const storefrontOrigin=`http://127.0.0.1:${storefront.address().port}`,config=JSON.parse(env.SITES_JSON);config.store.allowedOrigins=[storefrontOrigin];env.SITES_JSON=JSON.stringify(config);
+  await page.goto(storefrontOrigin);await page.waitForFunction(()=>typeof window.tidestat?.checkout==='function');
+  assert.equal(await page.evaluate(()=>window.tidestat.checkout()),true,'cross-origin module, preflight and collector work together');
+  await page.evaluate(()=>window.tidestat.destroy());
+ } finally {await new Promise(resolve=>storefront.close(resolve));}
  assert.deepEqual(errors,[]);console.log('End-to-end passed: real SDK → Worker → SQLite → signed duplicate payment → authenticated UI story → live identity, with website isolation.');
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve));sql.close();}
