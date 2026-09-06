@@ -1,0 +1,17 @@
+/* The observatory shares the product shell; geographic rendering stays geographic. */
+html[data-theme] body[data-view]{--bg:var(--tide-bg);--paper:var(--tide-surface);--ink:var(--tide-ink);--ink-soft:var(--tide-muted);--line:var(--tide-line);--blue:var(--tide-accent);--green:var(--tide-accent);--blue-soft:var(--tide-soft);background:var(--tide-bg);color:var(--tide-ink)}
+html[data-theme] body[data-view] header{background:var(--tide-bg);border-color:var(--tide-line)}
+html[data-theme] body[data-view] .brand{color:var(--tide-ink)}
+html[data-theme] body[data-view] .tabs{background:var(--tide-soft);border-color:var(--tide-line)}
+html[data-theme] body[data-view] .tabs button{color:var(--tide-muted)}
+html[data-theme] body[data-view] .tabs button.active{color:var(--tide-accent);background:var(--tide-surface)}
+html[data-theme] body[data-view] .panel,html[data-theme] body[data-view] .stage{background:var(--tide-surface);border-color:var(--tide-line)}
+html[data-theme] body[data-view] .map-heading h1,html[data-theme] body[data-view] .metric-number,html[data-theme] body[data-view] .metric-secondary strong{color:var(--tide-ink)}
+html[data-theme] body[data-view] .map-heading p,html[data-theme] body[data-view] .metric-number>span,html[data-theme] body[data-view] .metric-status,html[data-theme] body[data-view] .metric-secondary span,html[data-theme] body[data-view] .map-caption,html[data-theme] body[data-view] .live{color:var(--tide-muted)}
+html[data-theme] body[data-view] .visitor-metrics,html[data-theme] body[data-view] .metric-secondary{border-color:var(--tide-line)}
+html[data-theme] body[data-view] .theme-picker,html[data-theme] body[data-view] .theme-picker option,html[data-theme] body[data-view] .map-controls button,html[data-theme] body[data-view] .map-zoom,html[data-theme] body[data-view] .globe-regions,html[data-theme] body[data-view] .globe-regions button{background:var(--tide-surface);color:var(--tide-ink);border-color:var(--tide-line)}
+html[data-theme] body[data-view] .source-badge,html[data-theme] body[data-view] .signal-chip{background:var(--tide-soft);color:var(--tide-ink);border-color:var(--tide-line)}
+html[data-theme] body[data-view] .live-signals{background:var(--tide-surface);color:var(--tide-ink);border-color:var(--tide-line)}
+html[data-theme] body[data-view] .visitor-popup{background:var(--tide-surface);color:var(--tide-ink);border-color:var(--tide-line)}
+html[data-theme] body[data-view] .signal-label,html[data-theme] body[data-view] .signals-receipts{color:var(--tide-muted)}
+@media(max-width:860px){header>[data-product-controls]{margin-left:auto}header{flex-wrap:wrap;gap:10px!important}header .live{margin-left:auto}}

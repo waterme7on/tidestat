@@ -1,0 +1,5 @@
+:root{--tide-bg:#121719;--tide-surface:#1b2225;--tide-ink:#ecf0ef;--tide-muted:#91a0a5;--tide-line:#303a3e;--tide-accent:#ed916f;--tide-soft:#273135}
+html[data-theme="light"]{--tide-bg:#f8f9f6;--tide-surface:#fff;--tide-ink:#263238;--tide-muted:#596b72;--tide-line:#d8e0df;--tide-accent:#b64d2a;--tide-soft:#edf1ef}
+.brand .tide-brand-mark{width:30px;height:30px;flex-shrink:0;color:var(--tide-accent);display:block}
+.product-controls{display:flex;align-items:center;gap:7px;flex-shrink:0}.product-controls label{margin:0;display:flex}.product-controls select{max-width:138px;min-height:34px;padding:6px 8px;font:11px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--tide-ink);background:var(--tide-surface);border:1px solid var(--tide-line);border-radius:6px;cursor:pointer}.product-controls select:focus-visible{outline:2px solid var(--tide-accent);outline-offset:3px}.product-sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:600px){.product-controls{gap:4px}.product-controls select{max-width:98px;font-size:10px;padding:5px;min-height:32px}}

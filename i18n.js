@@ -198,12 +198,13 @@
   const valid = new Set(['system', 'zh', 'en']);
   const read = () => { try { const value = localStorage.getItem(KEY); return valid.has(value) ? value : 'system'; } catch { return 'system'; } };
   let preference = read(), language = 'zh';
+  const originalTitle=document.title;
   const normalize = value => /^zh(?:-|$)/i.test(value) ? 'zh' : /^en(?:-|$)/i.test(value) ? 'en' : null;
   const query = normalize(new URLSearchParams(location.search).get('lang') || '');
   if (query) preference = query;
   function resolve() { return preference === 'system' ? (navigator.languages || [navigator.language]).map(normalize).find(Boolean) || 'en' : preference; }
   function t(message, values = {}) {
-    const template = language === 'en' ? EN[message] ?? message : message;
+    const template = language === 'en' ? EN[message] ?? message : REVERSE[message] ?? message;
     return String(template ?? '').replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? `{${name}}`));
   }
   function time(epoch) { return Number.isFinite(epoch) ? new Date(epoch).toLocaleTimeString(language === 'zh' ? 'zh-CN' : 'en-US', {hour12:false}) : '—'; }
@@ -228,7 +229,7 @@
   function apply() {
     language = resolve(); document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
     document.documentElement.dataset.language = language;
-    document.title = t('TideStat — 实时访问人数与网站足迹');
+    document.title = t(originalTitle);
     applyDOM(); window.dispatchEvent(new CustomEvent('tide:languagechange', {detail:{language,preference}}));
   }
   function setLanguage(value) {
@@ -238,7 +239,8 @@
     try { localStorage.setItem(KEY, value); } catch {}
     apply();
   }
-  window.__tideI18n = Object.freeze({t, time, nodeLabel, cityName, identity, applyDOM, setLanguage,
+  function registerMessages(messages) { for(const [en,zh] of Object.entries(messages)){EN[zh]=en;REVERSE[en]=zh;} }
+  window.__tideI18n = Object.freeze({registerMessages,t, time, nodeLabel, cityName, identity, applyDOM, setLanguage,
     get language(){return language;}, get preference(){return preference;}, get locale(){return language === 'zh' ? 'zh-CN' : 'en-US';}});
   window.addEventListener('languagechange', () => {if(preference === 'system') apply();});
   window.addEventListener('storage', e => {if(e.key === KEY || e.key === null){preference=read();apply();}});

@@ -25,7 +25,7 @@ let inspected=page;
 function watch(p){p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='warn'||m.type()==='error')console.log('[browser]',m.text());});}
 watch(page);
 async function mock(p){await p.route('**/api/live',r=>r.fulfill({status,contentType:'application/json',body:JSON.stringify({onlineMs:90000,visitors})}));}
-async function open(p){await mock(p);await p.goto(base);await p.waitForFunction(()=>window.__tideMap?.ready());await p.locator('#tab-park').click();await p.waitForFunction(()=>window.__tide3d?.ready(),null,{timeout:15000});await p.waitForTimeout(700);}
+async function open(p){await mock(p);await p.goto(base + '/live.html');await p.waitForFunction(()=>window.__tideMap?.ready());await p.locator('#tab-park').click();await p.waitForFunction(()=>window.__tide3d?.ready(),null,{timeout:15000});await p.waitForTimeout(700);}
 async function refresh(p){
  await p.evaluate(()=>window.__tide.refresh());
  // Wait for the data bridge AND its rendered state, not a fixed GPU-dependent delay.

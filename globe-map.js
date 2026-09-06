@@ -1,3 +1,4 @@
+import { visitorContextCard } from './live-intelligence.js';
 /* Native MapLibre globe + local Natural Earth geography. No custom sphere or remote tiles. */
 import { avatarSVG } from './visitor-avatar.js';
 import { idleMotion } from './idle-motion.js';
@@ -107,10 +108,12 @@ function visitorCard(v, id) {
   const copy = txt('div', ''); copy.append(txt('strong', locationName(v)), txt('span', `${t('匿名访客')} · ${identity(v)}${bridge().demo ? ' · '+t('模拟 IP') : ''}`));
   head.append(face(id), copy); card.append(head);
   const details = txt('div', '', 'visitor-popup-page'); details.append(txt('span', '正在浏览'), txt('b', pageOf(v))); card.append(details);
+  card.append(visitorContextCard(v));
   card.append(txt('p', '城市级近似位置 · 头像不代表本人外貌', 'visitor-privacy'));
   const button = txt('button', '查看访问时间线 →'); button.type = 'button';
   button.onclick = () => bridge().openTimeline?.(id);
-  card.append(button); return card;
+  const revenue=txt('a',window.__tideI18n.language==='en'?'Revenue story →':'收入故事 →','visitor-revenue-link');revenue.href='./revenue.html?visitor='+encodeURIComponent(id)+(bridge().demo?'&demo=1':'');
+  card.append(button,revenue); return card;
 }
 function showPopup(loc, content) {
   clearPopup();

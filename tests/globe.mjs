@@ -56,7 +56,7 @@ async function colors(p) {
 }
 try {
   page = await browser.newPage({locale:'zh-CN', viewport:{width:1440,height:1000}, reducedMotion:'reduce' }); watch(page); await mock(page);
-  await page.goto(base); await settled(page);
+  await page.goto(base + '/live.html'); await settled(page);
   assert.equal(await page.locator('#realtimeCount').textContent(), String(fixture.length));
   assert.equal(await page.locator('#tab-map').textContent(), '实时访问人数');
   assert.equal(await page.evaluate(() => window.__tideMap.camera().projection), 'globe');
@@ -132,7 +132,7 @@ try {
   page = await browser.newPage({locale:'zh-CN',viewport:{width:900,height:720},reducedMotion:'reduce'}); watch(page); await mock(page);
   let failGeo = true;
   await page.route('**/assets/countries-50m.geojson',route => failGeo ? route.fulfill({status:503,body:'unavailable'}) : route.continue());
-  await page.goto(base); await page.waitForFunction(() => document.getElementById('liveMap').dataset.geography==='error');
+  await page.goto(base + '/live.html'); await page.waitForFunction(() => document.getElementById('liveMap').dataset.geography==='error');
   assert.ok(await page.locator('#tileNotice').isVisible());
   failGeo = false; await page.getByRole('button',{name:'重新加载地图',exact:true}).click(); await settled(page);
   assert.equal(await page.locator('#tileNotice').isVisible(),false); await page.close();
@@ -144,7 +144,7 @@ try {
     const original = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function(type,...args) { return /webgl/.test(type) ? null : original.call(this,type,...args); };
   });
-  await page.goto(base); await settled(page,'flat');
+  await page.goto(base + '/live.html'); await settled(page,'flat');
   assert.equal(await page.locator('#globeMode').textContent(),'平面兼容模式');
   assert.equal(await page.locator('#realtimeCount').textContent(),String(fixture.length));
   await page.locator('.online-visitor[data-visitor-id="guest-020"]').click(); assert.ok(await page.locator('#visitorDetail').isVisible());

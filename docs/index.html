@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
+<meta name="description" content="Connect TideStat with the npm SDK or Shopify. Learn canonical events, verified payment attribution, revenue stories and Cloudflare deployment.">
+<title>TideStat Documentation</title>
+<script src="../theme.js"></script>
+<script src="../i18n.js"></script>
+<link rel="stylesheet" href="./docs.css">
+<link rel="stylesheet" href="../product-ui.css">
+<script type="module" src="./docs-locale.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header>
+<a class="brand" href="../landing.html">
+<span class="mark" aria-hidden="true">
+<i>
+</i>
+<i>
+</i>
+<i>
+</i>
+</span>TideStat <span class="tag">DOCS</span>
+</a>
+<div class="header-links">
+<div data-product-controls></div>
+<a href="../revenue.html">Open dashboard ↗</a>
+<button class="menu" aria-expanded="false" aria-controls="navigation">Menu</button>
+</div>
+</header>
+<div class="layout">
+<aside class="sidebar" id="navigation">
+<input class="search" type="search" aria-label="Search documentation" placeholder="Search documentation…">
+<nav aria-label="Documentation">
+<p class="nav-group">Get started</p>
+<div>
+<a href="#start" data-page="start">Introduction</a>
+</div>
+<p class="nav-group">Installation</p>
+<div>
+<a href="#npm" data-page="npm">NPM SDK / Package</a>
+<a href="#browser" data-page="browser">Browser SDK</a>
+<a href="#shopify" data-page="shopify">Shopify</a>
+</div>
+<p class="nav-group">Reference</p>
+<div>
+<a href="#events" data-page="events">Canonical event schema</a>
+</div>
+<p class="nav-group">Integrations</p>
+<div>
+<a href="#stripe" data-page="stripe">Stripe payment linking</a>
+<a href="#search-console" data-page="search-console">Google Search Console</a>
+</div>
+<p class="nav-group">Revenue Story</p>
+<div>
+<a href="#attribution" data-page="attribution">Attribution & evidence</a>
+<a href="#journeys" data-page="journeys">Journeys, sources & leaks</a>
+</div>
+<p class="nav-group">Operations</p>
+<div>
+<a href="#sites" data-page="sites">Multiple websites</a>
+<a href="#deployment" data-page="deployment">Deployment & migration</a>
+<a href="#privacy" data-page="privacy">Privacy & data boundaries</a>
+<a href="#troubleshooting" data-page="troubleshooting">Troubleshooting</a>
+</div>
+</nav>
+<p class="empty" hidden>No matching pages. Try “payment” or “SDK”.</p>
+</aside>
+<main class="doc" id="content">
+<article data-page="start" data-doc-title="See the story behind every dollar." >
+<div class="eyebrow">Get started</div>
+<h1>See the story behind every dollar.</h1>
+<p class="lead">Connect visits to verified payments. Follow the path from the first page to the moment someone becomes a customer.</p>
+<div class="journey">
+<span>Google Organic</span>
+<b>→</b>
+<span>/shopify</span>
+<b>→</b>
+<span>/pricing</span>
+<b>→</b>
+<span>Returning visit</span>
+<b>→</b>
+<span>Checkout</span>
+<b>→</b>
+<span class="money">$19 payment</span>
+</div>
+<p>This is an illustrative journey, not customer data. TideStat preserves the live map, anonymous visitor characters, Website Footprints and event stream, then adds the payment evidence that makes those visits meaningful.</p>
+<div class="notice warning">
+<strong>Self-hosted implementation · integration verification required</strong>The SDK is a local package, not a published npm release. Payment connectors need your credentials and end-to-end test payments. Search Console supports aggregate imports; there is no OAuth connection.</div>
+<div class="cards">
+<a class="card" href="#npm">
+<strong>NPM / Browser SDK ↗</strong>
+<span>Instrument a JavaScript website and link a server-created checkout.</span>
+</a>
+<a class="card" href="#shopify">
+<strong>Shopify ↗</strong>
+<span>Capture storefront behavior and connect paid orders.</span>
+</a>
+</div>
+<h2>Your first complete story</h2>
+<ol>
+<li>
+<a href="#deployment">Deploy the Worker and initialize D1</a>. Configure one website and its allowed origin.</li>
+<li>Install the SDK or Shopify adapter. Honor the visitor’s consent choice.</li>
+<li>Observe page views, then instrument checkout and any signup step your website uses.</li>
+<li>Pass the SDK attribution context to your payment creation flow.</li>
+<li>Send a signed test payment and inspect its Revenue Story.</li>
+</ol>
+<p>A successful setup shows both the observed visit timeline and the verified payment. Missing identifiers should produce an unattributed payment, never an invented journey.</p>
+<div class="pager">
+<span>
+</span>
+<a href="#npm">NPM SDK / Package →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<article data-page="npm" data-doc-title="NPM SDK / Package" hidden>
+<div class="eyebrow">Installation</div>
+<h1>NPM SDK / Package</h1>
+<p class="lead">Typeable, explicit event tracking for JavaScript sites. Use the same canonical schema as Shopify.</p>
+<div class="notice">
+<strong>Local package</strong>Install the repository package by filesystem path. The registry command <code>npm install @tidestat/browser-sdk</code> is not a supported installation until the package is published.</div>
+<h2>Install</h2>
+<pre>
+<code>npm install /absolute/path/to/tidestat/packages/browser-sdk</code>
+</pre>
+<h2>Initialize once in the browser</h2>
+<pre>
+<code>import { createTideStat } from &#x27;@tidestat/browser-sdk&#x27;;
+
+const tide = createTideStat({
+  siteId: &#x27;my-site&#x27;,
+  endpoint: &#x27;https://analytics.example.com/api/collect&#x27;,
+  consent: false,
+  autoPageview: true,
+  trackClicks: false
+});
+
+// Call after your consent flow permits analytics.
+tide.setConsent(true);
+// Call when your application confirms the signup.
+tide.track(&#x27;signup&#x27;, { plan: &#x27;pro&#x27; });</code>
+</pre>
+<p>Create a single instance on the client; do not initialize during server rendering or on every component render. Use <code>destroy()</code> when removing an integration. Do not combine the browser module, npm instance and legacy tracker on the same page.</p>
+<h2>Track the meaningful steps</h2>
+<pre>
+<code>tide.track(&#x27;checkout&#x27;, { plan: &#x27;pro&#x27; });
+tide.track(&#x27;custom&#x27;, { name: &#x27;comparison_opened&#x27; });
+const attribution = tide.attribution();</code>
+</pre>
+<p>Automatic page views include pathname navigation; query strings and fragments are excluded. Sessions expire after 30 minutes of inactivity. After consent, outbound-link tracking is enabled by default; set <code>trackOutbound: false</code> to disable it. Outbound URLs and referrers retain only origin and pathname. Custom properties accepted by the collector are string values for <code>name</code>, <code>label</code>, <code>target</code>, <code>product_id</code>, <code>plan</code> and <code>order_id</code>. Forward <code>attribution</code> to your server when creating a checkout. The returned keys are <code>tidestat_site_id</code>, <code>tidestat_visitor_id</code> and <code>tidestat_session_id</code>. Never send payment credentials or dashboard tokens to this SDK.</p>
+<h2>Verification</h2>
+<p>Check the collection request succeeds and that the visitor appears for the same site in the dashboard. A browser <code>purchase</code> event is behavior evidence; only the verified payment connector contributes money.</p>
+<p>Continue with <a href="#browser">script / browser module setup</a> or <a href="#stripe">Stripe payment linking</a>.</p>
+<div class="pager">
+<a href="#start">← See the story behind every dollar.</a>
+<a href="#browser">Browser SDK →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<article data-page="browser" data-doc-title="Browser SDK" hidden>
+<div class="eyebrow">Installation</div>
+<h1>Browser SDK</h1>
+<p class="lead">Use a browser module when your website does not have a package build step.</p>
+<pre>
+<code>&lt;script type=&quot;module&quot;&gt;
+  import { createTideStat } from
+    &#x27;https://analytics.example.com/sdk/index.js&#x27;;
+
+  const tide = createTideStat({
+    siteId: &#x27;my-site&#x27;,
+    endpoint: &#x27;https://analytics.example.com/api/collect&#x27;,
+    consent: false
+  });
+  // Connect this to your real consent manager, not a timer.
+  window.enableTideStat = () =&gt; tide.setConsent(true);
+&lt;/script&gt;</code>
+</pre>
+<p>Alternatively, insert this wrapper only after analytics consent is granted:</p>
+<pre>
+<code>&lt;script type=&quot;module&quot;
+  src=&quot;https://analytics.example.com/t.js&quot;
+  data-site=&quot;my-site&quot;
+  data-consent=&quot;true&quot;&gt;&lt;/script&gt;</code>
+</pre>
+<p>It exposes <code>window.tidestat</code>. The module option is required; an old classic script tag will not work. The canonical <code>/t.js</code> module flow has been verified in a cross-origin browser test; merchant payment setup still requires your own end-to-end verification. Use your own deployed asset URL. Run <code>npm run build</code> to publish the SDK at <code>/sdk/index.js</code>. Keep the SDK asset origin and collection endpoint aligned with your deployment.</p>
+<h2>Existing websites</h2>
+<p>The <code>/t.js</code> endpoint redirects to the browser module wrapper. Use a module script and explicit site configuration when migrating an old tag. Migrating to the canonical SDK adds session context and business events. Remove the old script after enabling the new integration to avoid duplicate page views. Historical legacy events are not retroactively linked to payments.</p>
+<h2>Automatic versus intentional tracking</h2>
+<p>Automatic page views describe navigation. Add signup and checkout events only when your application reaches that state. Prefer selected, non-sensitive click labels over recording all text on the page.</p>
+<div class="pager">
+<a href="#npm">← NPM SDK / Package</a>
+<a href="#shopify">Shopify →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<article data-page="shopify" data-doc-title="Shopify" hidden>
+<div class="eyebrow">Installation</div>
+<h1>Shopify</h1>
+<p class="lead">Connect storefront visits to paid orders using explicit attribution attributes.</p>
+<div class="notice warning">
+<strong>Installation adapter, not an App Store app</strong>This repository provides storefront and customer-pixel code. It does not provide Shopify OAuth or an automatically installed public app. Validate your shop’s consent, checkout and pixel behavior with a test order.</div>
+<h2>1. Configure the website</h2>
+<p>Set the storefront origin, Shopify webhook secret and exact <code>shopDomain</code> in the website’s server-side configuration. Use the same site ID across the storefront, pixel and webhook URL. If the Shopify pixel sends a null Origin from its sandbox, explicitly add the string <code>"null"</code> to this site’s <code>allowedOrigins</code> array. This opts in untrusted client collection; it does not authorize payments or dashboard reads.</p>
+<h2>2. Install storefront tracking</h2>
+<p>Initialize the <a href="#browser">browser SDK</a> in your storefront theme with <code>autoPageview: false</code> when the pixel handles page views. Before checkout, persist the attribution context as cart attributes using the Shopify Ajax Cart API:</p>
+<pre>
+<code>const context = tide.attribution();
+const cartRoot = window.Shopify?.routes?.root || &#x27;/&#x27;;
+await fetch(cartRoot + &#x27;cart/update.js&#x27;, {
+  method: &#x27;POST&#x27;,
+  headers: { &#x27;Content-Type&#x27;: &#x27;application/json&#x27; },
+  body: JSON.stringify({ attributes: context })
+});</code>
+</pre>
+<p>Use the provided <code>attachTideStatCart</code> helper from <a href="../integrations/shopify/cart-attribution.mjs">cart-attribution.mjs</a> in production. Await the attempt before checkout, but do not block purchases if analytics fails. On withdrawal, call <code>tide.setConsent(false)</code> and <code>clearTideStatCart()</code>. Implement this in your actual checkout flow; simply adding a click listener can race the checkout navigation. Storefront IDs and pixel sandbox IDs are not automatically interchangeable.</p>
+<h2>3. Add customer events</h2>
+<p>Use <a href="../integrations/shopify/customer-pixel.js">the customer-pixel adapter</a> and its <a href="../integrations/shopify/README.md">installation notes</a>. The adapter translates Shopify customer events into the same canonical event schema. Checkout-completed browser events remain unverified behavior.</p>
+<h2>4. Register the paid-order webhook</h2>
+<pre>
+<code>https://analytics.example.com/api/webhooks/shopify?site=my-site</code>
+</pre>
+<p>Subscribe to <code>orders/paid</code> and <code>refunds/create</code>. The Worker verifies the raw-body HMAC and configured shop domain, then accepts orders with <code>financial_status: paid</code>. Order IDs make repeated deliveries idempotent. Refunds sum successful refund transactions and link to the original order; linked refunds inherit its attribution.</p>
+<h2>5. Verify the entire path</h2>
+<p>Place a test order through your storefront. Confirm that the order carries the three <code>tidestat_*</code> note attributes, the webhook succeeds, and the Revenue Story contains the matching visit. An order without known matching context stays unattributed. Accelerated checkout flows that skip your cart-linking step need separate testing.</p>
+<div class="pager">
+<a href="#browser">← Browser SDK</a>
+<a href="#events">Canonical event schema →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<article data-page="events" data-doc-title="Canonical event schema" hidden>
+<div class="eyebrow">Reference</div>
+<h1>Canonical event schema</h1>
+<p class="lead">One event language for websites, the npm package and Shopify.</p>
+<pre>
+<code>{
+  &quot;schema_version&quot;: 1,
+  &quot;event_id&quot;: &quot;a-unique-event-id&quot;,
+  &quot;site_id&quot;: &quot;my-site&quot;,
+  &quot;visitor_id&quot;: &quot;anonymous-site-local-id&quot;,
+  &quot;session_id&quot;: &quot;session-id&quot;,
+  &quot;type&quot;: &quot;signup&quot;,
+  &quot;path&quot;: &quot;/pricing&quot;,
+  &quot;referrer&quot;: &quot;https://www.google.com/&quot;,
+  &quot;occurred_at&quot;: 1788652800000,
+  &quot;properties&quot;: { &quot;plan&quot;: &quot;pro&quot; },
+  &quot;acquisition&quot;: {
+    &quot;source&quot;: &quot;google&quot;, &quot;medium&quot;: &quot;organic&quot;, &quot;campaign&quot;: &quot;&quot;
+  }
+}</code>
+</pre>
+<p>Send to <code>POST /api/collect</code>. Use Unix milliseconds for <code>occurred_at</code> and a stable unique event ID for retries. Website configuration controls allowed collection origins. The SDK generates identity and event IDs for you.</p>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>page_view</td>
+<td>Observed page navigation.</td>
+</tr>
+<tr>
+<td>click / custom / outbound_click</td>
+<td>Selected interactions, application-specific milestones and external link clicks. <code>outbound_click</code> accepts a sanitized <code>properties.outbound_url</code>.</td>
+</tr>
+<tr>
+<td>signup / checkout</td>
+<td>Explicit conversion steps confirmed by the application.</td>
+</tr>
+<tr>
+<td>purchase / revenue</td>
+<td>Browser-reported completion; never trusted monetary revenue.</td>
+</tr>
+<tr>
+<td>identify / heartbeat</td>
+<td>Context or activity signals; not payment proof.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2>Data relationships</h2>
+<p>A site owns visitors, sessions, events and payments. A visitor may have multiple sessions. A session has ordered events. Verified payments hold explicit visitor and session links when those links can be validated. A Revenue Story assembles the observed history with its payment evidence.</p>
+<h2>Read APIs</h2>
+<pre>
+<code>GET /api/revenue?site=my-site&amp;days=30
+GET /api/stories?site=my-site&amp;visitor=visitor-id
+GET /api/live?site=my-site
+Authorization: Bearer YOUR_SITE_READ_TOKEN</code>
+</pre>
+<p>The stories endpoint supports exact <code>visitor</code>, <code>source</code> and <code>currency</code> filters, plus <code>offset</code> and <code>limit</code> (at most 100). Read <code>total</code> and <code>nextOffset</code> for pagination. The revenue summary includes at most 100 stories and exposes <code>storyCount</code>/<code>nextOffset</code>. Individual timelines are capped at 200 events with <code>timelineTruncated</code> when incomplete. Keep site read tokens private. They authorize sensitive analytics reads; the site ID in a public tracker is not a credential.</p>
+<div class="pager">
+<a href="#shopify">← Shopify</a>
+<a href="#stripe">Stripe payment linking →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<article data-page="stripe" data-doc-title="Stripe payment linking" hidden>
+<div class="eyebrow">Integrations</div>
+<h1>Stripe payment linking</h1>
+<p class="lead">Attach the visit context when your server creates Checkout. Confirm the money through a signed webhook.</p>
+<h2>1. Forward attribution to your server</h2>
+<pre>
+<code>const context = tide.attribution();
+// Include context in your application&#x27;s checkout creation request.</code>
+</pre>
+<p>Validate the incoming context in your application. Copy those three keys into Checkout Session <code>metadata</code> when your server creates the Stripe session:</p>
+<pre>
+<code>metadata: {
+  tidestat_site_id: context.tidestat_site_id,
+  tidestat_visitor_id: context.tidestat_visitor_id,
+  tidestat_session_id: context.tidestat_session_id
+}</code>
+</pre>
+<h2>2. Configure the webhook</h2>
+<pre>
+<code>https://analytics.example.com/api/webhooks/stripe?site=my-site</code>
+</pre>
+<p>Subscribe to <code>checkout.session.completed</code>, <code>checkout.session.async_payment_succeeded</code>, <code>invoice.paid</code>, <code>refund.created</code>, <code>refund.updated</code> and <code>charge.refunded</code>. For subscriptions, also pass the attribution keys into <code>subscription_data.metadata</code> so renewal invoices can preserve the link. Set the endpoint signing secret as <code>stripeWebhookSecret</code> in the corresponding website’s server configuration. The Worker checks the signature against the raw request body and enforces a five-minute timestamp tolerance.</p>
+<h2>3. Verify the result</h2>
+<p>Only sessions with <code>payment_status: paid</code> become payments. Checkout confirmations deduplicate on Checkout Session ID. Invoice and payment-intent aliases prevent double-counting an initial invoice also seen through Checkout. Paid invoices use <code>amount_paid</code>; refunds are dated by their own creation time and count only when <code>status: succeeded</code>. The connector deduplicates individual refund IDs. <code>charge.refunded</code> also expands its refund list, but that list can be partial: subscribe to the independent refund events too.</p>
+<div class="notice warning">
+<strong>Checkout payments are not MRR</strong>Paid invoices and observed successful refunds are supported, but subscription-state reconciliation is not implemented. A $19 subscription checkout or renewal is an observed receipt; it does not establish $19 active MRR. Do not use this release as an accounting ledger.</div>
+<p>The site, visitor and session metadata must all match a known session for this site. A payment received before its matching session remains unattributed until later event ingestion can reconcile its explicit context. TideStat does not guess by email address, name or IP.</p>
+<div class="pager">
+<a href="#events">← Canonical event schema</a>
+<a href="#search-console">Google Search Console →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<article data-page="search-console" data-doc-title="Google Search Console" hidden>
+<div class="eyebrow">Integrations</div>
+<h1>Google Search Console</h1>
+<p class="lead">Add organic search context at the aggregate level, with a clear boundary around individual journeys.</p>
+<div class="notice">
+<strong>Aggregate imports only</strong>This release accepts prepared Search Console rows. It does not implement Google OAuth, automatic synchronization or keyword-to-visitor matching.</div>
+<h2>Import shape</h2>
+<pre>
+<code>POST /api/search-console?site=my-site
+Authorization: Bearer YOUR_SITE_READ_TOKEN
+Content-Type: application/json
+
+{
+  &quot;rows&quot;: [{
+    &quot;date&quot;: &quot;2026-09-01&quot;, &quot;page&quot;: &quot;https://example.com/guide&quot;,
+    &quot;query&quot;: &quot;example search&quot;, &quot;clicks&quot;: 12, &quot;impressions&quot;: 320,
+    &quot;ctr&quot;: 0.0375, &quot;position&quot;: 8.4
+  }]
+}</code>
+</pre>
+<p>Read imported data with <code>GET /api/search-console?site=my-site</code> using the same authorization. Query, page, date and the metrics belong to a site-level search dataset.</p>
+<h2>What you can say</h2>
+<p>“This page received 12 Google Search clicks for this query on this date.” You may place that aggregate context alongside the page’s recorded revenue performance.</p>
+<h2>What you cannot say</h2>
+<p>“Visitor 123 searched this keyword.” Search Console does not supply this individual link. Google Search clicks and tracked visitors also differ in measurement scope, consent, time zones and processing delay; they are not interchangeable.</p>
+<div class="pager">
+<a href="#stripe">← Stripe payment linking</a>
+<a href="#attribution">Attribution & evidence →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<article data-page="attribution" data-doc-title="Attribution &amp; evidence" hidden>
+<div class="eyebrow">Revenue Story</div>
+<h1>Attribution & evidence</h1>
+<p class="lead">Explain the revenue path without claiming to know more than your data shows.</p>
+<h2>What the story means</h2>
+<p>The timeline is the observed sequence of visits and events before payment. It can show the landing page, acquisition context, returning sessions, conversion steps and verified payment. The sequence is evidence of what happened; it does not prove which individual action caused the purchase.</p>
+<h2>First observed touch</h2>
+<p>Source and landing-page attribution use the visitor’s first observed touch in retained data. This is not necessarily their first-ever visit. A cleared browser, declined consent, another device or uninstrumented page can break the journey. There is no cross-device identity inference.</p>
+<h2>Returning visitors</h2>
+<p>Returning contribution depends on multiple recorded sessions for the same site-local visitor ID. It is not the same as “all repeat customers”: a customer may return from another browser or device.</p>
+<h2>Coverage matters</h2>
+<p>Payments with a valid explicit session link are attributed. Payments without one remain unattributed. Review that coverage before comparing revenue sources. Queries are bounded (including 20,000 events and 5,000 payments) and flag truncation; a truncated result is not a complete historical census.</p>
+<h2>Money stays in its currency</h2>
+<p>Revenue is net observed receipts: supported paid events minus observed refunds, in provider minor units and their original currency. Gross amounts can include taxes and shipping; fees and disputes are excluded. There is no FX conversion or accounting reconciliation. Compare like currencies; never sum USD and EUR into one dollar total.</p>
+<div class="pager">
+<a href="#search-console">← Google Search Console</a>
+<a href="#journeys">Journeys, sources & leaks →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<article data-page="journeys" data-doc-title="Journeys, sources &amp; leaks" hidden>
+<div class="eyebrow">Revenue Story</div>
+<h1>Journeys, sources & leaks</h1>
+<p class="lead">Use the live map as the beginning of the investigation, then follow the revenue evidence.</p>
+<h2>Revenue Stories</h2>
+<p>Start with a payment or visitor. Inspect the ordered visits, key behavior, conversion steps and payment link. Use site and date controls to narrow your investigation, then examine a returning visitor’s sessions.</p>
+<h2>Revenue Journeys & Sources</h2>
+<p>Compare observed paths and first-touch sources by verified revenue, visitors and revenue per visitor. Page revenue describes payments associated with the reported attribution model; it does not mean the page alone caused the payment. Journeys shows two ordered funnels: the commerce funnel (<code>page_view → checkout → payment</code>) includes guest checkout, while the separate signup funnel (<code>page_view → signup → checkout → payment</code>) measures paths that require registration.</p>
+<h2>Read the dimensions correctly</h2>
+<p>Channels, referrers, campaigns, explicit UTM keywords, geography, browsers, operating systems and devices attribute revenue to the first captured visitor context. Missing historical context stays Unknown. Browser and OS labels come from the user agent, not fingerprinting. Keyword reports contain explicit <code>utm_term</code> only; organic search queries remain separate aggregate Search Console data.</p>
+<p>Pages and outbound links are observed prepayment assisted touchpoints. Their revenue can overlap, so do not add their rows into a total or infer causation. Entry and exit pages are the payment session’s first and last observed pages; an exit does not prove the browser closed. Daily and weekday/hour reports use UTC. Time-to-revenue and visits-to-revenue distributions use the first known positive payment and exclude renewals.</p>
+<h2>Revenue Leaks</h2>
+<p>Find observed conversion-step drop-off, such as visitors who started checkout without a linked payment in the reporting window. These are candidates for investigation, not proof of permanently lost sales. Delayed webhooks, unlinked payments and purchases outside the window can inflate apparent drop-off.</p>
+<h2>Keep the website alive</h2>
+<p>The real-time visitor count, map and Website Footprints remain ways to see people moving through your website. The live event stream includes signup, checkout and unverified browser purchase signals alongside explicitly labeled verified payments and refunds. Open the same visitor’s Revenue Story from the stream to connect those signals with the observed path. A live signal is not a revenue signal until there is payment evidence.</p>
+<div class="notice">
+<strong>Interpret insights as descriptions</strong>Rules can summarize recorded paths and differences. They do not establish causation, predict guaranteed revenue or invent missing events.</div>
+<div class="pager">
+<a href="#attribution">← Attribution & evidence</a>
+<a href="#sites">Multiple websites →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<article data-page="sites" data-doc-title="Multiple websites" hidden>
+<div class="eyebrow">Operations</div>
+<h1>Multiple websites</h1>
+<p class="lead">Keep traffic, sessions, payments and analytics reads scoped to the right website.</p>
+<p>Configure <code>SITES_JSON</code> as an object keyed by site ID. Each entry has its own collection origin, read token and optional connector settings.</p>
+<pre>
+<code>{
+  &quot;my-site&quot;: {
+    &quot;origin&quot;: &quot;https://example.com&quot;,
+    &quot;readToken&quot;: &quot;GENERATE_A_LONG_RANDOM_SECRET&quot;,
+    &quot;stripeWebhookSecret&quot;: &quot;YOUR_STRIPE_SIGNING_SECRET&quot;
+  },
+  &quot;my-shop&quot;: {
+    &quot;origin&quot;: &quot;https://shop.example.com&quot;,
+    &quot;readToken&quot;: &quot;GENERATE_A_DIFFERENT_SECRET&quot;,
+    &quot;shopifyWebhookSecret&quot;: &quot;YOUR_SHOPIFY_WEBHOOK_SECRET&quot;,
+    &quot;shopDomain&quot;: &quot;your-store.myshopify.com&quot;
+  }
+}</code>
+</pre>
+<p>Store the whole configuration with <code>wrangler secret put SITES_JSON</code>. Never commit actual tokens or signing secrets. SDK site IDs are public identifiers; read tokens and webhook secrets are private.</p>
+<h2>Isolation checklist</h2>
+<ul>
+<li>Use the exact same site ID in the SDK, webhook URL and payment metadata.</li>
+<li>Use a unique read token for each website.</li>
+<li>Verify site A’s token cannot read site B’s data.</li>
+<li>A payment with cross-site visitor/session metadata must remain unattributed.</li>
+</ul>
+<p>The current configuration is operator-managed. Self-service teams, invitations and role administration are not included.</p>
+<div class="pager">
+<a href="#journeys">← Journeys, sources & leaks</a>
+<a href="#deployment">Deployment & migration →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<article data-page="deployment" data-doc-title="Deployment &amp; migration" hidden>
+<div class="eyebrow">Operations</div>
+<h1>Deployment & migration</h1>
+<p class="lead">Keep the existing Cloudflare Worker and D1. Add the revenue model without replacing the live experience.</p>
+<h2>Prepare your own deployment</h2>
+<p>Review <code>wrangler.toml</code> and replace the repository’s account-specific D1 identifier and custom domain with yours. Take a D1 backup before applying schema changes to a live database. The schema adds revenue tables alongside the legacy realtime data.</p>
+<pre>
+<code>npm install
+npm run build
+npx wrangler d1 execute tidestat --local --file=schema.sql
+npx wrangler secret put SITES_JSON
+npx wrangler dev</code>
+</pre>
+<p>After checking the local behavior, apply the schema to your configured remote database and deploy:</p>
+<pre>
+<code>npx wrangler d1 execute tidestat --remote --file=schema.sql
+npx wrangler deploy</code>
+</pre>
+<p>Existing Revenue Story deployments can add the context tables with <code>migrations/0002_analytics_context.sql</code>; it is idempotent and the full <code>schema.sql</code> includes the same tables. This does not backfill historical dimensions. The build copies only browser assets into <code>dist/</code>; the Worker configuration runs it before deployment. The schema is additive and idempotent. It does not reconstruct historical sessions or payments from old page views. Review the actual database name if you renamed the binding.</p>
+<h2>Documentation and static preview</h2>
+<pre>
+<code>node server.cjs
+# Open http://127.0.0.1:8893/docs/index.html</code>
+</pre>
+<p>The static preview does not run Worker APIs. Use Wrangler for collection, D1 and webhook verification. An asset-only deployment cannot serve verified Revenue Stories.</p>
+<h2>Before collecting production data</h2>
+<ol>
+<li>Verify site isolation and collection origin handling.</li>
+<li>Exercise the full SDK → checkout metadata → signed webhook → story workflow with test payments.</li>
+<li>Confirm replayed payments do not duplicate revenue.</li>
+<li>Check consent behavior and set an operational data-retention/deletion policy.</li>
+<li>Inspect unattributed and truncated results before relying on reports.</li>
+</ol>
+<div class="pager">
+<a href="#sites">← Multiple websites</a>
+<a href="#privacy">Privacy & data boundaries →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<article data-page="privacy" data-doc-title="Privacy &amp; data boundaries" hidden>
+<div class="eyebrow">Operations</div>
+<h1>Privacy & data boundaries</h1>
+<p class="lead">Collect only the context needed to explain the journey.</p>
+<p>The SDK uses anonymous, site-local identifiers. Anonymous does not mean there are no privacy obligations: session paths and payment metadata can still be sensitive.</p>
+<h2>Consent and minimization</h2>
+<p>Initialize with <code>consent: false</code> where consent is required, then enable collection through your consent manager. Do not send email addresses, names, payment details, tokens, form text or sensitive URL parameters in custom properties. Revocation stops tracking and clears SDK identity, but does not erase already collected server data. Blocked storage falls back to memory. Test revocation and storage behavior in your integration.</p>
+<h2>Geography and identity</h2>
+<p>Cloudflare supplies approximate geographic context for the real-time map. The collector does not need to store raw IP addresses. Map positions are approximate, and missing geography should remain unknown. A cartoon avatar is an anonymous visualization, not a personal identity.</p>
+<h2>Retention</h2>
+<p>Revenue history is stored separately from the legacy short-lived realtime event table. Do not apply the old “24 hours” claim to revenue data. Configure and operate deletion/retention procedures for your deployment; there is no self-service deletion portal in this release.</p>
+<h2>Trusted versus untrusted events</h2>
+<p>Browser analytics can be blocked or forged. Origin checks and schema validation are not proof of payment. Only signed provider payment events populate monetary results. Payment links still require the matching site, visitor and session context.</p>
+<div class="pager">
+<a href="#deployment">← Deployment & migration</a>
+<a href="#troubleshooting">Troubleshooting →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<article data-page="troubleshooting" data-doc-title="Troubleshooting" hidden>
+<div class="eyebrow">Operations</div>
+<h1>Troubleshooting</h1>
+<p class="lead">Work from collection to identity to payment, then inspect the story.</p>
+<h2>No visitor or events</h2>
+<ul>
+<li>Confirm consent is enabled and the tracker is initialized in the browser.</li>
+<li>Check the exact site ID and allowed website origin.</li>
+<li>Inspect the collection response and browser network restrictions.</li>
+<li>Use the Worker runtime, not the static-only preview, for live data.</li>
+</ul>
+<h2>Unauthorized dashboard request</h2>
+<p>Confirm the Bearer token belongs to the requested site. Do not put that token into a public script tag or commit it to the repository.</p>
+<h2>Payment appears without a journey</h2>
+<p>Inspect the provider metadata or Shopify order note attributes. All three context keys must be present and reference a known same-site session. Check whether checkout started before the session event reached the collector or whether a cart update was skipped.</p>
+<h2>Payment is missing</h2>
+<p>Check webhook delivery status, configured site, signature secret and supported event type. For Stripe, confirm <code>payment_status: paid</code>. For Shopify, confirm the configured shop domain and <code>financial_status: paid</code>. Client-side purchase events alone do not add revenue.</p>
+<h2>Revenue does not match the payment dashboard</h2>
+<p>Check reporting period, currencies, duplicate checkout IDs, missing webhooks and unsupported payment types, missing renewal metadata or refund events. TideStat reports supported receipts less observed refunds; it is not a full ledger.</p>
+<h2>The example looks complete but live data is empty</h2>
+<p>Demo data illustrates the interface. It does not confirm your deployment, credentials or connector setup. Run a test visit and test payment on your own configured website.</p>
+<div class="pager">
+<a href="#privacy">← Privacy & data boundaries</a>
+<a href="../revenue.html">Open TideStat →</a>
+</div>
+<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
+</article>
+<noscript>
+<p>JavaScript is required for documentation navigation. 文档导航需要 JavaScript，请启用后浏览指南。</p>
+</noscript>
+</main>
+</div>
+</body>
+</html>

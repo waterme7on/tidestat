@@ -1,0 +1,11 @@
+{
+  "name": "@tidestat/browser-sdk",
+  "version": "0.1.0",
+  "description": "TideStat canonical browser events and payment attribution helpers",
+  "type": "module",
+  "exports": { ".": { "types": "./index.d.ts", "import": "./index.js" } },
+  "files": ["index.js", "browser.js", "index.d.ts", "README.md"],
+  "sideEffects": false,
+  "scripts": { "test": "node --test test.mjs" },
+  "license": "UNLICENSED"
+}

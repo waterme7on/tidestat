@@ -26,7 +26,7 @@ async function setup(page, { mockTiles = true } = {}) {
   if (mockTiles) await page.route('https://tile.openstreetmap.org/**', route => route.fulfill({ contentType: 'image/svg+xml', body: tile }));
 }
 async function ready(page, path = '/') {
-  await page.goto(base + path);
+  await page.goto(base + (path==='/'?'/live.html':path.replace(/^\/\?/, '/live.html?')));
   await page.waitForFunction(() => document.getElementById('liveMap')?.dataset.ready === 'true');
   await page.waitForFunction(() => window.__tide.status === 'ready');
   await page.waitForTimeout(550);

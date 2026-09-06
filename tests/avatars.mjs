@@ -86,12 +86,12 @@ try {
     { id: dangerous, city: 'London', country: 'GB', lat: 51.51, lng: -.13, firstTs: now-12000, lastTs: now, paths: [{path:'/zh/work',ts:now}] },
     { id: 'second-doodle', city: 'London', country: 'GB', lat: 51.51, lng: -.13, firstTs: now-15000, lastTs: now, paths: [{path:'/zh/writing',ts:now}] },
   ] }) }));
-  await page.goto(base);
+  await page.goto(base + '/live.html');
   await page.waitForFunction(() => window.__tideMap?.ready() && document.getElementById('liveMap').dataset.geography === 'ready');
   const chosen = page.locator('.online-visitor').filter({hasText: '/zh/work'});
   await chosen.press('Enter'); await page.waitForSelector('.visitor-popup');
   const sidebar = await chosen.locator('svg').evaluate(node => node.outerHTML);
-  const popup = await page.locator('.visitor-popup svg').evaluate(node => node.outerHTML);
+  const popup = await page.locator('.visitor-popup svg[data-avatar-style]').evaluate(node => node.outerHTML);
   assert.equal(sidebar, popup);
   assert.equal(await page.evaluate(() => window.__tide.selectedId), dangerous);
   assert.equal(await page.locator('#realtimeCount').textContent(), '2');
