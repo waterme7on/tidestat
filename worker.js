@@ -10,7 +10,7 @@ export default {
   const url=new URL(request.url);
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors});
   // The browser package is shipped as a static asset and is also the legacy snippet URL.
-  if(url.pathname==='/t.js')return Response.redirect(new URL('/sdk/browser.js',url).href,302);
+  if(url.pathname==='/t.js')return new Response(null,{status:302,headers:{Location:new URL('/sdk/browser.js',url).href,...cors}});
   if(!url.pathname.startsWith('/api/'))return env.ASSETS.fetch(request);
   const configMap=sites(env);
   try {

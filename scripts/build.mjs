@@ -1,4 +1,4 @@
-import { mkdir, cp, rm } from 'node:fs/promises';
+import { mkdir, cp, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
 // Publish only browser assets: never Workers, database schemas, tests or local secrets.
@@ -12,3 +12,5 @@ console.log(`Built ${files.length} browser entries and asset directories into di
 await mkdir(root+'dist/sdk', {recursive:true});
 for(const file of ['index.js','browser.js']) await cp(root+'packages/browser-sdk/'+file,root+'dist/sdk/'+file);
 await cp(root+'integrations/shopify',root+'dist/integrations/shopify',{recursive:true});
+
+await writeFile(root+'dist/_headers', '/sdk/*\n  Access-Control-Allow-Origin: *\n  Cross-Origin-Resource-Policy: cross-origin\n');

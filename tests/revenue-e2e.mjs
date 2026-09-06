@@ -7,14 +7,19 @@ import assert from 'node:assert/strict';
 import worker from '../worker.js';
 const sql=new DatabaseSync(':memory:');sql.exec(await readFile(new URL('../schema.sql',import.meta.url),'utf8'));
 const DB={prepare(query){return {bind(...args){return {first:async()=>sql.prepare(query).get(...args)||null,all:async()=>({results:sql.prepare(query).all(...args)}),run:async()=>sql.prepare(query).run(...args)}}}},async batch(statements){sql.exec('BEGIN');try{const result=[];for(const s of statements)result.push(await s.run());sql.exec('COMMIT');return result;}catch(e){sql.exec('ROLLBACK');throw e;}}};
-const env={DB,ASSETS:{async fetch(request){const pathname=new URL(request.url).pathname;try{const body=await readFile(new URL('../dist'+pathname,import.meta.url));return new Response(body,{headers:{'Content-Type':pathname.endsWith('.html')?'text/html':pathname.endsWith('.css')?'text/css':'application/javascript'}});}catch{return new Response('Missing',{status:404});}}}};
+const env={DB,ASSETS:{async fetch(request){const pathname=new URL(request.url).pathname;try{const body=await readFile(new URL('../dist'+pathname,import.meta.url));return new Response(body,{headers:{'Content-Type':pathname.endsWith('.html')?'text/html':pathname.endsWith('.css')?'text/css':'application/javascript','Access-Control-Allow-Origin':'*'}});}catch{return new Response('Missing',{status:404});}}}};
 const server=createServer(async(req,res)=>{try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const request=new Request(base+req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:Buffer.concat(chunks)}:{})});const response=await worker.fetch(request,env);res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));}catch(e){res.writeHead(500);res.end(e.message);}});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base=`http://127.0.0.1:${server.address().port}`;
 env.SITES_JSON=JSON.stringify({store:{origin:base,readToken:'read-store',stripeWebhookSecret:'stripe-test'},other:{origin:base,readToken:'read-other'}});
 const browser=await chromium.launch();const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
 try {
+ assert.match(await readFile(new URL('../dist/_headers',import.meta.url),'utf8'),/Access-Control-Allow-Origin: \*/);
+ const redirect=await fetch(base+'/t.js',{redirect:'manual'});assert.equal(redirect.status,302);assert.equal(redirect.headers.get('access-control-allow-origin'),'*');
  await page.goto(base+'/revenue.html');
+ await page.evaluate(base=>new Promise((resolve,reject)=>{const script=document.createElement('script');script.type='module';script.src=base+'/t.js';script.dataset.site='store';script.dataset.consent='false';script.onload=resolve;script.onerror=reject;document.head.append(script);}),base);
+ assert.equal(await page.evaluate(()=>typeof window.tidestat?.track),'function');
+ await page.evaluate(()=>window.tidestat.destroy());
  // Run the actual browser package, use the real Worker collector, then sign provider data.
  const metadata=await page.evaluate(async(base)=>{const {createTideStat}=await import('/sdk/index.js');const sdk=createTideStat({siteId:'store',endpoint:base+'/api/collect',consent:true,autoPageview:false});await sdk.page();await sdk.signup({plan:'Pro'});await sdk.checkout({plan:'Pro'});const metadata=sdk.attribution();sdk.destroy();return metadata;},base);
  const now=Math.floor(Date.now()/1000);
