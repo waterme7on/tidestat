@@ -136,3 +136,45 @@ test('payment-only periods leave visitor ratios unavailable rather than zero',as
  const result=await report(db,'one',now-1000,now+1000);
  assert.equal(result.overview.conversion,null);assert.equal(result.overview.currencies[0].revenuePerVisitor,null);assert.equal(result.overview.currencies[0].revenue,1900);
 });
+test('analytics context migration is repeatable, preserves history and does not invent old context',async()=>{
+ const {db,sqlite}=database();await ingest(db,event(),{});
+ const migration=readFileSync(new URL('../migrations/0002_analytics_context.sql',import.meta.url),'utf8');sqlite.exec(migration);sqlite.exec(migration);
+ assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM story_events').get().count,1);
+ sqlite.prepare('DELETE FROM visitor_context').run();const result=await report(db,'one',now-20000,now+1000);
+ assert.equal(result.dimensions.browsers[0].name,'Unknown');assert.equal(result.dimensions.countries[0].name,'Unknown');
+});
+test('dimensions use captured first context, safe outbound links, separated money and explicit campaign terms',async()=>{
+ const {db}=database();const first=event();first.acquisition={source:'google',medium:'cpc',campaign:'launch',term:'analytics pricing'};first.referrer='https://google.com/search?q=never-store';first.context={viewport_width:1440,viewport_height:900};
+ const edge={country:'US',region:'California',city:'San Francisco',device:'desktop',userAgent:'Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36'};
+ await ingest(db,first,edge);const out=event('one','outbound','visitor1','session1','outbound_click',now-9000);out.path='/pricing';out.properties={outbound_url:'https://partner.test/offer?email=private#token'};await ingest(db,out,{});
+ await savePayment(db,'stripe','one',payment(),new Headers());const result=await report(db,'one',now-20000,now+1000);
+ assert.equal(result.stories[0].context.region,'California');assert.equal(result.stories[0].context.browser,'Chrome');assert.equal(result.stories[0].context.viewportWidth,1440);
+ assert.equal(result.dimensions.channels[0].name,'Paid Search');assert.equal(result.dimensions.keywords[0].name,'analytics pricing');assert.equal(result.dimensions.countries[0].revenue.USD,1900);
+ assert.equal(result.dimensions.outboundLinks[0].name,'https://partner.test/offer');assert.equal(result.dimensions.outboundLinks[0].revenue.USD,1900);assert.equal(result.daily.reduce((n,d)=>n+d.pageviews,0),1);
+ assert.equal(JSON.stringify(result).includes('never-store'),false);assert.equal(JSON.stringify(result).includes('email=private'),false);
+ assert.equal(result.distributions.timeToPurchase.reduce((n,d)=>n+d.payments,0),1);
+});
+test('organic referrer query never becomes visitor keyword; first-payment distributions exclude renewals',async()=>{
+ const {db}=database();const e=event();e.acquisition={source:'google',medium:'organic'};e.referrer='https://google.com/search?q=secret-keyword';await ingest(db,e,{});
+ await savePayment(db,'stripe','one',payment('cs_first'),new Headers());const renewal=payment('cs_renewal');renewal.created+=1;await savePayment(db,'stripe','one',renewal,new Headers());
+ const result=await report(db,'one',now-20000,now+2000);assert.equal(result.dimensions.keywords[0].name,'No campaign keyword');assert.equal(result.dimensions.referrers[0].name,'https://google.com/search');assert.equal(result.distributions.timeToPurchase.reduce((n,d)=>n+d.payments,0),1);
+});
+test('refunds reverse original purchase touchpoints without crediting post-purchase pages or links',async()=>{
+ const {db}=database();const base=Math.floor(now/1000)*1000-10000;
+ const entry=event('one','before-pay','visitor1','session1','page_view',base);entry.path='/before';await ingest(db,entry,{});
+ const pay=payment('cs_refund_path');pay.created=(base+1000)/1000;pay.data.object.payment_intent='pi_path';await savePayment(db,'stripe','one',pay,new Headers());
+ const after=event('one','after-pay','visitor1','session1','page_view',base+3000);after.path='/after';await ingest(db,after,{});
+ const outbound=event('one','after-link','visitor1','session1','outbound_click',base+4000);outbound.properties={outbound_url:'https://later.test/'};await ingest(db,outbound,{});
+ await savePayment(db,'stripe','one',{id:'evt_ref_path',type:'refund.created',created:(base+5000)/1000,data:{object:{id:'re_path',payment_intent:'pi_path',amount:500,currency:'usd',status:'succeeded',created:(base+5000)/1000}}},new Headers());
+ const result=await report(db,'one',base-1,base+6000);
+ assert.equal(result.dimensions.pages.find(r=>r.name==='/before').revenue.USD,1400);assert.equal(result.dimensions.pages.find(r=>r.name==='/after').revenue.USD,undefined);assert.equal(result.dimensions.outboundLinks[0].revenue.USD,undefined);
+ const refund=result.stories.find(s=>s.amountMinor<0);assert.equal(refund.timeline.some(e=>e.path==='/after'),false);
+});
+test('analytics window edges and context joins remain exact and isolated',async()=>{
+ const {db}=database();const start=now-10000,end=now-5000;
+ for(const [id,ts] of [['before',start-1],['first',start],['last',end],['after',end+1]])await ingest(db,event('one',id,'visitor1','session1','page_view',ts),{country:'US',device:'desktop'});
+ await ingest(db,event('two','first','visitor1','session1','page_view',start),{country:'GB',device:'mobile'});
+ const result=await report(db,'one',start,end);
+ assert.equal(result.overview.visitors,1);assert.equal(result.daily.reduce((n,d)=>n+d.pageviews,0),2);assert.deepEqual(result.dimensions.countries.map(r=>r.name),['US']);
+ const secret=event('one','invalid-link','visitor1','session1','outbound_click',start);secret.properties={outbound_url:'javascript:alert(1)'};await assert.rejects(ingest(db,secret,{}),/Invalid outbound/);
+});

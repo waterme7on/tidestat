@@ -1,4 +1,5 @@
 // Live visitors and durable Revenue Stories share a site-scoped canonical event stream.
+import { readContext } from './analytics.js';
 import { maskIp, validMaskedIp } from './privacy.js';
 import { sites, ingest, verifyWebhook, savePayment, report } from './revenue.js';
 const cors={ 'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, GET, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization','Access-Control-Max-Age':'86400' };
@@ -23,7 +24,7 @@ export default {
     const origin=request.headers.get('origin');
     const allowedOrigins=[config.origin,...(Array.isArray(config.allowedOrigins)?config.allowedOrigins:[])].filter(Boolean);
     if(!origin || !allowedOrigins.includes(origin))return json({error:'Origin not allowed'},403);
-    try {await ingest(env.DB,body,{...(request.cf||{}),device:device(request.headers.get('user-agent')||''),maskedIp:maskIp(request.headers.get('CF-Connecting-IPv6')||request.headers.get('CF-Connecting-IP'))});}catch(error){if(/Invalid|outside|Session belongs/.test(error.message))return json({error:error.message},400);throw error;}
+    try {await ingest(env.DB,body,{...(request.cf||{}),userAgent:request.headers.get('user-agent')||'',device:device(request.headers.get('user-agent')||''),maskedIp:maskIp(request.headers.get('CF-Connecting-IPv6')||request.headers.get('CF-Connecting-IP'))});}catch(error){if(/Invalid|outside|Session belongs/.test(error.message))return json({error:error.message},400);throw error;}
     return json({ok:true});
    }
    const site=url.searchParams.get('site'), config=configMap[site];
@@ -60,16 +61,18 @@ export default {
      if(!v){v={id:row.visitor_id,maskedIp:validMaskedIp(row.masked_ip),city:row.city||'未知',country:row.country||'',lat:row.lat,lng:row.lng,device:row.device||'desktop',firstTs:row.ts,lastTs:row.ts,paths:[],events:[]};map.set(v.id,v);}
      v.lastTs=row.ts;if(row.lat!=null){v.lat=row.lat;v.lng=row.lng;}if(row.city)v.city=row.city;
      const previous=v.paths.at(-1);if(!previous||previous.path!==row.path)v.paths.push({path:row.path,ts:row.ts});if(v.paths.length>12)v.paths.shift();
-     if(row.type!=='heartbeat')v.events.push({id:row.event_id,type:row.type,path:row.path,ts:row.ts});if(v.events.length>12)v.events.shift();
+     if(row.type!=='heartbeat')v.events.push({id:row.event_id,type:row.type,path:row.path,ts:row.ts,properties:readContext(row.properties)});if(v.events.length>12)v.events.shift();
     }
     const {results:payments}=await env.DB.prepare('SELECT provider,payment_id,visitor_id,ts,amount_minor,currency FROM story_payments WHERE site_id=? AND ts>? AND ts<=? ORDER BY ts DESC LIMIT ?').bind(site,now-600000,now,limit+1).all();
     for(const payment of payments.slice(0,limit)) {
      const visitor=map.get(payment.visitor_id);
      if(visitor && now-visitor.lastTs<onlineMs)visitor.events.push({id:`${payment.provider}:${payment.payment_id}`,type:payment.amount_minor<0?'refund':'payment',ts:payment.ts,path:'',amountMinor:payment.amount_minor,currency:payment.currency});
     }
+    const {results:summaries}=await env.DB.prepare(`SELECT v.visitor_id,v.source,v.first_ts,v.landing_page,c.context,(SELECT COUNT(*) FROM story_sessions s WHERE s.site_id=v.site_id AND s.visitor_id=v.visitor_id) AS session_count,(SELECT COUNT(*) FROM story_events e WHERE e.site_id=v.site_id AND e.visitor_id=v.visitor_id AND e.type='page_view') AS pageviews,(SELECT e.path FROM story_events e WHERE e.site_id=v.site_id AND e.visitor_id=v.visitor_id AND e.type='page_view' ORDER BY e.ts DESC LIMIT 1) AS exit_page FROM story_visitors v LEFT JOIN visitor_context c ON c.site_id=v.site_id AND c.visitor_id=v.visitor_id WHERE v.site_id=? AND v.last_ts>? LIMIT ?`).bind(site,now-onlineMs,limit+1).all();
+    for(const summary of summaries.slice(0,limit)){const visitor=map.get(summary.visitor_id);if(visitor){const context=readContext(summary.context);Object.assign(visitor,{context,source:summary.source,channel:context.channel||'Unknown',referrer:context.referrer||'',campaign:context.campaign||'',keyword:context.keyword||'',browser:context.browser||'Unknown',os:context.os||'Unknown',region:context.region||'',viewportWidth:context.viewportWidth||null,viewportHeight:context.viewportHeight||null,firstVisitTs:summary.first_ts,sessionCount:summary.session_count,pageviews:summary.pageviews,entryPage:summary.landing_page,exitPage:summary.exit_page});}}
     const visitors=[...map.values()].filter(v=>now-v.lastTs<onlineMs);
     for(const visitor of visitors)visitor.events=visitor.events.sort((a,b)=>a.ts-b.ts||a.id.localeCompare(b.id)).slice(-12);
-    return json({now,onlineMs,visitors,truncated:results.length>limit||payments.length>limit});
+    return json({now,onlineMs,visitors,truncated:results.length>limit||payments.length>limit||summaries.length>limit});
    }
    if(['/api/revenue','/api/stories'].includes(url.pathname) && request.method==='GET') {
     const days=Math.min(365,Math.max(1,Number(url.searchParams.get('days')||30))),to=url.searchParams.has('to')?Number(url.searchParams.get('to')):Date.now(),from=url.searchParams.has('from')?Number(url.searchParams.get('from')):to-days*86400000;

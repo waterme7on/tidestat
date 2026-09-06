@@ -23,7 +23,7 @@ Open **[the documentation website](docs/index.html)** for searchable navigation,
 node server.cjs
 ```
 
-Open `http://127.0.0.1:8893/docs/index.html` for documentation or `http://127.0.0.1:8893/?demo=1` for the visual demo. This static server does not run the Worker APIs. Use Wrangler for D1, collection and payment verification:
+Open `http://127.0.0.1:8893/docs/index.html` for documentation or `http://127.0.0.1:8893/live.html?demo=1` for the visual demo. This static server does not run the Worker APIs. Use Wrangler for D1, collection and payment verification:
 
 ```sh
 npm install
@@ -40,7 +40,9 @@ The existing Cloudflare Worker and D1 remain the core. The revenue schema is add
 
 | Surface | Responsibility |
 | --- | --- |
-| `index.html` and scene modules | Dashboard, real-time map, visitor characters and Website Footprints |
+| `landing.html` | Public product page with an embedded interactive demo |
+| `revenue.html` and revenue UI modules | Revenue dashboard and stories |
+| `live.html` and scene modules | Real-time map, visitor characters and Website Footprints |
 | `worker.js` and revenue modules | Collection, site-scoped reads, signed payment ingestion, revenue aggregation |
 | `schema.sql` | Legacy realtime tables plus canonical event and revenue storage |
 | `packages/browser-sdk` | Local ESM SDK with TypeScript declarations; page views and explicit business events |
@@ -54,6 +56,7 @@ The existing Cloudflare Worker and D1 remain the core. The revenue schema is add
 - Browser `purchase` or `revenue` events are behavior signals, not verified money. Replayed provider payments deduplicate by provider payment identity.
 - Missing or cross-site identity produces unattributed payments. TideStat does not guess a visitor from email, IP or timing.
 - Revenue is net observed receipts (gross minus observed refunds), in provider currency and minor units. Fees/disputes are excluded; there is no FX or accounting reconciliation.
+- Dashboard dimensions retain their evidence boundaries: first captured context for source/device/geography, overlapping assisted page/link revenue, observed session entry/exit, and UTC time buckets. Explicit UTM keywords are separate from organic queries; unknown historical context is not backfilled.
 - Search Console is an authenticated aggregate-import API, without OAuth or automatic sync. Search queries must never be assigned to individual visitors.
 - Revenue data has a separate lifetime from legacy realtime records. Operate an explicit retention/deletion policy; do not assume all data expires after 24 hours.
 - A complete-looking demo does not prove a live integration. Merchant credentials and end-to-end test payments are required before production reliance.
@@ -68,3 +71,5 @@ node --test tests/revenue-backend.mjs
 Existing scene and privacy checks remain under `tests/`. Browser checks require their browser dependencies and a running local server. The canonical `/t.js` module flow has also passed a cross-origin browser check. Local tests cannot establish successful deployment, live webhook registration or merchant checkout behavior.
 
 Earlier implementation notes remain in [docs/realtime-map.md](docs/realtime-map.md), [docs/footprints.md](docs/footprints.md), [docs/avatars.md](docs/avatars.md) and [docs/themes.md](docs/themes.md). They describe their individual surfaces; the Revenue Story documentation above governs the new integration and attribution contract.
+
+All product pages share one waveform mark and palette, English/Chinese catalogs, and persisted system/light/dark preferences. The landing demo follows the same preferences. Exported Insights are local SVG/PNG files containing aggregate data only. Run `node tests/product-ui.mjs` and `node tests/landing.mjs` against the preview server for cross-page checks.

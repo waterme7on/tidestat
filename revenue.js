@@ -1,6 +1,7 @@
+import { safeUrl, captureContext, readContext, analyticsReport } from './analytics.js';
 // Canonical history and payment processing. Amounts remain in provider minor units.
 const ID = /^[a-zA-Z0-9_.:-]{1,128}$/;
-const TYPES = new Set(['page_view','click','custom','signup','checkout','purchase','revenue','identify','heartbeat']);
+const TYPES = new Set(['page_view','outbound_click','click','custom','signup','checkout','purchase','revenue','identify','heartbeat']);
 export function sites(env) {
   try { return JSON.parse(env.SITES_JSON || '{}'); } catch { return {}; }
 }
@@ -17,10 +18,11 @@ export function normalizeEvent(body, now = Date.now()) {
   // Never store arbitrary client payloads: they can contain names, email or URL tokens.
   const properties = {};
   for (const key of ['name','label','target','product_id','plan','order_id']) if (typeof body.properties?.[key] === 'string') properties[key] = body.properties[key].slice(0,128);
-  return {...body, occurred_at:ts,path:cleanPath(body.path),properties,acquisition:{source,medium:String(acquisition.medium||'').slice(0,128),campaign:String(acquisition.campaign||'').slice(0,128)}};
+  if(body.type==='outbound_click'){const outbound=safeUrl(body.properties?.outbound_url);if(!outbound)throw new Error('Invalid outbound link');properties.outbound_url=outbound;}
+  return {...body, occurred_at:ts,path:cleanPath(body.path),properties,acquisition:{source,medium:String(acquisition.medium||'').slice(0,128),campaign:String(acquisition.campaign||'').slice(0,128),term:String(acquisition.term||'').slice(0,128)}};
 }
 export async function ingest(db, event, edge) {
-  const e = normalizeEvent(event), a = e.acquisition;
+  const e = normalizeEvent(event), a = e.acquisition, context=JSON.stringify(captureContext(e,edge));
   const existing = await db.prepare('SELECT event_id FROM story_events WHERE site_id=? AND event_id=?').bind(e.site_id,e.event_id).first();
   if(existing) return;
   const session = await db.prepare('SELECT visitor_id FROM story_sessions WHERE site_id=? AND session_id=?').bind(e.site_id,e.session_id).first();
@@ -28,6 +30,8 @@ export async function ingest(db, event, edge) {
   await db.batch([
     db.prepare(`INSERT INTO story_visitors VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(site_id,visitor_id) DO UPDATE SET last_ts=MAX(last_ts,excluded.last_ts), source=CASE WHEN excluded.first_ts<first_ts THEN excluded.source ELSE source END, medium=CASE WHEN excluded.first_ts<first_ts THEN excluded.medium ELSE medium END, campaign=CASE WHEN excluded.first_ts<first_ts THEN excluded.campaign ELSE campaign END, landing_page=CASE WHEN excluded.first_ts<first_ts THEN excluded.landing_page ELSE landing_page END, first_ts=MIN(first_ts,excluded.first_ts)`).bind(e.site_id,e.visitor_id,e.occurred_at,e.occurred_at,a.source,a.medium,a.campaign,e.path),
     db.prepare(`INSERT INTO story_sessions VALUES (?,?,?,?,?,?,?) ON CONFLICT(site_id,session_id) DO UPDATE SET last_ts=MAX(last_ts,excluded.last_ts),source=CASE WHEN excluded.first_ts<first_ts THEN excluded.source ELSE source END,landing_page=CASE WHEN excluded.first_ts<first_ts THEN excluded.landing_page ELSE landing_page END,first_ts=MIN(first_ts,excluded.first_ts)`).bind(e.site_id,e.session_id,e.visitor_id,e.occurred_at,e.occurred_at,a.source,e.path),
+    db.prepare('INSERT INTO visitor_context VALUES (?,?,?,?) ON CONFLICT(site_id,visitor_id) DO UPDATE SET first_ts=excluded.first_ts,context=excluded.context WHERE excluded.first_ts<visitor_context.first_ts').bind(e.site_id,e.visitor_id,e.occurred_at,context),
+    db.prepare('INSERT OR IGNORE INTO event_context VALUES (?,?,?)').bind(e.site_id,e.event_id,context),
     db.prepare('INSERT OR IGNORE INTO story_events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(e.site_id,e.event_id,e.visitor_id,e.session_id,e.type,e.occurred_at,e.path,JSON.stringify(e.properties),edge.city||null,edge.country||null,edge.latitude?Number(edge.latitude):null,edge.longitude?Number(edge.longitude):null,edge.device||'desktop',edge.maskedIp||null)
   ]);
   await reconcilePayments(db,e.site_id);
@@ -124,7 +128,7 @@ export async function savePayment(db, provider, site, payload, headers) {
 }
 // Stripe timestamps have second precision; canonical browser timestamps use milliseconds.
 // Only that provider's known precision interval is included in ordering comparisons.
-function paymentCutoff(payment) { return payment.ts + (payment.provider === 'stripe' ? 999 : 0); }
+function paymentCutoff(payment) { const ts=payment.amount_minor<0?(payment.related_payment_ts??Number.NEGATIVE_INFINITY):payment.ts;return ts + (payment.provider === 'stripe' ? 999 : 0); }
 export function summarize(events, payments, visitors, sessions, from, to, options={}) {
   const currencies = new Map(), sources=new Map(), pages=new Map(), journeys=new Map();
   const inWindow = events.filter(e=>e.ts>=from && e.ts<=to);
@@ -152,7 +156,7 @@ export function summarize(events, payments, visitors, sessions, from, to, option
     const matches=(!options.visitor||p.visitor_id===options.visitor)&&(!options.source||source===options.source)&&(!options.currency||p.currency===options.currency)&&(!options.q||`${p.visitor_id||''} ${p.payment_id}`.toLowerCase().includes(String(options.q).toLowerCase()))&&(!options.returning||returning)&&(!options.attribution||p.attribution===options.attribution);
     if(!matches)return null;
     const index=storyCount++;if(index<storyOffset||index>=storyOffset+storyLimit)return null;
-    return {timelineTruncated:timeline.length>200,id:`${p.provider}:${p.payment_id}`,visitorId:p.visitor_id,sessionId:p.session_id,source,landingPage:v?.landing_page||null,provider:p.provider,paymentId:p.payment_id,amountMinor:p.amount_minor,currency:p.currency,ts:p.ts,attribution:p.attribution,returning,sessionCount:priorSessions.length,durationMs:v?Math.max(0,p.ts-v.first_ts):null,journey,timeline:timeline.slice(-200).map(e=>({id:e.event_id,type:e.type,path:e.path,ts:e.ts,sessionId:e.session_id,properties:JSON.parse(e.properties||'{}')}))};
+    return {context:readContext(v?.context),timelineTruncated:timeline.length>200,id:`${p.provider}:${p.payment_id}`,visitorId:p.visitor_id,sessionId:p.session_id,source,landingPage:v?.landing_page||null,provider:p.provider,paymentId:p.payment_id,amountMinor:p.amount_minor,currency:p.currency,ts:p.ts,attribution:p.attribution,returning,sessionCount:priorSessions.length,durationMs:v?Math.max(0,p.ts-v.first_ts):null,journey,timeline:timeline.slice(-200).map(e=>({id:e.event_id,type:e.type,path:e.path,ts:e.ts,sessionId:e.session_id,properties:JSON.parse(e.properties||'{}')}))};
   }).filter(Boolean);
   // Ordered visitor funnel within this window. Paid is tied to the same visitor and follows checkout.
   const stages=['page_view','checkout','payment'].map(name=>({name,visitors:0}));
@@ -168,13 +172,13 @@ export function summarize(events, payments, visitors, sessions, from, to, option
     const checkout=timeline.find(e=>e.type==='checkout');
     if(checkout){checkoutVisitors.add(visitor);if((visitorPayments.get(visitor)||[]).some(p=>p.amount_minor>0&&paymentCutoff(p)>=checkout.ts))paidAfterCheckout.add(visitor);}
   }
-  return {overview:{visitors:activeVisitors.size,sessions:activeSessions.size,customers:new Set(payments.filter(p=>p.amount_minor>0).map(p=>p.visitor_id).filter(Boolean)).size,conversion:activeVisitors.size?new Set(payments.filter(p=>p.amount_minor>0).map(p=>p.visitor_id).filter(id=>activeVisitors.has(id))).size/activeVisitors.size:null,currencies:[...currencies.values()].map(c=>({...c,customers:c.customers.size,revenuePerVisitor:activeVisitors.size?c.revenue/activeVisitors.size:null}))},stories,storyCount,nextOffset:storyOffset+storyLimit<storyCount?storyOffset+storyLimit:null,sources:[...sources.values()],pages:[...pages.values()],journeys:[...journeys.values()],funnel:stages,signupFunnel:signupStages,leaks:[{name:'Checkout without observed payment',visitors:checkoutVisitors.size-paidAfterCheckout.size,entered:checkoutVisitors.size,converted:paidAfterCheckout.size}],definitions:{revenue:'Net observed receipts in minor units: paid checkouts, paid invoices and orders less successful observed refunds. Gross includes taxes/shipping; fees excluded. No MRR inference.',attribution:'First observed visitor source; payment links require matching site, visitor and session metadata.',funnel:'Ordered page_view → checkout → payment in selected window; includes guest checkout.',signupFunnel:'Ordered page_view → signup → checkout → payment in selected window.',leaks:'Observed checkout visitors without a later linked payment in this window. Not confirmed lost revenue.',pages:'First observed landing page credited once per payment.'}};
+  return {...analyticsReport(events,payments,visitors,sessions,from,to),overview:{visitors:activeVisitors.size,sessions:activeSessions.size,customers:new Set(payments.filter(p=>p.amount_minor>0).map(p=>p.visitor_id).filter(Boolean)).size,conversion:activeVisitors.size?new Set(payments.filter(p=>p.amount_minor>0).map(p=>p.visitor_id).filter(id=>activeVisitors.has(id))).size/activeVisitors.size:null,currencies:[...currencies.values()].map(c=>({...c,customers:c.customers.size,revenuePerVisitor:activeVisitors.size?c.revenue/activeVisitors.size:null}))},stories,storyCount,nextOffset:storyOffset+storyLimit<storyCount?storyOffset+storyLimit:null,sources:[...sources.values()],pages:[...pages.values()],journeys:[...journeys.values()],funnel:stages,signupFunnel:signupStages,leaks:[{name:'Checkout without observed payment',visitors:checkoutVisitors.size-paidAfterCheckout.size,entered:checkoutVisitors.size,converted:paidAfterCheckout.size}],definitions:{revenue:'Net observed receipts in minor units: paid checkouts, paid invoices and orders less successful observed refunds. Gross includes taxes/shipping; fees excluded. No MRR inference.',attribution:'First observed visitor source; payment links require matching site, visitor and session metadata.',funnel:'Ordered page_view → checkout → payment in selected window; includes guest checkout.',signupFunnel:'Ordered page_view → signup → checkout → payment in selected window.',leaks:'Observed checkout visitors without a later linked payment in this window. Not confirmed lost revenue.',pages:'First observed landing page credited once per payment.'}};
 }
 export async function report(db, site, from, to, options={}) {
   const queries=[
-    ['SELECT * FROM story_events WHERE site_id=? AND ts<=? ORDER BY ts DESC LIMIT 20001',[site,to]],
-    ['SELECT * FROM story_payments WHERE site_id=? AND ts>=? AND ts<=? ORDER BY ts DESC LIMIT 5001',[site,from,to]],
-    ['SELECT * FROM story_visitors WHERE site_id=? ORDER BY first_ts DESC LIMIT 20001',[site]],
+    ['SELECT e.*,c.context FROM story_events e LEFT JOIN event_context c ON c.site_id=e.site_id AND c.event_id=e.event_id WHERE e.site_id=? AND e.ts<=? ORDER BY e.ts DESC LIMIT 20001',[site,to]],
+    ['SELECT p.*,(SELECT original.ts FROM story_payments original WHERE original.site_id=p.site_id AND original.provider=p.provider AND original.payment_id=p.related_payment_id) AS related_payment_ts,CASE WHEN p.visitor_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM story_payments earlier WHERE earlier.site_id=p.site_id AND earlier.visitor_id=p.visitor_id AND earlier.amount_minor>0 AND (earlier.ts<p.ts OR (earlier.ts=p.ts AND (earlier.provider<p.provider OR (earlier.provider=p.provider AND earlier.payment_id<p.payment_id))))) THEN 1 ELSE 0 END AS is_first_payment FROM story_payments p WHERE p.site_id=? AND p.ts>=? AND p.ts<=? ORDER BY p.ts DESC LIMIT 5001',[site,from,to]],
+    ['SELECT v.*,c.context FROM story_visitors v LEFT JOIN visitor_context c ON c.site_id=v.site_id AND c.visitor_id=v.visitor_id WHERE v.site_id=? ORDER BY v.first_ts DESC LIMIT 20001',[site]],
     ['SELECT * FROM story_sessions WHERE site_id=? AND first_ts<=? ORDER BY first_ts DESC LIMIT 20001',[site,to]]
   ];
   const results=await Promise.all(queries.map(([sql,args])=>db.prepare(sql).bind(...args).all()));

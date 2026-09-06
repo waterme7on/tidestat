@@ -20,7 +20,7 @@
     root.style.colorScheme = resolved;
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.append(meta); }
-    meta.content = resolved === 'dark' ? '#101112' : '#f8f9f6';
+    meta.content = resolved === 'dark' ? '#121719' : '#f8f9f6';
     const select = document.getElementById('mapTheme');
     if (select) select.value = preference;
     window.dispatchEvent(new CustomEvent('tide:themechange', { detail: { preference, resolved, changed } }));

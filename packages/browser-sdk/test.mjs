@@ -93,19 +93,19 @@ test('Shopify sandbox adapter shares schema and identity, respects privacy', asy
   onPrivacy({ customerPrivacy: { analyticsProcessingAllowed: true } });
   callbacks.checkout_completed({ ...event, data: { checkout: { order: { id: 'order-1' } } } });
   await vm.runInContext('tidestatQueue', context);
-  const source = readFileSync(new URL('../../revenue.js', import.meta.url), 'utf8');
-  const { normalizeEvent } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  const { normalizeEvent } = await import('../../revenue.js');
   for (const event of sent) assert.doesNotThrow(() => normalizeEvent(event));
   assert.equal(sent[0].visitor_id, 'sdk-visitor'); assert.equal(sent[0].type, 'purchase'); assert.equal(sent[0].schema_version, 1);
   assert.equal(sent[0].properties.order_id, 'order-1'); assert.equal(sent[0].properties.revenue, undefined);
+  callbacks.clicked({id:'outbound-2',clientId:'client-1',timestamp:new Date().toISOString(),data:{element:{href:'https://partner.test/path?secret=1'}}});
+  await vm.runInContext('tidestatQueue', context);assert.equal(sent[1].type,'outbound_click');assert.equal(sent[1].properties.outbound_url,'https://partner.test/path');
   onPrivacy({ customerPrivacy: { analyticsProcessingAllowed: false } });
   callbacks.page_viewed(event); await vm.runInContext('tidestatQueue', context);
-  assert.equal(sent.length, 1); assert.equal(store.size, 0);
+  assert.equal(sent.length, 2); assert.equal(store.size, 0);
 });
 
 test('SDK and Shopify events pass actual backend canonical normalization', async () => {
-  const source = readFileSync(new URL('../../revenue.js', import.meta.url), 'utf8');
-  const { normalizeEvent } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  const { normalizeEvent } = await import('../../revenue.js');
   const b = browser(), sdk = createTideStat({ ...options, consent: true }, b.runtime);
   await sdk.track('product_viewed', { product_id: 'product-1' });
   await sdk.signup(); await sdk.checkout(); await sdk.purchase({ order_id: 'order-1' });
@@ -123,4 +123,15 @@ test('heartbeats keep visible visitors live, stop on consent withdrawal and tear
   b.runtime.document.visibilityState = 'hidden'; tick(); assert.equal(b.sent.length, 2);
   b.runtime.document.visibilityState = 'visible'; sdk.setConsent(false); tick(); assert.equal(b.sent.length, 2);
   sdk.destroy(); assert.equal(cleared, true);
+});
+test('outbound capture defaults on after consent, excludes query data and internal links', async()=>{
+ const b=browser();b.runtime.innerWidth=1280;b.runtime.innerHeight=720;
+ b.runtime.location=new URL('https://shop.test/start?utm_campaign=launch&utm_term=explicit-term');
+ const sdk=createTideStat(options,b.runtime),click=b.listeners.get('click');
+ const external={target:{closest:selector=>selector==='a[href]'?{href:'https://partner.test/offer?email=private#token'}:null}};
+ click(external);assert.equal(b.sent.length,0);sdk.setConsent(true);click(external);
+ assert.equal(b.sent.at(-1).event.type,'outbound_click');assert.equal(b.sent.at(-1).event.properties.outbound_url,'https://partner.test/offer');
+ assert.equal(b.sent[0].event.acquisition.term,'explicit-term');assert.equal(b.sent[0].event.context.viewport_width,1280);
+ const count=b.sent.length;click({target:{closest:()=>({href:'https://shop.test/inside?secret=1'})}});assert.equal(b.sent.length,count);
+ sdk.setConsent(false);click(external);assert.equal(b.sent.length,count);sdk.destroy();
 });

@@ -1,6 +1,6 @@
 const navigation = new WeakMap();
 const SESSION_TTL = 30 * 60 * 1000;
-const canonicalTypes = new Set(['page_view', 'click', 'custom', 'signup', 'checkout', 'purchase', 'identify', 'heartbeat']);
+const canonicalTypes = new Set(['page_view', 'outbound_click', 'click', 'custom', 'signup', 'checkout', 'purchase', 'identify', 'heartbeat']);
 const reserved = new Set(['revenue', 'payment', 'refund']);
 const id = (runtime) => runtime.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
 
@@ -57,7 +57,8 @@ export function createTideStat(options, runtime = globalThis.window) {
     return {
       source: url.searchParams.get('utm_source') || (host && host !== url.hostname ? host : 'direct'),
       medium: url.searchParams.get('utm_medium') || (host && host !== url.hostname ? (/google\.|bing\.|duckduckgo\./i.test(host) ? 'organic' : 'referral') : 'none'),
-      campaign: url.searchParams.get('utm_campaign') || ''
+      campaign: url.searchParams.get('utm_campaign') || '',
+      term: url.searchParams.get('utm_term') || ''
     };
   };
   const identity = () => {
@@ -82,7 +83,8 @@ export function createTideStat(options, runtime = globalThis.window) {
       schema_version: 1, event_id: id(runtime), site_id: options.siteId,
       visitor_id: current.visitor_id, session_id: current.session_id,
       type, path: runtime.location.pathname, referrer: '', occurred_at: Date.now(),
-      acquisition: current.acquisition, properties
+      acquisition: current.acquisition, properties,
+      context: { viewport_width: runtime.innerWidth, viewport_height: runtime.innerHeight }
     };
     // Never collect query strings, fragments, element text, form values, or referrer query parameters.
     try { const ref = new URL(runtime.document.referrer); event.referrer = ref.origin + ref.pathname; } catch { /* No referrer. */ }
@@ -95,8 +97,13 @@ export function createTideStat(options, runtime = globalThis.window) {
   };
   const page = () => { lastPath = runtime?.location?.pathname; return track('page_view'); };
   const click = (event) => {
-    const target = event.target?.closest?.('[data-tidestat-event]');
+    if (!consent || destroyed) return;
+    const target = options.trackClicks === true && event.target?.closest?.('[data-tidestat-event]');
     if (target) void track('click', { name: String(target.getAttribute('data-tidestat-event')).slice(0, 128) });
+    if(options.trackOutbound !== false) {
+      const anchor=event.target?.closest?.('a[href]');
+      try {const destination=new URL(anchor?.href || anchor?.getAttribute?.('href'),runtime.location.href);if(anchor && ['http:','https:'].includes(destination.protocol) && destination.origin!==runtime.location.origin)void track('outbound_click',{outbound_url:destination.origin+destination.pathname});}catch{/* Not a navigable external link. */}
+    }
   };
   if (runtime) {
     heartbeat = runtime.setInterval?.(() => {
@@ -106,7 +113,7 @@ export function createTideStat(options, runtime = globalThis.window) {
       removeNavigation = listenNavigation(runtime, () => { if (runtime.location.pathname !== lastPath) void page(); });
       if (consent) void page();
     }
-    if (options.trackClicks === true) runtime.document.addEventListener('click', click);
+    if (options.trackClicks === true || options.trackOutbound !== false) runtime.document.addEventListener('click', click);
   }
   return {
     track, page,

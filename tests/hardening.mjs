@@ -52,7 +52,7 @@ async function pageFor(getData, options = {}) {
   return page;
 }
 async function ready(page, query = '') {
-  await page.goto(base + '/' + query);
+  await page.goto(base + '/live.html' + query);
   await page.waitForFunction(() => window.__tideMap?.ready() && document.getElementById('liveMap').dataset.geography === 'ready', null, { timeout: 30000 });
 }
 try {

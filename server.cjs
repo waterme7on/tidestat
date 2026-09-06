@@ -8,7 +8,7 @@ http.createServer((req, res) => {
   let pathname;
   try { pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname); }
   catch { res.writeHead(400); res.end('Bad request'); return; }
-  const file = path.resolve(root, '.' + (pathname === '/' ? '/index.html' : pathname));
+  const file = path.resolve(root, '.' + (pathname === '/' ? '/landing.html' : pathname));
   if (!file.startsWith(root + path.sep)) { res.writeHead(403); res.end('Forbidden'); return; }
   fs.readFile(file, (error, data) => {
     if (error) { res.writeHead(404); res.end('Not found'); return; }

@@ -27,6 +27,7 @@ try {
  const body=JSON.stringify(payload),signature=createHmac('sha256','stripe-test').update(`${now}.${body}`).digest('hex');
  for(let i=0;i<2;i++)assert.equal((await fetch(base+'/api/webhooks/stripe?site=store',{method:'POST',headers:{'stripe-signature':`t=${now},v1=${signature}`},body})).status,200);
  await page.locator('#setup').click();await page.locator('input[name=site]').fill('store');await page.locator('input[name=token]').fill('read-store');await page.getByRole('button',{name:'Open workspace →'}).click();
+ await page.locator('nav [data-view=stories]').click();
  await page.waitForFunction(()=>document.querySelector('#storyList [data-story]'));
  assert.equal(await page.locator('#storyList [data-story]').count(),1);assert.match(await page.locator('#metrics').textContent(),/\$19\.00/);
  await page.locator('#storyList [data-story]').click();assert.match(await page.locator('#storyBody').textContent(),/explicit_metadata/);assert.match(await page.locator('#storyBody').textContent(),/checkout/);await page.getByRole('button',{name:'Close story',exact:true}).click();

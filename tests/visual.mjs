@@ -12,7 +12,7 @@ function recordErrors(page) {
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 }
 async function ready(page, path = '/?demo=1') {
-  await page.goto(base + path);
+  await page.goto(base + (path==='/'?'/live.html':path.replace(/^\/\?/, '/live.html?')));
   await page.waitForFunction(() => window.__tide3d?.ready(), null, { timeout: 30000 });
   await page.waitForTimeout(500);
 }
@@ -106,7 +106,7 @@ try {
   });
   const fallbackErrors = [];
   fallback.on('pageerror', e => fallbackErrors.push(e.message));
-  await fallback.goto(base + '/?demo=1'); await fallback.waitForTimeout(500);
+  await fallback.goto(base + '/live.html?demo=1'); await fallback.waitForTimeout(500);
   assert.equal(await fallback.locator('#stage').isVisible(), true);
   await fallback.locator('#tab-park').click();
   assert.equal(await fallback.locator('#stage').isVisible(), true);

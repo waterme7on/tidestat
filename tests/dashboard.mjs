@@ -6,20 +6,20 @@ const browser=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftsh
 const results=[],errors=[],external=[];let inspected;
 await fs.mkdir('visual-review',{recursive:true});
 function watch(p){inspected=p;p.on('pageerror',e=>errors.push(e.message));p.on('request',r=>{if(/^https?:/.test(r.url())&&!r.url().startsWith(base))external.push(r.url());});}
-async function ready(p,url='/?lang=en'){await p.goto(base+url);await p.waitForFunction(()=>window.__tideMap?.ready()&&document.getElementById('liveMap').dataset.geography==='ready',null,{timeout:30000});}
+async function ready(p,url='/?lang=en'){await p.goto(base+(url==='/'?'/live.html':url.replace(/^\/\?/,'/live.html?')));await p.waitForFunction(()=>window.__tideMap?.ready()&&document.getElementById('liveMap').dataset.geography==='ready',null,{timeout:30000});}
 const now=Date.now();let visitors=[{id:'long-internal-visitor-one',maskedIp:'203.*.*.42',city:'London',country:'GB',lat:51.5,lng:-.13,firstTs:now-60000,lastTs:now,paths:[{path:'/zh',ts:now-60000},{path:'/zh/work',ts:now-30000},{path:'/zh/writing/example',ts:now-1000}]},{id:'legacy-visitor',city:'Tokyo',country:'JP',lat:35.7,lng:139.7,firstTs:now-10000,lastTs:now,paths:[]}];
 async function mock(p){await p.route('**/api/live',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({onlineMs:90000,visitors})}));}
 try{
  const page=await browser.newPage({locale:'en-US',viewport:{width:1440,height:1000},reducedMotion:'reduce',colorScheme:'dark'});watch(page);await mock(page);await ready(page,'/');
  assert.equal(await page.locator('html').getAttribute('lang'),'en');assert.equal(await page.locator('#tab-map').textContent(),'Live visitors');
- await page.locator('.online-visitor').filter({hasText:'London'}).click();await page.locator('.visitor-popup').waitFor();
+ await page.locator('.online-visitor').filter({hasText:/London|伦敦/}).click();await page.locator('.visitor-popup').waitFor();
  assert.match(await page.locator('.visitor-popup-head').textContent(),/203\.\*\.\*\.42/);
  assert.doesNotMatch(await page.locator('.visitor-popup-head').textContent(),/long-internal/);
- const svg=await page.locator('.visitor-popup svg').evaluate(e=>e.outerHTML);
+ const svg=await page.locator('.visitor-popup svg[data-avatar-style]').evaluate(e=>e.outerHTML);
  const camera=await page.evaluate(()=>window.__tideMap.camera());
  await page.locator('#languageSelect').selectOption('zh');await page.waitForTimeout(400);
  assert.equal(await page.locator('html').getAttribute('lang'),'zh-CN');assert.equal(await page.locator('#tab-map').textContent(),'实时访问人数');
- assert.equal(await page.locator('.visitor-popup svg').evaluate(e=>e.outerHTML),svg);assert.deepEqual(await page.evaluate(()=>window.__tideMap.camera()),camera);
+ assert.equal(await page.locator('.visitor-popup svg[data-avatar-style]').evaluate(e=>e.outerHTML),svg);assert.deepEqual(await page.evaluate(()=>window.__tideMap.camera()),camera);
  await page.getByRole('button',{name:'查看访问时间线 →',exact:true}).click();
  await page.locator('#timelineDialog[open]').waitFor();assert.equal(await page.locator('#timelineDialog #vdTimeline li').count(),3);
  assert.match(await page.locator('#timelineDialog').textContent(),/\/zh\/writing\/example/);
@@ -29,7 +29,7 @@ try{
  await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.getElementById('timelineDialog').contains(document.activeElement)),true);
  await page.keyboard.press('Escape');await page.waitForFunction(()=>!window.__tide.timelineOpen);assert.equal(await page.locator('#visitorDetail').count(),1);
  assert.equal(await page.evaluate(()=>document.activeElement.textContent),'查看访问时间线 →');
- await page.locator('#mapExpand').click();await page.locator('.online-visitor').filter({hasText:'London'}).evaluate(e=>e.click());
+ await page.locator('#mapExpand').click();await page.locator('.online-visitor').filter({hasText:/London|伦敦/}).evaluate(e=>e.click());
  await page.getByRole('button',{name:'查看访问时间线 →',exact:true}).click();await page.locator('#timelineDialog[open]').waitFor();assert.equal(await page.locator('.map-expanded').count(),0);
  // A visitor departing while the timeline is open must not close it or retain an online count.
  visitors=visitors.slice(1);await page.evaluate(()=>window.__tide.refresh());await page.waitForTimeout(700);

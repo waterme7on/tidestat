@@ -32,6 +32,8 @@ jobs:
           npm test
           npm run test:e2e
           node tests/revenue-ui.mjs
+          node tests/landing.mjs
+          node tests/product-ui.mjs
       - name: Bilingual dashboard, timelines and idle motion
         id: dashboard
         continue-on-error: true
@@ -59,7 +61,7 @@ jobs:
         if: always()
         run: |
           mkdir -p visual-review/app
-          cp index.html server.cjs *.js *.css schema.sql visual-review/app/
+          cp *.html server.cjs *.js *.css schema.sql visual-review/app/
           cp -R vendor assets tests docs visual-review/app/
       - uses: actions/upload-artifact@v4
         if: always()

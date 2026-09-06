@@ -6,14 +6,16 @@
 <link rel="icon" href="data:,">
 <meta name="description" content="Connect TideStat with the npm SDK or Shopify. Learn canonical events, verified payment attribution, revenue stories and Cloudflare deployment.">
 <title>TideStat Documentation</title>
+<script src="../theme.js"></script>
+<script src="../i18n.js"></script>
 <link rel="stylesheet" href="./docs.css">
-<script defer src="./docs.js">
-</script>
+<link rel="stylesheet" href="../product-ui.css">
+<script type="module" src="./docs-locale.js"></script>
 </head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
 <header>
-<a class="brand" href="../index.html">
+<a class="brand" href="../landing.html">
 <span class="mark" aria-hidden="true">
 <i>
 </i>
@@ -24,7 +26,8 @@
 </span>TideStat <span class="tag">DOCS</span>
 </a>
 <div class="header-links">
-<a href="../index.html">Open dashboard ↗</a>
+<div data-product-controls></div>
+<a href="../revenue.html">Open dashboard ↗</a>
 <button class="menu" aria-expanded="false" aria-controls="navigation">Menu</button>
 </div>
 </header>
@@ -67,7 +70,7 @@
 <p class="empty" hidden>No matching pages. Try “payment” or “SDK”.</p>
 </aside>
 <main class="doc" id="content">
-<article data-page="start" >
+<article data-page="start" data-doc-title="See the story behind every dollar." >
 <div class="eyebrow">Get started</div>
 <h1>See the story behind every dollar.</h1>
 <p class="lead">Connect visits to verified payments. Follow the path from the first page to the moment someone becomes a customer.</p>
@@ -114,7 +117,7 @@
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="npm" hidden>
+<article data-page="npm" data-doc-title="NPM SDK / Package" hidden>
 <div class="eyebrow">Installation</div>
 <h1>NPM SDK / Package</h1>
 <p class="lead">Typeable, explicit event tracking for JavaScript sites. Use the same canonical schema as Shopify.</p>
@@ -148,7 +151,7 @@ tide.track(&#x27;signup&#x27;, { plan: &#x27;pro&#x27; });</code>
 tide.track(&#x27;custom&#x27;, { name: &#x27;comparison_opened&#x27; });
 const attribution = tide.attribution();</code>
 </pre>
-<p>Automatic page views include pathname navigation; query strings and fragments are excluded. Sessions expire after 30 minutes of inactivity. Custom properties accepted by the collector are string values for <code>name</code>, <code>label</code>, <code>target</code>, <code>product_id</code>, <code>plan</code> and <code>order_id</code>. Forward <code>attribution</code> to your server when creating a checkout. The returned keys are <code>tidestat_site_id</code>, <code>tidestat_visitor_id</code> and <code>tidestat_session_id</code>. Never send payment credentials or dashboard tokens to this SDK.</p>
+<p>Automatic page views include pathname navigation; query strings and fragments are excluded. Sessions expire after 30 minutes of inactivity. After consent, outbound-link tracking is enabled by default; set <code>trackOutbound: false</code> to disable it. Outbound URLs and referrers retain only origin and pathname. Custom properties accepted by the collector are string values for <code>name</code>, <code>label</code>, <code>target</code>, <code>product_id</code>, <code>plan</code> and <code>order_id</code>. Forward <code>attribution</code> to your server when creating a checkout. The returned keys are <code>tidestat_site_id</code>, <code>tidestat_visitor_id</code> and <code>tidestat_session_id</code>. Never send payment credentials or dashboard tokens to this SDK.</p>
 <h2>Verification</h2>
 <p>Check the collection request succeeds and that the visitor appears for the same site in the dashboard. A browser <code>purchase</code> event is behavior evidence; only the verified payment connector contributes money.</p>
 <p>Continue with <a href="#browser">script / browser module setup</a> or <a href="#stripe">Stripe payment linking</a>.</p>
@@ -158,7 +161,7 @@ const attribution = tide.attribution();</code>
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="browser" hidden>
+<article data-page="browser" data-doc-title="Browser SDK" hidden>
 <div class="eyebrow">Installation</div>
 <h1>Browser SDK</h1>
 <p class="lead">Use a browser module when your website does not have a package build step.</p>
@@ -194,7 +197,7 @@ const attribution = tide.attribution();</code>
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="shopify" hidden>
+<article data-page="shopify" data-doc-title="Shopify" hidden>
 <div class="eyebrow">Installation</div>
 <h1>Shopify</h1>
 <p class="lead">Connect storefront visits to paid orders using explicit attribution attributes.</p>
@@ -229,7 +232,7 @@ await fetch(cartRoot + &#x27;cart/update.js&#x27;, {
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="events" hidden>
+<article data-page="events" data-doc-title="Canonical event schema" hidden>
 <div class="eyebrow">Reference</div>
 <h1>Canonical event schema</h1>
 <p class="lead">One event language for websites, the npm package and Shopify.</p>
@@ -265,8 +268,8 @@ await fetch(cartRoot + &#x27;cart/update.js&#x27;, {
 <td>Observed page navigation.</td>
 </tr>
 <tr>
-<td>click / custom</td>
-<td>Selected interactions and application-specific milestones.</td>
+<td>click / custom / outbound_click</td>
+<td>Selected interactions, application-specific milestones and external link clicks. <code>outbound_click</code> accepts a sanitized <code>properties.outbound_url</code>.</td>
 </tr>
 <tr>
 <td>signup / checkout</td>
@@ -299,7 +302,7 @@ Authorization: Bearer YOUR_SITE_READ_TOKEN</code>
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="stripe" hidden>
+<article data-page="stripe" data-doc-title="Stripe payment linking" hidden>
 <div class="eyebrow">Integrations</div>
 <h1>Stripe payment linking</h1>
 <p class="lead">Attach the visit context when your server creates Checkout. Confirm the money through a signed webhook.</p>
@@ -332,7 +335,7 @@ Authorization: Bearer YOUR_SITE_READ_TOKEN</code>
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="search-console" hidden>
+<article data-page="search-console" data-doc-title="Google Search Console" hidden>
 <div class="eyebrow">Integrations</div>
 <h1>Google Search Console</h1>
 <p class="lead">Add organic search context at the aggregate level, with a clear boundary around individual journeys.</p>
@@ -363,7 +366,7 @@ Content-Type: application/json
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="attribution" hidden>
+<article data-page="attribution" data-doc-title="Attribution &amp; evidence" hidden>
 <div class="eyebrow">Revenue Story</div>
 <h1>Attribution & evidence</h1>
 <p class="lead">Explain the revenue path without claiming to know more than your data shows.</p>
@@ -383,7 +386,7 @@ Content-Type: application/json
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="journeys" hidden>
+<article data-page="journeys" data-doc-title="Journeys, sources &amp; leaks" hidden>
 <div class="eyebrow">Revenue Story</div>
 <h1>Journeys, sources & leaks</h1>
 <p class="lead">Use the live map as the beginning of the investigation, then follow the revenue evidence.</p>
@@ -391,6 +394,9 @@ Content-Type: application/json
 <p>Start with a payment or visitor. Inspect the ordered visits, key behavior, conversion steps and payment link. Use site and date controls to narrow your investigation, then examine a returning visitor’s sessions.</p>
 <h2>Revenue Journeys & Sources</h2>
 <p>Compare observed paths and first-touch sources by verified revenue, visitors and revenue per visitor. Page revenue describes payments associated with the reported attribution model; it does not mean the page alone caused the payment. Journeys shows two ordered funnels: the commerce funnel (<code>page_view → checkout → payment</code>) includes guest checkout, while the separate signup funnel (<code>page_view → signup → checkout → payment</code>) measures paths that require registration.</p>
+<h2>Read the dimensions correctly</h2>
+<p>Channels, referrers, campaigns, explicit UTM keywords, geography, browsers, operating systems and devices attribute revenue to the first captured visitor context. Missing historical context stays Unknown. Browser and OS labels come from the user agent, not fingerprinting. Keyword reports contain explicit <code>utm_term</code> only; organic search queries remain separate aggregate Search Console data.</p>
+<p>Pages and outbound links are observed prepayment assisted touchpoints. Their revenue can overlap, so do not add their rows into a total or infer causation. Entry and exit pages are the payment session’s first and last observed pages; an exit does not prove the browser closed. Daily and weekday/hour reports use UTC. Time-to-revenue and visits-to-revenue distributions use the first known positive payment and exclude renewals.</p>
 <h2>Revenue Leaks</h2>
 <p>Find observed conversion-step drop-off, such as visitors who started checkout without a linked payment in the reporting window. These are candidates for investigation, not proof of permanently lost sales. Delayed webhooks, unlinked payments and purchases outside the window can inflate apparent drop-off.</p>
 <h2>Keep the website alive</h2>
@@ -403,7 +409,7 @@ Content-Type: application/json
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="sites" hidden>
+<article data-page="sites" data-doc-title="Multiple websites" hidden>
 <div class="eyebrow">Operations</div>
 <h1>Multiple websites</h1>
 <p class="lead">Keep traffic, sessions, payments and analytics reads scoped to the right website.</p>
@@ -438,7 +444,7 @@ Content-Type: application/json
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="deployment" hidden>
+<article data-page="deployment" data-doc-title="Deployment &amp; migration" hidden>
 <div class="eyebrow">Operations</div>
 <h1>Deployment & migration</h1>
 <p class="lead">Keep the existing Cloudflare Worker and D1. Add the revenue model without replacing the live experience.</p>
@@ -456,7 +462,7 @@ npx wrangler dev</code>
 <code>npx wrangler d1 execute tidestat --remote --file=schema.sql
 npx wrangler deploy</code>
 </pre>
-<p>The build copies only browser assets into <code>dist/</code>; the Worker configuration runs it before deployment. The schema is additive and idempotent. It does not reconstruct historical sessions or payments from old page views. Review the actual database name if you renamed the binding.</p>
+<p>Existing Revenue Story deployments can add the context tables with <code>migrations/0002_analytics_context.sql</code>; it is idempotent and the full <code>schema.sql</code> includes the same tables. This does not backfill historical dimensions. The build copies only browser assets into <code>dist/</code>; the Worker configuration runs it before deployment. The schema is additive and idempotent. It does not reconstruct historical sessions or payments from old page views. Review the actual database name if you renamed the binding.</p>
 <h2>Documentation and static preview</h2>
 <pre>
 <code>node server.cjs
@@ -477,7 +483,7 @@ npx wrangler deploy</code>
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="privacy" hidden>
+<article data-page="privacy" data-doc-title="Privacy &amp; data boundaries" hidden>
 <div class="eyebrow">Operations</div>
 <h1>Privacy & data boundaries</h1>
 <p class="lead">Collect only the context needed to explain the journey.</p>
@@ -496,7 +502,7 @@ npx wrangler deploy</code>
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="troubleshooting" hidden>
+<article data-page="troubleshooting" data-doc-title="Troubleshooting" hidden>
 <div class="eyebrow">Operations</div>
 <h1>Troubleshooting</h1>
 <p class="lead">Work from collection to identity to payment, then inspect the story.</p>
@@ -519,12 +525,12 @@ npx wrangler deploy</code>
 <p>Demo data illustrates the interface. It does not confirm your deployment, credentials or connector setup. Run a test visit and test payment on your own configured website.</p>
 <div class="pager">
 <a href="#privacy">← Privacy & data boundaries</a>
-<a href="../index.html">Open TideStat →</a>
+<a href="../revenue.html">Open TideStat →</a>
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
 <noscript>
-<p>JavaScript is required for documentation navigation. Enable it to browse the guides.</p>
+<p>JavaScript is required for documentation navigation. 文档导航需要 JavaScript，请启用后浏览指南。</p>
 </noscript>
 </main>
 </div>

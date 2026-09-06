@@ -5,6 +5,8 @@ export interface TideStatOptions {
   autoPageview?: boolean;
   /** Tracks only explicitly marked data-tidestat-event elements. */
   trackClicks?: boolean;
+  /** Automatically records external HTTP(S) host/path clicks after consent. Default true. */
+  trackOutbound?: boolean;
 }
 export interface TideStat {
   track(type: string, properties?: Record<string, unknown>): Promise<boolean>;

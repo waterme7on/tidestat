@@ -42,7 +42,7 @@ async function ready(page) {
 let page;
 try {
   const context = await browser.newContext({locale:'zh-CN', viewport: { width: 1440, height: 1000 }, colorScheme: 'dark', reducedMotion: 'reduce' });
-  page = await context.newPage(); await watch(page); await page.goto(base); await ready(page);
+  page = await context.newPage(); await watch(page); await page.goto(base + '/live.html'); await ready(page);
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
   assert.equal(await page.locator('#mapTheme').inputValue(), 'system');
   assert.equal(await page.evaluate(() => window.__tideMap.appearance().lightOpacity), .34);
@@ -83,14 +83,14 @@ try {
   assert.equal(await page.locator('#mapTheme').inputValue(), 'dark');
   await page.emulateMedia({ colorScheme: 'light' });
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
-  const other = await context.newPage(); await watch(other); await other.goto(base); await ready(other);
+  const other = await context.newPage(); await watch(other); await other.goto(base + '/live.html'); await ready(other);
   await other.locator('#mapTheme').selectOption('light');
   await page.waitForFunction(() => window.__tideTheme.preference === 'light');
   await other.close();
   await page.locator('#mapTheme').selectOption('system');
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
-  assert.equal(await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content), '#101112');
+  assert.equal(await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content), '#121719');
   results.push('Manual override persists across reload and ignores system changes; other tabs synchronize; system mode resumes correctly');
 
   status = 503; await page.evaluate(() => window.__tide.refresh());
@@ -125,7 +125,7 @@ try {
     const getContext = HTMLCanvasElement.prototype.getContext;
     HTMLCanvasElement.prototype.getContext = function(type, ...args) { return /webgl/.test(type) ? null : getContext.call(this, type, ...args); };
   });
-  page = await safeContext.newPage(); await watch(page); await page.goto(base); await ready(page);
+  page = await safeContext.newPage(); await watch(page); await page.goto(base + '/live.html'); await ready(page);
   assert.equal(await page.locator('#liveMap').getAttribute('data-engine'), 'flat');
   await page.locator('#mapTheme').selectOption('dark');
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');

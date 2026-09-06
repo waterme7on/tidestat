@@ -26,8 +26,29 @@ try {
  await page.locator('#visitorSearch').fill('');
  await page.waitForFunction(()=>document.querySelectorAll('#storyList [data-story]').length===3);
  await page.screenshot({path:'visual-review/revenue-stories-desktop.png',fullPage:true});
- for(const id of ['journeys','sources','leaks','integrations']) {await page.locator(`nav [data-view="${id}"]`).click();assert.ok(await page.locator('#content').textContent());}
+ for(const id of ['overview','insights','integrations']) {await page.locator(`nav [data-view="${id}"]`).click();assert.ok(await page.locator('#content').textContent());}
  await page.screenshot({path:'visual-review/revenue-integrations.png',fullPage:true});
+ await page.locator('nav [data-view="overview"]').click();
+ await page.locator('.dimension-card').first().waitFor();
+ assert.equal(await page.locator('.dimension-card').count(),4);
+ await page.getByRole('button',{name:'Revenue',exact:true}).click();
+ assert.match(await page.locator('#rows-acquisition').textContent(),/\$49\.00/);
+ await page.getByRole('tab',{name:'Keywords',exact:true}).click();
+ assert.match(await page.locator('#note-acquisition').textContent(),/aggregate/);
+ await page.getByRole('tab',{name:'Outbound',exact:true}).click();
+ assert.match(await page.locator('#note-pages').textContent(),/no subsequent browsing/);
+ await page.screenshot({path:'visual-review/revenue-overview-desktop.png',fullPage:true});
+ await page.locator('nav [data-view="insights"]').click();
+ await page.locator('.heat-row').first().waitFor();
+ assert.equal(await page.locator('.heat-row').count(),7);
+ for (const format of ['SVG','PNG']) {
+   const downloadPromise=page.waitForEvent('download');
+   await page.getByRole('button',{name:format,exact:true}).click();
+   const download=await downloadPromise;
+   assert.ok(download.suggestedFilename().endsWith('.'+format.toLowerCase()));
+   assert.equal(await download.failure(),null);
+ }
+ await page.screenshot({path:'visual-review/revenue-insights-desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});
  await page.locator('nav [data-view="stories"]').click();
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'mobile no horizontal overflow');
@@ -42,6 +63,47 @@ try {
  await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('not accepted'));
  assert.equal(new URL(observed.url()).searchParams.get('site'),'site-a');assert.equal(observed.headers().authorization,'Bearer private-test-token');assert.ok(!observed.url().includes('private-test-token'));
  assert.equal(await page.locator('#storyList').count(),0,'previous site data must clear on auth failure');
+ assert.deepEqual(errors,[]);
+ // Embedded sample is independent of saved credentials and makes no API requests.
+ let apiCalls=0; await page.route('**/api/**',r=>{apiCalls++;return r.abort();});
+ await page.goto(base+'/revenue.html?demo=1&embed=1');
+ await page.locator('.dimension-grid').waitFor();
+ assert.equal(await page.locator('.sidebar').isVisible(),false);
+ assert.equal(apiCalls,0);
+ await page.setViewportSize({width:390,height:630});
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'embed mobile no horizontal overflow');
+ await page.screenshot({path:'visual-review/revenue-embed-mobile.png',fullPage:true});
+ // Shared controls translate the dashboard, preserve preferences and apply light surfaces.
+ await page.locator('[data-product-language]').selectOption('zh');
+ await page.locator('[data-product-theme]').selectOption('light');
+ await page.waitForFunction(()=>document.querySelector('#pageTitle').textContent.includes('看懂'));
+ assert.equal(await page.locator('html').getAttribute('data-theme'),'light');
+ assert.match(await page.locator('#metrics').textContent(),/净收入/);
+ await page.reload();
+ await page.locator('.dimension-grid').waitFor();
+ assert.equal(await page.locator('[data-product-language]').inputValue(),'zh');
+ assert.equal(await page.locator('[data-product-theme]').inputValue(),'light');
+ assert.match(await page.locator('#metrics').textContent(),/访客/);
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Chinese mobile light no overflow');
+ await page.screenshot({path:'visual-review/revenue-embed-zh-light-mobile.png',fullPage:true});
+ await page.locator('[data-tab="stories"]').click();
+ await page.locator('[data-story]').first().click();
+ await page.locator('#storyDialog[open]').waitFor();
+ assert.match(await page.locator('#storyBody').textContent(),/会话/);
+ assert.match(await page.locator('#storyTitle').textContent(),/来自/);
+ await page.locator('[data-close="storyDialog"]').click();
+ await page.locator('[data-tab="insights"]').click();
+ await page.locator('#exportSVG').waitFor();
+ const translatedDownloadPromise=page.waitForEvent('download');
+ await page.locator('#exportSVG').click();
+ const translatedDownload=await translatedDownloadPromise;
+ const {readFile}=await import('node:fs/promises');
+ const exportContent=await readFile(await translatedDownload.path(),'utf8');
+ assert.match(exportContent,/收入快照/);assert.ok(!exportContent.includes('sample_payment_'));
+ await page.locator('[data-product-language]').selectOption('en');
+ await page.locator('[data-product-theme]').selectOption('dark');
+ await page.waitForFunction(()=>document.querySelector('#pageTitle').textContent.includes('bigger'));
+ assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
  assert.deepEqual(errors,[]);
  console.log('Revenue UI passed: sample disclosure, payment timeline, search, returning filter, navigation, mobile, auth isolation.');
 } finally {await browser.close();}
