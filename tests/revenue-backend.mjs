@@ -131,3 +131,8 @@ test('live stream includes only same-site verified payments with stable event ID
  const live=await response.json(),events=live.visitors[0].events;
  assert.equal(events.find(e=>e.type==='page_view').id,'behavior-one');assert.equal(events.find(e=>e.type==='payment').id,'stripe:cs_live_one');assert.equal(events.find(e=>e.type==='payment').amountMinor,1900);assert.equal(events.some(e=>e.id==='stripe:cs_live_other'),false);
 });
+test('payment-only periods leave visitor ratios unavailable rather than zero',async()=>{
+ const {db}=database();await savePayment(db,'stripe','one',payment('cs_no_visit',{}),new Headers());
+ const result=await report(db,'one',now-1000,now+1000);
+ assert.equal(result.overview.conversion,null);assert.equal(result.overview.currencies[0].revenuePerVisitor,null);assert.equal(result.overview.currencies[0].revenue,1900);
+});
