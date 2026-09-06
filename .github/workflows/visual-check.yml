@@ -34,6 +34,7 @@ jobs:
           node tests/revenue-ui.mjs
           node tests/landing.mjs
           node tests/product-ui.mjs
+          node tests/account-ui.mjs
       - name: Bilingual dashboard, timelines and idle motion
         id: dashboard
         continue-on-error: true

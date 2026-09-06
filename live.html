@@ -829,6 +829,7 @@ const liveSeen = new Map();
 const liveEventSeen = new Set();
 let liveTimer = 0, liveBusy = false;
 async function liveTick(now) {
+  await window.tideConnection.ready;
   if (DEMO || liveBusy) return;
   liveBusy = true;
   const controller = new AbortController();

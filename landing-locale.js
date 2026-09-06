@@ -1,5 +1,11 @@
 import { registerMessages, translate, tr } from './product-ui.js';
 registerMessages({
+  'Pricing':'价格方案', 'Sign in':'登录',
+  'One complete product. Room to grow.':'完整功能，按需成长。',
+  'Start free. Follow the story further.':'免费开始，让故事继续。',
+  'Compare plans':'比较方案',
+  'Monthly prices in USD. Annual billing available.':'以上为美元月价，也可按年付费。',
+  'See annual pricing →':'查看年付价格 →',
   'TideStat — See the story behind every dollar.':'TideStat — 看见每一笔收入背后的故事。',
   'See the story behind every dollar. TideStat connects website visits, journeys and verified payments in one visual revenue story.':'TideStat 将网站访问、用户旅程和已验证付款串成直观的收入故事。',
   'Skip to content':'跳到正文', 'TideStat home':'TideStat 首页', 'Main navigation':'主导航', 'The story':'产品故事', 'Docs':'文档', 'Open dashboard':'打开控制台',
