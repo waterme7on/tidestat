@@ -12,7 +12,7 @@ try{
  await frame.getByRole('tab',{name:'Cities',exact:true}).click();assert.match(await frame.locator('#rows-geography').textContent(),/San Francisco/);
  await frame.locator('[data-tab=stories]').click();await frame.locator('[data-story]').first().click();await frame.locator('#storyDialog[open]').waitFor();
  await frame.getByRole('button',{name:'Close story',exact:true}).click();
- assert.deepEqual(api,[],'public demo must not request private analytics');
+ assert.deepEqual(api.filter(url=>new URL(url).pathname!=='/api/plans'),[],'public demo may request the public price catalog, never private analytics');
  await mkdir('visual-review',{recursive:true});await page.screenshot({path:'visual-review/landing-desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>scrollTo(0,0));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await page.screenshot({path:'visual-review/landing-mobile.png',fullPage:true});
