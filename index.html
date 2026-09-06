@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="color-scheme" content="light dark" />
 <script src="./theme.js"></script>
+<script src="./connection.js"></script>
 <script src="./i18n.js"></script>
 <title>TideStat — 实时访问人数与网站足迹</title>
 <script type="importmap">
@@ -143,6 +144,7 @@
 <link rel="stylesheet" href="./globe.css" />
 <link rel="stylesheet" href="./theme.css" />
 <link rel="stylesheet" href="./dashboard.css" />
+<style>.revenue-entry { display:inline-flex; align-items:center; padding:8px 12px; color:var(--ink); font-size:12px; text-decoration:none; border-radius:8px; } .revenue-entry:hover { background:var(--blue-soft); } .revenue-entry:focus-visible { outline:2px solid var(--green); }</style>
 </head>
 <body data-view="map">
 <header>
@@ -157,6 +159,7 @@
   <nav class="tabs" aria-label="视图切换" data-i18n-aria-label="视图切换">
     <button id="tab-map" class="active" aria-pressed="true" type="button" data-i18n="实时访问人数">实时访问人数</button>
     <button id="tab-park" aria-pressed="false" type="button" data-i18n="网站足迹">网站足迹</button>
+  <a class="revenue-entry" href="./revenue.html">Revenue Stories ↗</a>
   </nav>
   <label class="language-picker"><span class="sr-only" data-i18n="语言">语言</span><select id="languageSelect" aria-label="语言" data-i18n-aria-label="语言"><option value="system" data-i18n="跟随浏览器">跟随浏览器</option><option value="zh">中文</option><option value="en">English</option></select></label>
   <div class="live"><span class="dot" aria-hidden="true"></span><span id="headerSource" data-i18n="实时">实时</span> · <b id="onlineCount">0</b> <span data-i18n="位访客在线">位访客在线</span><span id="tzNote" style="color:var(--ink-soft);font-size:10px;margin-left:8px;"></span></div>
@@ -199,6 +202,7 @@
         <div class="vd-id" id="vdId"></div>
         <div class="vd-meta" id="vdMeta"></div>
         <ol class="tl" id="vdTimeline"></ol>
+        <a id="visitorRevenue" class="revenue-entry" href="./revenue.html">View revenue story →</a>
       </div>
     </div>
     <div class="panel" style="flex:1;">
@@ -763,6 +767,7 @@ function renderVisitorDetail(force = false) {
   if (!force && performance.now() - detailUpdated < 300) return;
   detailUpdated = performance.now();
   const v = findVisitor(sim.selectedId); if (!v) {deselect();return;}
+  document.getElementById("visitorRevenue").href = "./revenue.html?visitor=" + encodeURIComponent(v.fullId || sim.selectedId) + (DEMO ? "&demo=1" : "");
   const live = sim.visitors.has(sim.selectedId) && v.state !== 'leaving';
   selectedSnapshot={id:sim.selectedId,visitor:{...v,visited:(v.visited||[]).map(x=>({...x}))}};
   document.getElementById("vdId").textContent = `${t('匿名访客')} · ${identity(v)} · ${cityName(v.city?.[0])}`;
@@ -817,7 +822,8 @@ async function liveTick(now) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
   try {
-    const res = await fetch("/api/live", { cache: "no-store", signal: controller.signal });
+    const liveRequest = window.tideConnection.request("/api/live");
+    const res = await fetch(liveRequest.url, { headers: liveRequest.headers, cache: "no-store", signal: controller.signal });
     if (!res.ok) throw new Error("Live API " + res.status);
     const data = await res.json();
     if (!Array.isArray(data.visitors)) throw new Error("Invalid visitor response");

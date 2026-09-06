@@ -13,6 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - run: npm ci --ignore-scripts
       - name: Apply additive schema and deploy
         run: |
           npx -y wrangler@4.128.0 d1 execute DB --remote --file=schema.sql --yes

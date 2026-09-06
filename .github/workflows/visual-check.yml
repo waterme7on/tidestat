@@ -19,7 +19,7 @@ jobs:
           node-version: '22'
       - name: Install pinned browser tooling
         run: |
-          npm install --no-save --ignore-scripts playwright@1.55.0
+          npm ci --ignore-scripts
           npx playwright install --with-deps chromium
           sudo apt-get install -y fonts-noto-cjk
       - name: Syntax and SQLite privacy checks
@@ -29,7 +29,9 @@ jobs:
           for file in scene.js globe-map.js visitor-avatar.js theme.js i18n.js privacy.js idle-motion.js worker.js; do
             node --check "$file"
           done
-          node tests/privacy.mjs
+          npm test
+          npm run test:e2e
+          node tests/revenue-ui.mjs
       - name: Bilingual dashboard, timelines and idle motion
         id: dashboard
         continue-on-error: true

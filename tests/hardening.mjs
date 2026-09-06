@@ -16,7 +16,10 @@ await check('Latest events survive the 2000-row window; ties are deterministic a
   const db = new DatabaseSync(':memory:');
   try {
     db.exec(await fs.readFile(new URL('../schema.sql', import.meta.url), 'utf8'));
-    const statement = db.prepare('INSERT INTO events (visitor_id, ts, path) VALUES (?, ?, ?)');
+    db.exec("INSERT INTO story_sessions VALUES ('test','s','old-reader',0,0,'Direct','/'); INSERT INTO story_sessions VALUES ('test','s2','new-reader',0,0,'Direct','/')");
+    let eventNumber=0;
+    const insert = db.prepare("INSERT INTO story_events (site_id,event_id,visitor_id,session_id,type,ts,path) VALUES ('test',?,?,?,'page_view',?,?)");
+    const statement={run(visitor,ts,path){insert.run('e'+eventNumber++,visitor,visitor==='old-reader'?'s':'s2',ts,path);}};
     const now = Date.now();
     db.exec('BEGIN');
     for (let i = 0; i < 2100; i++) statement.run('old-reader', now - 200000 + i, '/old/' + i);
@@ -24,16 +27,16 @@ await check('Latest events survive the 2000-row window; ties are deterministic a
     statement.run('new-reader', now - 1000, '/zh/writing/second');
     statement.run('new-reader', now - 1000, '/zh/writing/third');
     db.exec('COMMIT');
-    const env = { DB: { prepare(sql) { return { bind(...args) { return { all: async () => ({ results: db.prepare(sql).all(...args) }) }; } }; } } };
-    const response = await worker.fetch(new Request('https://example.test/api/live'), env);
+    const env = { SITES_JSON: JSON.stringify({test:{origin:'https://example.test',readToken:'test-token'}}), DB: { prepare(sql) { return { bind(...args) { return { all: async () => ({ results: db.prepare(sql).all(...args) }) }; } }; } } };
+    const response = await worker.fetch(new Request('https://example.test/api/live?site=test',{headers:{authorization:'Bearer test-token'}}), env);
     assert.equal(response.status, 200);
     const data = await response.json();
     assert.deepEqual(data.visitors.map(v => v.id), ['new-reader']);
     assert.deepEqual(data.visitors[0].paths.map(p => p.path), ['/zh/writing/first', '/zh/writing/second', '/zh/writing/third']);
     assert.equal(data.truncated, true);
     assert.equal(data.onlineMs, 90000);
-    db.prepare("DELETE FROM events WHERE visitor_id = 'old-reader'").run();
-    assert.equal((await (await worker.fetch(new Request('https://example.test/api/live'), env)).json()).truncated, false);
+    db.prepare("DELETE FROM story_events WHERE visitor_id = 'old-reader'").run();
+    assert.equal((await (await worker.fetch(new Request('https://example.test/api/live?site=test',{headers:{authorization:'Bearer test-token'}}), env)).json()).truncated, false);
   } finally { db.close(); }
 });
 

@@ -1,0 +1,39 @@
+import {createServer} from 'node:http';
+import {DatabaseSync} from 'node:sqlite';
+import {readFile} from 'node:fs/promises';
+import {createHmac} from 'node:crypto';
+import {chromium} from 'playwright';
+import assert from 'node:assert/strict';
+import worker from '../worker.js';
+const sql=new DatabaseSync(':memory:');sql.exec(await readFile(new URL('../schema.sql',import.meta.url),'utf8'));
+const DB={prepare(query){return {bind(...args){return {first:async()=>sql.prepare(query).get(...args)||null,all:async()=>({results:sql.prepare(query).all(...args)}),run:async()=>sql.prepare(query).run(...args)}}}},async batch(statements){sql.exec('BEGIN');try{const result=[];for(const s of statements)result.push(await s.run());sql.exec('COMMIT');return result;}catch(e){sql.exec('ROLLBACK');throw e;}}};
+const env={DB,ASSETS:{async fetch(request){const pathname=new URL(request.url).pathname;try{const body=await readFile(new URL('../dist'+pathname,import.meta.url));return new Response(body,{headers:{'Content-Type':pathname.endsWith('.html')?'text/html':pathname.endsWith('.css')?'text/css':'application/javascript'}});}catch{return new Response('Missing',{status:404});}}}};
+const server=createServer(async(req,res)=>{try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const request=new Request(base+req.url,{method:req.method,headers:req.headers,...(req.method==='POST'?{body:Buffer.concat(chunks)}:{})});const response=await worker.fetch(request,env);res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));}catch(e){res.writeHead(500);res.end(e.message);}});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const base=`http://127.0.0.1:${server.address().port}`;
+env.SITES_JSON=JSON.stringify({store:{origin:base,readToken:'read-store',stripeWebhookSecret:'stripe-test'},other:{origin:base,readToken:'read-other'}});
+const browser=await chromium.launch();const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+try {
+ await page.goto(base+'/revenue.html');
+ // Run the actual browser package, use the real Worker collector, then sign provider data.
+ const metadata=await page.evaluate(async(base)=>{const {createTideStat}=await import('/sdk/index.js');const sdk=createTideStat({siteId:'store',endpoint:base+'/api/collect',consent:true,autoPageview:false});await sdk.page();await sdk.signup({plan:'Pro'});await sdk.checkout({plan:'Pro'});const metadata=sdk.attribution();sdk.destroy();return metadata;},base);
+ const now=Math.floor(Date.now()/1000);
+ const payload={id:'evt_e2e',type:'checkout.session.completed',created:now,data:{object:{id:'cs_e2e',payment_intent:'pi_e2e',payment_status:'paid',amount_total:1900,currency:'usd',metadata}}};
+ const body=JSON.stringify(payload),signature=createHmac('sha256','stripe-test').update(`${now}.${body}`).digest('hex');
+ for(let i=0;i<2;i++)assert.equal((await fetch(base+'/api/webhooks/stripe?site=store',{method:'POST',headers:{'stripe-signature':`t=${now},v1=${signature}`},body})).status,200);
+ await page.locator('#setup').click();await page.locator('input[name=site]').fill('store');await page.locator('input[name=token]').fill('read-store');await page.getByRole('button',{name:'Open workspace →'}).click();
+ await page.waitForFunction(()=>document.querySelector('#storyList [data-story]'));
+ assert.equal(await page.locator('#storyList [data-story]').count(),1);assert.match(await page.locator('#metrics').textContent(),/\$19\.00/);
+ await page.locator('#storyList [data-story]').click();assert.match(await page.locator('#storyBody').textContent(),/explicit_metadata/);assert.match(await page.locator('#storyBody').textContent(),/checkout/);await page.getByRole('button',{name:'Close story',exact:true}).click();
+ await page.locator('#visitorSearch').fill('pi_e2e');await page.waitForFunction(()=>document.querySelector('#storyPaging').textContent.includes('1 of 1'));
+ const live=await(await fetch(base+'/api/live?site=store',{headers:{authorization:'Bearer read-store'}})).json();assert.equal(live.visitors[0].id,metadata.tidestat_visitor_id);
+ assert.equal((await fetch(base+'/api/revenue?site=other',{headers:{authorization:'Bearer read-store'}})).status,401);
+ await page.screenshot({path:'visual-review/revenue-connected-e2e.png',fullPage:true});
+ const refund={id:'evt_refund',type:'refund.created',created:now,data:{object:{id:'re_e2e',payment_intent:'pi_e2e',status:'succeeded',amount:500,currency:'usd',created:now}}};
+ const refundBody=JSON.stringify(refund),refundSignature=createHmac('sha256','stripe-test').update(`${now}.${refundBody}`).digest('hex');
+ assert.equal((await fetch(base+'/api/webhooks/stripe?site=store',{method:'POST',headers:{'stripe-signature':`t=${now},v1=${refundSignature}`},body:refundBody})).status,200);
+ await page.locator('#visitorSearch').fill('');
+ await page.locator('#refresh').click();await page.waitForFunction(()=>document.querySelector('#metrics').textContent.includes('$14.00')&&document.querySelectorAll('#storyList [data-story]').length===2);
+ assert.match(await page.locator('#storyList').textContent(),/Refund/);
+ assert.deepEqual(errors,[]);console.log('End-to-end passed: real SDK → Worker → SQLite → signed duplicate payment → authenticated UI story → live identity, with website isolation.');
+}finally{await browser.close();await new Promise(resolve=>server.close(resolve));sql.close();}
