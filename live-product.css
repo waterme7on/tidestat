@@ -68,3 +68,23 @@ html[data-theme] body[data-view] .visitor-popup button { color: var(--tide-accen
   html[data-theme] body[data-view] .tabs button, html[data-theme] body[data-view] .tabs .revenue-entry { font-size: 11px; }
   body[data-view=map] aside > #visitorDetail { display: none !important; }
 }
+
+/* Embedded visitor details use the available map height and one scroll area. */
+body[data-embed="1"] #liveMap .maplibregl-popup-content { max-height: none; overflow: visible; padding: 20px; }
+body[data-embed="1"] #liveMap .visitor-popup { scrollbar-gutter: stable; padding-right: 4px; }
+body[data-embed="1"] .visitor-popup-head strong { font-size: 15px; }
+body[data-embed="1"] .visitor-popup-head div > span, body[data-embed="1"] .visitor-context-grid small { font-size: 11px; }
+body[data-embed="1"] .visitor-context-grid b, body[data-embed="1"] .visitor-popup-page b { font-size: 13px; }
+body[data-embed="1"] .visitor-popup button, body[data-embed="1"] .visitor-revenue-link { font-size: 12px; min-height: 40px; }
+
+@media(min-width:601px) {
+ body[data-embed="1"] #liveMap .live-visitor-popup.maplibregl-popup { top:12px; left:12px; right:auto; bottom:auto; transform:none !important; width:420px; max-width:calc(100% - 24px) !important; }
+ body[data-embed="1"] #liveMap .live-visitor-popup .maplibregl-popup-tip { display:none; }
+}
+@media(min-width:601px) {
+ body[data-embed="1"] .stage:has(.live-visitor-popup) > .map-caption,
+ body[data-embed="1"] .stage:has(.live-visitor-popup) > .activity-key,
+ body[data-embed="1"] .stage:has(.live-visitor-popup) > .globe-regions { visibility:hidden; }
+}
+
+body[data-view] .map-expanded .theme-picker { display:flex; padding:0; border:0; background:transparent; }

@@ -26,10 +26,10 @@ document.addEventListener('keydown', event => {
 });
 
 const demoOpen = document.getElementById('demoOpenLink');
-const demoViews = { live: { src: './live.html?demo=1&embed=1', open: './live.html?demo=1' }, revenue: { src: './revenue.html?demo=1&embed=1', open: './revenue.html?demo=1' } };
+const demoViews = { journeys: { src: './live.html?demo=1&embed=1&view=park', open: './live.html?demo=1&view=park' }, live: { src: './live.html?demo=1&embed=1', open: './live.html?demo=1' }, revenue: { src: './revenue.html?demo=1&embed=1', open: './revenue.html?demo=1' } };
 for (const tab of document.querySelectorAll('.demo-tab')) tab.addEventListener('click', () => {
   const view = demoViews[tab.dataset.demo]; if (!view || tab.classList.contains('active')) return;
   for (const other of document.querySelectorAll('.demo-tab')) { other.classList.toggle('active', other === tab); other.setAttribute('aria-selected', String(other === tab)); }
-  demoFrame.src = view.src; demoOpen.href = view.open;
+  demoFrame.dataset.demoView = tab.dataset.demo; demoFrame.src = view.src; demoOpen.href = view.open;
   for (const hint of document.querySelectorAll('[data-demo-hint]')) hint.hidden = hint.dataset.demoHint !== tab.dataset.demo;
 });

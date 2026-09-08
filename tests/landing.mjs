@@ -10,6 +10,14 @@ try{
  // The demo opens on the live world map; the revenue story sits behind its own tab.
  assert.match(await page.locator('#demoFrame').getAttribute('src'),/live\.html\?demo=1&embed=1/);
  await frame.locator('#realtimeCount').waitFor();
+ await frame.locator('#onlinePanel').waitFor();
+ await frame.locator('#events').waitFor();
+ await page.getByRole('tab',{name:'Site journeys',exact:true}).click();
+ await frame.locator('body[data-view=park]').waitFor();
+ await frame.locator('.footprint-controls').waitFor();
+ await frame.locator('#footprintPanel').waitFor();
+ await frame.locator('#events').waitFor();
+ assert.match(await page.locator('#demoOpenLink').getAttribute('href'),/view=park/);
  await page.getByRole('tab',{name:'Revenue stories',exact:true}).click();
  assert.match(await page.locator('#demoOpenLink').getAttribute('href'),/revenue\.html\?demo=1/);
  await frame.locator('#metrics').getByText('$97.00',{exact:true}).waitFor();

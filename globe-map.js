@@ -1,3 +1,4 @@
+import { createThemeSwitch } from './product-ui.js';
 import { visitorContextCard } from './live-intelligence.js';
 /* Native MapLibre globe + local Natural Earth geography. No custom sphere or remote tiles. */
 import { avatarSVG } from './visitor-avatar.js';
@@ -50,7 +51,7 @@ function applyMapTheme() {
   flatLand?.setStyle(flatStyle());
   const key = el('activityKey');
   if (key) key.textContent = !signal ? t('等候访客数据 · 暂停点灯') : dark ? t('柔光 = 此处有在线访客') : t('圆形头像 = 在线访客');
-  const select = el('mapTheme'); if (select) select.value = window.__tideTheme?.preference || 'system';
+  const select = el('mapTheme'); if (select) select.setAttribute('aria-checked', String(window.__tideTheme?.resolved === 'dark'));
 }
 window.addEventListener('tide:themechange', applyMapTheme);
 reduced.addEventListener('change', applyMapTheme);
@@ -122,7 +123,9 @@ function showPopup(loc, content) {
   // Cap the card to the map height in JS: a container-query on #liveMap would create a stacking
   // context that drops the popup below the Live signals panel and blocks its buttons.
   const host = engine === 'globe' ? map?.getContainer() : flat?.getContainer();
-  if (!mobileDetails && host?.clientHeight) content.style.maxHeight = Math.max(150, Math.round(host.clientHeight * .42)) + 'px';
+  const embedded = document.body.dataset.embed === '1';
+  const popupWidth = embedded ? '420px' : '300px';
+  if (!mobileDetails && host?.clientHeight) content.style.maxHeight = (embedded ? Math.max(200, host.clientHeight - 64) : Math.max(150, Math.round(host.clientHeight * .42))) + 'px';
   if (mobileDetails) {
     const panel = document.createElement('section');
     panel.className = 'mobile-visitor-detail';
@@ -139,9 +142,9 @@ function showPopup(loc, content) {
     // MapLibre popups do not auto-pan like Leaflet; anchor above the point and nudge the map so the card stays inside the container.
     // focusAfterOpen would focus the bottom button and scroll the card; focus the card itself instead.
     // Everything runs synchronously with zero duration so the camera is settled before any observer reads it.
-    popup = new maplibregl.Popup({ offset: 30, maxWidth: '300px', className: 'live-visitor-popup', closeOnClick: false, anchor: 'bottom', focusAfterOpen: false }).setLngLat(loc).setDOMContent(content).addTo(map);
+    popup = new maplibregl.Popup({ offset: 30, maxWidth: popupWidth, className: 'live-visitor-popup', closeOnClick: false, anchor: 'bottom', focusAfterOpen: false }).setLngLat(loc).setDOMContent(content).addTo(map);
     const card = popup.getElement()?.getBoundingClientRect(), box = map.getContainer().getBoundingClientRect();
-    if (card) {
+    if (card && !embedded) {
       const dx = Math.min(0, card.left - (box.left + 10)) + Math.max(0, card.right - (box.right - 10));
       const dy = Math.min(0, card.top - (box.top + 10));
       // panBy moves the camera center, so content shifts the opposite way: pass the overflow delta directly.
@@ -150,7 +153,7 @@ function showPopup(loc, content) {
       content.tabIndex = -1; content.focus({ preventScroll: true });
     }
   }
-  else if (flat) popup = L.popup({ className: 'live-visitor-popup', maxWidth: 280, minWidth: 230, offset: [0, -25] }).setLatLng([loc[1], loc[0]]).setContent(content).openOn(flat);
+  else if (flat) popup = L.popup({ className: 'live-visitor-popup', maxWidth: embedded ? 420 : 280, minWidth: 230, offset: [0, -25] }).setLatLng([loc[1], loc[0]]).setContent(content).openOn(flat);
   // #liveMap is a stacking context below the Live signals overlay, so the card can never paint above it:
   // collapse the aggregate panel when the two would overlap and it would swallow the card's clicks.
   const signals = document.getElementById('liveSignals'), cardBox = popup?.getElement?.()?.getBoundingClientRect();
@@ -383,14 +386,8 @@ function controls() {
   for (const [label, center] of regions) { const b = txt('button', label); b.type = 'button'; b.onclick = () => showWorld(center); presets.append(b); }
   stage.append(presets);
   const picker = txt('label', '', 'theme-picker map-only');
-  const icon = txt('span', '◐'); icon.setAttribute('aria-hidden', 'true');
-  const select = document.createElement('select'); select.id = 'mapTheme'; select.setAttribute('aria-label', t('地图主题'));
-  for (const [value, label] of [['system','跟随系统'], ['light','浅色 · 白天'], ['dark','深色 · 夜间']]) {
-    const option = txt('option', label); option.value = value; select.append(option);
-  }
-  select.value = window.__tideTheme?.preference || 'system';
-  select.onchange = () => window.__tideTheme?.setPreference(select.value);
-  picker.append(icon, select); stage.append(picker);
+  const select = createThemeSwitch(); select.id = 'mapTheme'; select.removeAttribute('data-product-theme');
+  picker.append(select); stage.append(picker);
   const key = txt('span', '', 'activity-key map-only'); key.id = 'activityKey'; stage.append(key);
   applyMapTheme();
   const mode = txt('span', '地球视图', 'globe-mode map-only'); mode.id = 'globeMode'; stage.append(mode);

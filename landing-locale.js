@@ -1,5 +1,6 @@
 import { registerMessages, translate, tr } from './product-ui.js';
 registerMessages({
+  "Site journeys":"网站足迹", "Explore the sample site. Select a visitor to follow their page journey.":"探索示例站点，选择访客查看其页面访问顺序。",
   'Pricing':'价格方案', 'Sign in':'登录',
   'One complete product. Room to grow.':'完整功能，按需成长。',
   'Start free. Follow the story further.':'免费开始，让故事继续。',

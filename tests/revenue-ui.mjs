@@ -75,14 +75,14 @@ try {
  await page.screenshot({path:'visual-review/revenue-embed-mobile.png',fullPage:true});
  // Shared controls translate the dashboard, preserve preferences and apply light surfaces.
  await page.locator('[data-product-language]').selectOption('zh');
- await page.locator('[data-product-theme]').selectOption('light');
+ if(await page.locator('[data-product-theme]').getAttribute('aria-checked')!=='false')await page.locator('[data-product-theme]').click();
  await page.waitForFunction(()=>document.querySelector('#pageTitle').textContent.includes('看懂'));
  assert.equal(await page.locator('html').getAttribute('data-theme'),'light');
  assert.match(await page.locator('#metrics').textContent(),/净收入/);
  await page.reload();
  await page.locator('.dimension-grid').waitFor();
  assert.equal(await page.locator('[data-product-language]').inputValue(),'zh');
- assert.equal(await page.locator('[data-product-theme]').inputValue(),'light');
+ assert.equal(await page.locator('[data-product-theme]').getAttribute('aria-checked'),'false');
  assert.match(await page.locator('#metrics').textContent(),/访客/);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Chinese mobile light no overflow');
  await page.screenshot({path:'visual-review/revenue-embed-zh-light-mobile.png',fullPage:true});
@@ -101,7 +101,7 @@ try {
  const exportContent=await readFile(await translatedDownload.path(),'utf8');
  assert.match(exportContent,/收入快照/);assert.ok(!exportContent.includes('sample_payment_'));
  await page.locator('[data-product-language]').selectOption('en');
- await page.locator('[data-product-theme]').selectOption('dark');
+ if(await page.locator('[data-product-theme]').getAttribute('aria-checked')!=='true')await page.locator('[data-product-theme]').click();
  await page.waitForFunction(()=>document.querySelector('#pageTitle').textContent.includes('bigger'));
  assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
  assert.deepEqual(errors,[]);

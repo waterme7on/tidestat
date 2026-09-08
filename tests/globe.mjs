@@ -147,7 +147,9 @@ try {
   await page.goto(base + '/live.html'); await settled(page,'flat');
   assert.equal(await page.locator('#globeMode').textContent(),'平面兼容模式');
   assert.equal(await page.locator('#realtimeCount').textContent(),String(fixture.length));
-  await page.locator('.online-visitor[data-visitor-id="guest-020"]').click(); assert.ok(await page.locator('#visitorDetail').isVisible());
+  await page.locator('.online-visitor[data-visitor-id="guest-020"]').click(); assert.ok(await page.locator('.mobile-visitor-detail').isVisible());
+  await page.locator('.mobile-visitor-detail .visitor-popup button').click();
+  assert.ok(await page.locator('#timelineDialog[open] #visitorDetail').isVisible());
   await page.screenshot({path:`${output}/globe-webgl-fallback.png`,fullPage:true});
   assert.deepEqual(fallbackErrors,[]); await page.close();
   results.push('WebGL unavailable: local-data flat fallback with unchanged online counts and selection');

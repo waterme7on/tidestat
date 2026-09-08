@@ -1,3 +1,4 @@
+import { createThemeSwitch } from './product-ui.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { avatarSVG } from './visitor-avatar.js';
@@ -109,9 +110,7 @@ stage.before(heading,metrics);
 const overlay=text('div','','footprint-overlay park-only'); stage.append(overlay);
 const note=text('div','页面是站点，头像是访客。','footprint-caption park-only'); stage.append(note);
 const toolbar=text('div','','footprint-toolbar park-only');
-const select=document.createElement('select'); select.id='footprintTheme'; select.setAttribute('aria-label',t('足迹外观'));
-for(const [value,name] of [['system','跟随系统'],['light','浅色'],['dark','深色']]){const o=text('option',name);o.value=value;select.append(o);}
-select.onchange=()=>window.__tideTheme?.setPreference(select.value); toolbar.append(select); stage.append(toolbar);
+const select=createThemeSwitch(); select.id='footprintTheme'; select.removeAttribute('data-product-theme'); toolbar.append(select); stage.append(toolbar);
 const tools=text('div','','footprint-controls park-only'); tools.setAttribute('role','group');tools.setAttribute('aria-label',t('足迹视图控制'));
 const resetButton=button('重置足迹视角','↺',()=>reset()); resetButton.id='footprintReset';
 const planButton=button('切换俯瞰视角','俯瞰',()=>{overview=!overview;reset();}); planButton.id='footprintPlan';
@@ -237,7 +236,7 @@ function applyTheme(){
   theme=window.__tideTheme?.resolved==='light'?'light':'dark';const p=palettes[theme];
   scene.background=new THREE.Color(p.bg);for(const[k,m]of Object.entries(materials))m.color.set(p[k]);
   hemi.intensity=theme==='light'?2.5:1.25;sun.intensity=theme==='light'?2.2:1.6;
-  select.value=window.__tideTheme?.preference||'system';signature='';dirty=true;if(ready)sync();
+  select.setAttribute('aria-checked',String(window.__tideTheme?.resolved==='dark'));signature='';dirty=true;if(ready)sync();
 }
 function resize(){
   if(disposed)return;const w=Math.max(1,stage.clientWidth),h=Math.max(1,stage.clientHeight);if(w===width&&h===height)return;
