@@ -137,6 +137,10 @@
     header { flex-wrap: wrap; gap: 10px; padding: 10px 14px; }
     .live { margin-left: 0; }
   }
+
+  body[data-embed="1"] header, body[data-embed="1"] aside, body[data-embed="1"] .map-heading, body[data-embed="1"] .map-footer { display: none !important; }
+  body[data-embed="1"] main { padding: 12px 14px 14px; }
+  body[data-embed="1"] .stage { min-height: 0; }
 </style>
 <link rel="stylesheet" href="./scene.css" />
 <link rel="icon" type="image/svg+xml" href="./assets/logo.svg">
@@ -286,6 +290,8 @@ function pathNode(path) {
 
 /* 数据源:demo=模拟器;否则轮询 /api/live(同域 Worker) */
 const DEMO = new URLSearchParams(location.search).has("demo") || location.port === "8893";
+const EMBED = new URLSearchParams(location.search).get("embed") === "1";
+if (EMBED) { document.body.dataset.embed = "1"; document.addEventListener("click", e => { const a = e.target.closest("a"); if (a && !(a.getAttribute("href") || "").startsWith("#")) a.target = "_top"; }); }
 
 /* ───────────────────────── 世界地图:点阵 → canvas ───────────────────────── */
 

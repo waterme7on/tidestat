@@ -20,7 +20,9 @@ try{
   await page.reload();await page.waitForFunction(()=>document.documentElement.lang==='zh-CN'&&document.documentElement.dataset.theme==='dark');
   await page.setViewportSize({width:1440,height:1000});
  }
- await page.goto(base+'/');await page.locator('#demo').scrollIntoViewIfNeeded();const demo=page.frameLocator('iframe');await demo.locator('.dimension-grid').waitFor();
+ await page.goto(base+'/');await page.locator('#demo').scrollIntoViewIfNeeded();const demo=page.frameLocator('iframe');
+ // The demo shell opens on the live map; preference sync is a revenue product-ui concern, so flip to that tab (locale-proof selector).
+ await page.locator('.demo-tab[data-demo="revenue"]').click();await demo.locator('.dimension-grid').waitFor();
  await page.locator('[data-product-language]').selectOption('en');await page.locator('[data-product-theme]').selectOption('light');
  await page.waitForFunction(()=>{const root=document.querySelector('iframe').contentDocument.documentElement;return root.lang==='en'&&root.dataset.theme==='light';});
  assert.deepEqual(errors,[]);console.log('Product consistency passed: identical logos, shared palettes, Chinese/English, code invariance, mobile, persisted preferences and embedded demo sync.');
