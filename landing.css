@@ -63,3 +63,7 @@
  .faq-section { gap: 12px; padding-bottom: 48px; }
  .setup-section .section-top, .proof-section .section-top { display: block; }
 }
+
+@media(min-width:761px) { .demo-shell iframe[data-demo-view="live"] { height: 760px; } }
+
+@media(min-width:761px) { .demo-shell iframe[data-demo-view="journeys"] { height:760px; } }
