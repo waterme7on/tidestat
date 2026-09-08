@@ -1,5 +1,6 @@
 name = "tidestat"
 main = "worker.js"
+preview_urls = true
 compatibility_date = "2025-05-03"
 
 routes = [
