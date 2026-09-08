@@ -10,3 +10,15 @@ html[data-theme="light"]{--tide-bg:#f8f9f6;--tide-surface:#fff;--tide-ink:#26323
 .product-controls select { appearance: none; -webkit-appearance: none; border-radius: 9px; padding: 9px 28px 9px 12px; min-height: 40px; font-size: 12px; background: var(--tide-soft); }
 .product-controls select:hover { border-color: var(--tide-muted); }
 @media(max-width:600px) { .product-controls select { max-width: 116px; min-height: 44px; font-size: 12px; padding: 9px 25px 9px 9px; } }
+
+.product-controls .language-control > svg { position: absolute; left: 11px; top: 14px; width: 16px; height: 16px; fill: none; stroke: var(--tide-muted); stroke-width: 1.5; pointer-events: none; }
+.product-controls .language-control select { padding: 10px 28px 10px 34px; max-width: 170px; min-height: 44px; border-color: transparent; background: transparent; border-radius: 22px; font-size: 12px; }
+.product-controls .language-control select:hover { background: var(--tide-soft); }
+.theme-switch { position: relative; display: flex; align-items: center; justify-content: space-around; gap: 10px; width: 76px; height: 44px; flex-shrink: 0; border: 1px solid var(--tide-line); border-radius: 24px; padding: 6px; cursor: pointer; background: var(--tide-soft); color: var(--tide-muted); }
+.theme-switch svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; position: relative; }
+.theme-switch-thumb { position: absolute; width: 32px; height: 32px; left: 5px; top: 5px; background: var(--tide-surface); border-radius: 50%; box-shadow: 0 1px 4px #0002; transition: transform .18s ease; }
+.theme-switch[aria-checked=true] .theme-switch-thumb { transform: translateX(32px); }
+.theme-switch[aria-checked=false] .theme-sun, .theme-switch[aria-checked=true] .theme-moon { color: var(--tide-accent); }
+.theme-switch:focus-visible { outline: 2px solid var(--tide-accent); outline-offset: 3px; }
+@media(prefers-reduced-motion:reduce) { .theme-switch-thumb { transition: none; } }
+@media(max-width:600px) { .product-controls .language-control select { max-width:112px; padding-left:31px; padding-right:23px; } }

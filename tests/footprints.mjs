@@ -51,7 +51,7 @@ try{
  const svg=await person.locator('svg').evaluate(e=>e.outerHTML);
  assert.equal(await page.locator('.footprint-avatar[data-visitor-id="footprint-full-0"] svg').evaluate(e=>e.outerHTML),svg);
  await page.screenshot({path:'visual-review/footprints-tracked.png'});
- const before=await page.evaluate(()=>window.__tide3d.viewState());await page.locator('#footprintTheme').selectOption('light');await page.waitForTimeout(350);
+ const before=await page.evaluate(()=>window.__tide3d.viewState());if(await page.locator('#footprintTheme').getAttribute('aria-checked')!=='false')await page.locator('#footprintTheme').click();await page.waitForTimeout(350);
  assert.deepEqual(await page.evaluate(()=>window.__tide3d.viewState()),before);assert.equal(await person.locator('svg').evaluate(e=>e.outerHTML),svg);
  assert.equal(await page.locator('html').getAttribute('data-theme'),'light');await page.getByRole('button',{name:'取消访客追踪'}).click();
  await page.locator('.footprint-journey').waitFor({state:'hidden'});
@@ -65,7 +65,7 @@ try{
  await page.screenshot({path:'visual-review/footprints-expanded.png'});await page.keyboard.press('Escape');assert.equal(await page.locator('.footprint-expanded').count(),0);
  await page.setViewportSize({width:390,height:844});await page.waitForTimeout(500);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await page.screenshot({path:'visual-review/footprints-light-mobile.png',fullPage:true});
- await page.locator('#footprintTheme').selectOption('dark');await page.locator('#footprintExpand').click();await page.waitForTimeout(300);
+ if(await page.locator('#footprintTheme').getAttribute('aria-checked')!=='true')await page.locator('#footprintTheme').click();await page.locator('#footprintExpand').click();await page.waitForTimeout(300);
  await page.screenshot({path:'visual-review/footprints-dark-mobile-expanded.png'});await page.keyboard.press('Escape');
  results.push('interaction: drag, reset, top-down view, expand/Escape, system theme integration, 390px layout without page overflow');
  await page.setViewportSize({width:1440,height:1000});
@@ -84,7 +84,7 @@ try{
  const flat=await browser.newPage({locale:'zh-CN',viewport:{width:390,height:844},colorScheme:'light',reducedMotion:'reduce'});watch(flat);inspected=flat;
  await flat.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)?null:original.call(this,type,...args);};});
  await flat.bringToFront();await open(flat);assert.equal(await flat.locator('.stage').getAttribute('data-footprint-engine'),'flat');assert.equal(await flat.locator('#stage3d').isVisible(),false);
- await flat.locator('#footprintTheme').selectOption('dark');assert.equal(await flat.locator('html').getAttribute('data-theme'),'dark');
+ if(await flat.locator('#footprintTheme').getAttribute('aria-checked')!=='true')await flat.locator('#footprintTheme').click();assert.equal(await flat.locator('html').getAttribute('data-theme'),'dark');
  await flat.locator('.footprint-person').click();await selected(flat,visitors[0].id);
  await flat.screenshot({path:'visual-review/footprints-flat-mobile.png',fullPage:true});inspected=page;await flat.close();
  results.push('compatibility: unavailable/lost WebGL uses themed local flat footprint with working visitor selection');

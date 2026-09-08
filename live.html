@@ -960,6 +960,7 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
+if (new URLSearchParams(location.search).get('view') === 'park') setView('park');
 
 // A large, explicitly simulated audience. Never runs in live mode or calls /api/collect.
 if (DEMO) for (let i = 0; i < 120; i++) {
