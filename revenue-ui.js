@@ -25,11 +25,13 @@ function sample(){
 }
 function notice(message,error=false){$('notice').innerHTML=message?`<div class="notice${error?' error':''}">${esc(message)}</div>`:'';}
 function render(){
- const current=view();document.querySelectorAll('[data-view],[data-tab]').forEach(a=>{const active=(a.dataset.view||a.dataset.tab)===current;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+ const current=view(),connection=window.tideConnection.get();
+ const sitePicker=$('accountSiteSelect');sitePicker.hidden=demo||!connection.session||!connection.sites?.length;$('siteLabel').hidden=!sitePicker.hidden;if(!sitePicker.hidden)sitePicker.innerHTML=connection.sites.map(site=>`<option data-no-translate value="${esc(site.id)}"${site.id===connection.site?' selected':''}>${esc(site.name||site.origin||site.id)}</option>`).join('');
+ document.querySelectorAll('[data-view],[data-tab]').forEach(a=>{const active=(a.dataset.view||a.dataset.tab)===current;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
  $('pageTitle').textContent=titles[current][0];$('pageDescription').textContent=titles[current][1];$('siteLabel').textContent=demo?'Sample store':window.tideConnection.get().site||'Your workspace';$('dataBadge').textContent=demo?'Sample data · not your revenue':data?'Connected workspace':'Not connected';$('dataBadge').classList.toggle('demo',demo);$('range').disabled=demo;$('metrics').hidden=!data||current==='integrations';
  for(const id of ['liveLink','introLive'])$(id).href=`./live.html${demo?'?demo=1':''}`;
  if(current==='integrations'){renderIntegrations();return;}
- if(!data){$('metrics').innerHTML='';$('content').innerHTML=`<section class="card empty"><div class="empty-orbit">${icon('globe')}</div><h2>Your first revenue story starts here.</h2><p>Connect your website to see its visitors, their paths and the payments they lead to.</p><button class="primary" id="setup">Connect website →</button><button id="sample">Explore sample stories</button><p><a href="./docs/index.html">Read the integration guide</a></p></section>`;$('setup').onclick=()=>$('connectDialog').showModal();$('sample').onclick=()=>{demo=true;data=sample();visitorFilter='';notice('Illustrative sample data. These are not real visitors or revenue.');location.hash='stories';render();};return;}
+ if(!data){$('metrics').innerHTML='';$('content').innerHTML=`<section class="card empty"><div class="empty-orbit">${icon('globe')}</div><h2>Your first revenue story starts here.</h2><p>Connect your website to see its visitors, their paths and the payments they lead to.</p><button class="primary" id="setup">Connect website →</button><button id="sample">Explore sample stories</button><p><a href="./docs/index.html">Read the integration guide</a></p></section>`;$('setup').onclick=()=>{location.href='./account.html';};$('sample').onclick=()=>{demo=true;data=sample();visitorFilter='';notice('Illustrative sample data. These are not real visitors or revenue.');location.hash='stories';render();};return;}
  if(!data.overview.currencies.some(c=>c.currency===currency))currency=data.overview.currencies[0]?.currency||'USD';
  const t=totals();$('metrics').innerHTML=[['Visitors',number(data.overview.visitors),'Observed people'],['Sessions',number(data.overview.sessions),'Recorded visits'],['Net revenue',money(t.revenue),currency],['Customers',number(data.overview.customers),'Paying visitors'],['Conversion',data.overview.conversion==null?'—':`${(data.overview.conversion*100).toFixed(1)}%`,'Visitor → payment'],['Revenue / visitor',t.revenuePerVisitor==null?'—':money(t.revenuePerVisitor),currency]].map(([label,value,note])=>`<div class="metric${label==='Net revenue'?' revenue-metric':''}"><span>${label}</span><strong>${esc(value)}</strong><small>${note}</small></div>`).join('');
  if(current==='overview')renderOverview();if(current==='stories')renderStories(currencySelect(),t);if(current==='insights')renderInsights();
@@ -66,8 +68,10 @@ function renderIntegrations(){const rows=[['chart','NPM / Browser SDK','Local pa
 async function load() {
   const ticket=++generation;
   if(demo){data=sample();notice('Illustrative sample data. These are not real visitors or revenue.');render();return;}
+  await window.tideConnection.ready;
+  if(ticket!==generation)return;
   const connection=window.tideConnection.get();
-  if(!connection.site||!connection.token){data=null;notice('');render();return;}
+  if(!connection.site||(!connection.token&&!connection.session)){data=null;notice('');render();return;}
   data=null;render();notice('Loading observed journeys and verified payments…');
   const request=window.tideConnection.request('/api/revenue',{days:$('range').value});
   try {const res=await fetch(request.url,{headers:request.headers,cache:'no-store',signal:AbortSignal.timeout(15000)});if(!res.ok)throw new Error(res.status===401||res.status===403?'The website ID or read token was not accepted.':tr('Revenue data is unavailable ({status}).',{status:res.status}));const result=await res.json();if(!result.overview||!Array.isArray(result.stories))throw new Error('Unexpected response. Check that the Revenue Story Worker is deployed.');if(ticket!==generation)return;data=result;notice(data.truncated||data.historyComplete===false?'The available history is incomplete or exceeds the report limit. Totals describe the returned sample; narrow the date range.':'');render();}catch(e){if(ticket!==generation)return;data=null;notice(e.name==='TimeoutError'?'The request timed out. Refresh to try again.':e.message,true);render();}
@@ -79,10 +83,12 @@ $('connectionButton').onclick=()=> $('connectDialog').showModal();
 $('connectForm').onsubmit=e=>{e.preventDefault();const form=new FormData(e.target);window.tideConnection.set(form.get('site').trim(),form.get('token').trim());demo=false;visitorFilter='';sourceFilter='';$('connectDialog').close();load();};
 $('disconnect').onclick=()=>{window.tideConnection.clear();demo=false;data=null;generation++;$('connectDialog').close();notice('');render();};
 for(const button of document.querySelectorAll('[data-close]'))button.onclick=()=>$(button.dataset.close).close();
+$('accountSiteSelect').onchange=e=>{if(window.tideConnection.select(e.target.value)){sourceFilter='';visitorFilter='';statusFilter='';data=null;void load();}};
 $('refresh').onclick=load;$('range').onchange=load;window.addEventListener('hashchange',render);
 window.addEventListener('tide:languagechange',()=>{const wasOpen=$('storyDialog').open;render();if(wasOpen&&activeStory)openStory(activeStory);translate();});
 window.addEventListener('tide:themechange',()=>{if(data)render();});
 load();
+if(params.get('advanced')==='1')$('connectDialog').showModal();
 
 async function loadSearch() {
   const target=$('searchData'), ticket=generation;

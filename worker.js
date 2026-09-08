@@ -1,7 +1,8 @@
 // Live visitors and durable Revenue Stories share a site-scoped canonical event stream.
+import {handleAccountRequest,getManagedSite,canReadSite,consumeEventQuota} from './accounts.js';
 import { readContext } from './analytics.js';
 import { maskIp, validMaskedIp } from './privacy.js';
-import { sites, ingest, verifyWebhook, savePayment, report } from './revenue.js';
+import { sites, ingest, normalizeEvent, verifyWebhook, savePayment, report } from './revenue.js';
 const cors={ 'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, GET, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization','Access-Control-Max-Age':'86400' };
 function json(data,status=200) { return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...cors}}); }
 function authorized(request, config) { return !!config?.readToken && request.headers.get('authorization')===`Bearer ${config.readToken}`; }
@@ -15,19 +16,23 @@ export default {
   if(!url.pathname.startsWith('/api/'))return env.ASSETS.fetch(request);
   const configMap=sites(env);
   try {
+   const accountResponse=await handleAccountRequest(request,env);if(accountResponse)return accountResponse;
    if(url.pathname==='/api/collect' && request.method==='POST') {
     if(Number(request.headers.get('content-length')||0)>16384)return json({error:'Payload too large'},413);
     const raw=await request.text();if(raw.length>16384)return json({error:'Payload too large'},413);
     let body;try {body=JSON.parse(raw);}catch{return json({error:'Invalid JSON'},400);}
-    const config=configMap[body.site_id];
+    if(typeof body?.site_id!=='string')return json({error:'A valid site ID is required'},400);
+    const managed=await getManagedSite(env.DB,body.site_id);
+    const config=managed?{...managed,...configMap[body.site_id]}:configMap[body.site_id];
     if(!config)return json({error:'Unknown site'},400);
     const origin=request.headers.get('origin');
     const allowedOrigins=[config.origin,...(Array.isArray(config.allowedOrigins)?config.allowedOrigins:[])].filter(Boolean);
     if(!origin || !allowedOrigins.includes(origin))return json({error:'Origin not allowed'},403);
-    try {await ingest(env.DB,body,{...(request.cf||{}),userAgent:request.headers.get('user-agent')||'',device:device(request.headers.get('user-agent')||''),maskedIp:maskIp(request.headers.get('CF-Connecting-IPv6')||request.headers.get('CF-Connecting-IP'))});}catch(error){if(/Invalid|outside|Session belongs/.test(error.message))return json({error:error.message},400);throw error;}
+    try {normalizeEvent(body);if(body.type!=='heartbeat'){const quota=await consumeEventQuota(env,body.site_id,body.event_id);if(!quota.allowed)return json({error:'Monthly event allowance reached',limit:quota.limit,month:quota.month},429);}
+    await ingest(env.DB,body,{...(request.cf||{}),userAgent:request.headers.get('user-agent')||'',device:device(request.headers.get('user-agent')||''),maskedIp:maskIp(request.headers.get('CF-Connecting-IPv6')||request.headers.get('CF-Connecting-IP'))});}catch(error){if(/Invalid|outside|Session belongs/.test(error.message))return json({error:error.message},400);throw error;}
     return json({ok:true});
    }
-   const site=url.searchParams.get('site'), config=configMap[site];
+   const site=url.searchParams.get('site'),managed=site?await getManagedSite(env.DB,site):null,config=managed?{...managed,...configMap[site]}:configMap[site];
    if(!site || !config)return json({error:'A configured site is required'},400);
    if(url.pathname.startsWith('/api/webhooks/') && request.method==='POST') {
     const provider=url.pathname.split('/').pop();if(!['stripe','shopify'].includes(provider))return json({error:'Unknown connector'},404);
@@ -36,7 +41,9 @@ export default {
     let payload;try{payload=JSON.parse(raw);}catch{return json({error:'Invalid JSON'},400);}
     return json(await savePayment(env.DB,provider,site,payload,request.headers));
    }
-   if(!authorized(request,config))return json({error:'Site read token required'},401);
+   const legacyAccess=authorized(request,config);
+   if(!legacyAccess&&!await canReadSite(request,env,site))return json({error:'Sign in or provide a site read token'},401);
+   if(!legacyAccess&&!['GET','HEAD'].includes(request.method)&&request.headers.get('origin')!==url.origin)return json({error:'Same-origin request required'},403);
    if(url.pathname==='/api/search-console') {
     if(request.method==='POST') {
      const raw=await request.text();if(raw.length>1048576)return json({error:'Payload too large'},413);

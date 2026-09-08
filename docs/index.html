@@ -413,6 +413,13 @@ Content-Type: application/json
 <div class="eyebrow">Operations</div>
 <h1>Multiple websites</h1>
 <p class="lead">Keep traffic, sessions, payments and analytics reads scoped to the right website.</p>
+<h2>Sign in and own your websites</h2>
+<p>Open <a href="../account.html">your account</a> and sign in with Google when this deployment has enabled it. Websites created there belong to the signed-in account. The account’s plan controls website count and monthly event allowance; every plan includes the same analytics, Revenue Story and live features.</p>
+<p>Free includes 1 website and 10,000 monthly events. Starter is USD 9/month or USD 90/year, with 3 websites and 100,000 monthly events. Growth is USD 29/month or USD 290/year, with 10 websites and 1,000,000 monthly events. Yearly prices are the full annual charge. See <a href="../pricing.html">pricing</a> for the current catalog.</p>
+<p>Paid entitlements are granted only after the server verifies the current Stripe subscription. Returning from checkout or changing a URL does not activate a paid plan. The account page reports whether Google sign-in and paid billing are configured; displaying a plan is not evidence that live billing is activated.</p>
+<p>Event allowances reset by calendar month in UTC and are shared across the account’s websites. Accepted canonical behavior events count once after deduplication; activity heartbeats support live presence without consuming the allowance. New events over the allowance are rejected with HTTP 429. Downgrading retains existing websites and readable history, blocks creation beyond the new website limit, and applies the new shared event allowance.</p>
+<p>The public <code>GET /api/plans</code> endpoint supplies the plan catalog and a <code>billingAvailable</code> configuration flag. That flag describes deployment readiness, not the signed-in account’s paid entitlement. Static pricing previews use the same listed fallback amounts when this API is unavailable.</p>
+<h2>Operator-managed websites</h2>
 <p>Configure <code>SITES_JSON</code> as an object keyed by site ID. Each entry has its own collection origin, read token and optional connector settings.</p>
 <pre>
 <code>{
@@ -437,7 +444,7 @@ Content-Type: application/json
 <li>Verify site A’s token cannot read site B’s data.</li>
 <li>A payment with cross-site visitor/session metadata must remain unattributed.</li>
 </ul>
-<p>The current configuration is operator-managed. Self-service teams, invitations and role administration are not included.</p>
+<p>User-owned account websites and legacy operator-managed websites are separate. Signing in alone does not claim an arbitrary legacy website; an administrator may preassign a verified-email migration claim. Teams, invitations and delegated role administration are not included.</p>
 <div class="pager">
 <a href="#journeys">← Journeys, sources & leaks</a>
 <a href="#deployment">Deployment & migration →</a>
@@ -463,6 +470,21 @@ npx wrangler dev</code>
 npx wrangler deploy</code>
 </pre>
 <p>Existing Revenue Story deployments can add the context tables with <code>migrations/0002_analytics_context.sql</code>; it is idempotent and the full <code>schema.sql</code> includes the same tables. This does not backfill historical dimensions. The build copies only browser assets into <code>dist/</code>; the Worker configuration runs it before deployment. The schema is additive and idempotent. It does not reconstruct historical sessions or payments from old page views. Review the actual database name if you renamed the binding.</p>
+<h2>Enable Google sign-in and subscriptions</h2>
+<p>Apply <code>migrations/0003_accounts.sql</code> to add account, ownership and billing storage. Configure the following values on the Worker; keep secrets out of the repository and client-side code.</p>
+<div class="table-wrap"><table><thead><tr><th>Setting</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>APP_ORIGIN</code></td><td>Canonical HTTPS origin of this TideStat deployment.</td></tr>
+<tr><td><code>GOOGLE_CLIENT_ID</code> / <code>GOOGLE_CLIENT_SECRET</code></td><td>Google OAuth web application credentials.</td></tr>
+<tr><td><code>STRIPE_SECRET_KEY</code></td><td>Server-side Stripe credential for TideStat subscriptions.</td></tr>
+<tr><td><code>BILLING_WEBHOOK_SECRET</code></td><td>Signing secret for the dedicated subscription-billing webhook.</td></tr>
+<tr><td><code>STRIPE_PRICE_STARTER_MONTHLY</code> / <code>STRIPE_PRICE_STARTER_YEARLY</code></td><td>USD 9 monthly and USD 90 yearly recurring Stripe Price IDs.</td></tr>
+<tr><td><code>STRIPE_PRICE_GROWTH_MONTHLY</code> / <code>STRIPE_PRICE_GROWTH_YEARLY</code></td><td>USD 29 monthly and USD 290 yearly recurring Stripe Price IDs.</td></tr>
+</tbody></table></div>
+<p>In Google’s OAuth configuration, register the exact callback <code>APP_ORIGIN/api/auth/callback</code>, replacing APP_ORIGIN with your deployment’s HTTPS origin. Use a web application client. Configure Stripe recurring prices to match the public catalog and complete a real test-mode sign-in, checkout and subscription-webhook cycle before enabling production billing.</p>
+<p>Google sign-in starts at <code>/api/auth/google</code>. Register the subscription webhook at <code>APP_ORIGIN/api/billing/webhook</code> for <code>customer.subscription.created</code>, <code>customer.subscription.updated</code>, <code>customer.subscription.deleted</code>, <code>checkout.session.completed</code>, <code>invoice.paid</code> and <code>invoice.payment_failed</code>. The handler refetches the current subscription; only active or trialing subscriptions with configured prices grant paid entitlements. This does not imply a free trial is offered.</p>
+<p>TideStat subscription billing is separate from a website’s revenue connector. The billing signing secret controls payment for TideStat plans; site-level Stripe and Shopify webhook secrets verify the website’s customer revenue. Do not interchange those endpoints or secrets.</p>
+<p>Account sessions use opaque HttpOnly, Secure, SameSite=Lax cookies and server-side hashed session identifiers. Mutating requests require the same Origin. User ownership is checked on the server; a site ID in the URL is not permission to read another account’s analytics.</p>
+<div class="notice warning"><strong>Activation requires deployment configuration</strong>Google OAuth credentials, Stripe prices, webhook registration and production test receipts must be supplied and verified by the deployment owner. This documentation does not mean those services are already live.</div>
 <h2>Documentation and static preview</h2>
 <pre>
 <code>node server.cjs

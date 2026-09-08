@@ -155,14 +155,14 @@
 </head>
 <body data-view="map">
 <header>
-  <div class="brand">
+  <a class="brand" href="./landing.html" aria-label="TideStat home">
     <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
       <rect x="1" y="11" width="4" height="10" rx="1.5" fill="#e8863a"/>
       <rect x="9" y="5" width="4" height="16" rx="1.5" fill="#3b6fd4" opacity=".8"/>
       <rect x="17" y="1" width="4" height="20" rx="1.5" fill="#2f7d5c" opacity=".7"/>
     </svg>
     TideStat
-  </div>
+  </a>
   <nav class="tabs" aria-label="视图切换" data-i18n-aria-label="视图切换">
     <button id="tab-map" class="active" aria-pressed="true" type="button" data-i18n="实时访问人数">实时访问人数</button>
     <button id="tab-park" aria-pressed="false" type="button" data-i18n="网站足迹">网站足迹</button>
@@ -189,7 +189,6 @@
     <div class="stage">
       <div id="liveMap" role="region" aria-label="实时访客地图，可拖拽、缩放；所有访客也可在右侧列表访问。" data-i18n-aria-label="实时访客地图，可拖拽、缩放；所有访客也可在右侧列表访问。"></div>
       <div class="map-caption map-only"><i aria-hidden="true"></i><span data-i18n="每个头像，都是一位来访者">每个头像，都是一位来访者</span></div>
-      <details id="liveSignals" class="map-only"><summary><span>Live signals</span></summary><div class="signals-body"></div></details>
       <div class="map-controls map-only" id="mapControls" role="group" aria-label="地图控制" data-i18n-aria-label="地图控制">
         <button id="mapReset" type="button" aria-label="查看全球" data-i18n-aria-label="查看全球" title="查看全球" data-i18n-title="查看全球"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 1v4m0 14v4M1 12h4m14 0h4"/><circle cx="12" cy="12" r="2"/></svg></button>
         <div class="map-zoom"><button id="mapZoomIn" type="button" aria-label="放大地图" data-i18n-aria-label="放大地图">+</button><button id="mapZoomOut" type="button" aria-label="缩小地图" data-i18n-aria-label="缩小地图">−</button></div>
@@ -200,6 +199,7 @@
     <canvas id="stage3d" role="img" aria-label="实时访客三维场景，可拖拽旋转和滚轮缩放。详细信息见右侧事件与访客时间线。" data-i18n-aria-label="实时访客三维场景，可拖拽旋转和滚轮缩放。详细信息见右侧事件与访客时间线。" style="position:absolute;inset:0;width:100%;height:100%;display:none;"></canvas>
     <div class="hint" id="stageHint">LIVE · 实时访客 · 点击右侧事件可追踪访客</div>
   </div>
+      <details id="liveSignals" class="map-only"><summary><span>Live signals</span></summary><div class="signals-body"></div></details>
               <div class="map-footer map-only"><span data-i18n="位置为城市级近似 · 头像为匿名生成，不代表本人外貌">位置为城市级近似 · 头像为匿名生成，不代表本人外貌</span><span id="unknownLocations"></span></div>
   </div>
   <aside>
@@ -665,8 +665,9 @@ function drawPark(now, dt) {
     }
 
     // 到站涟漪
-    if (v.state === "reading" && now - (v.visited[v.visited.length - 1]?.arrive || 0) < 900) {
-      const k = ((now - v.visited[v.visited.length - 1].arrive) / 900);
+    const lastVisit = v.visited[v.visited.length - 1];
+    if (v.state === "reading" && lastVisit && now - lastVisit.arrive < 900) {
+      const k = ((now - lastVisit.arrive) / 900);
       ctx.beginPath(); ctx.arc(pos.x, pos.y, 6 + k * 16, 0, 7);
       ctx.strokeStyle = `rgba(37,99,235,${(1 - k) * .5})`;
       ctx.lineWidth = 1.5; ctx.stroke();
@@ -835,6 +836,7 @@ const liveSeen = new Map();
 const liveEventSeen = new Set();
 let liveTimer = 0, liveBusy = false;
 async function liveTick(now) {
+  await window.tideConnection.ready;
   if (DEMO || liveBusy) return;
   liveBusy = true;
   const controller = new AbortController();

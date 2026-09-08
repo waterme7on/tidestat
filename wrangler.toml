@@ -17,3 +17,6 @@ database_id = "83d47f45-d78b-403a-a9fb-e6fab984fca6"
 
 [build]
 command = "npm run build"
+
+[vars]
+APP_ORIGIN = "https://tidestat.yololab.cc"

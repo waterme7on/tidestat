@@ -5,6 +5,7 @@ import {createHmac} from 'node:crypto';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import worker from '../worker.js';
+import {hashToken} from '../accounts.js';
 const sql=new DatabaseSync(':memory:');sql.exec(await readFile(new URL('../schema.sql',import.meta.url),'utf8'));
 const DB={prepare(query){return {bind(...args){return {first:async()=>sql.prepare(query).get(...args)||null,all:async()=>({results:sql.prepare(query).all(...args)}),run:async()=>sql.prepare(query).run(...args)}}}},async batch(statements){sql.exec('BEGIN');try{const result=[];for(const s of statements)result.push(await s.run());sql.exec('COMMIT');return result;}catch(e){sql.exec('ROLLBACK');throw e;}}};
 const env={DB,ASSETS:{async fetch(request){const pathname=new URL(request.url).pathname;try{const body=await readFile(new URL('../dist'+pathname,import.meta.url));return new Response(body,{headers:{'Content-Type':pathname.endsWith('.html')?'text/html':pathname.endsWith('.css')?'text/css':'application/javascript','Access-Control-Allow-Origin':'*'}});}catch{return new Response('Missing',{status:404});}}}};
@@ -26,7 +27,7 @@ try {
  const payload={id:'evt_e2e',type:'checkout.session.completed',created:now,data:{object:{id:'cs_e2e',payment_intent:'pi_e2e',payment_status:'paid',amount_total:1900,currency:'usd',metadata}}};
  const body=JSON.stringify(payload),signature=createHmac('sha256','stripe-test').update(`${now}.${body}`).digest('hex');
  for(let i=0;i<2;i++)assert.equal((await fetch(base+'/api/webhooks/stripe?site=store',{method:'POST',headers:{'stripe-signature':`t=${now},v1=${signature}`},body})).status,200);
- await page.locator('#setup').click();await page.locator('input[name=site]').fill('store');await page.locator('input[name=token]').fill('read-store');await page.getByRole('button',{name:'Open workspace →'}).click();
+ await page.locator('#connectionButton').click();await page.locator('input[name=site]').fill('store');await page.locator('input[name=token]').fill('read-store');await page.getByRole('button',{name:'Open workspace →'}).click();
  await page.locator('nav [data-view=stories]').click();
  await page.waitForFunction(()=>document.querySelector('#storyList [data-story]'));
  assert.equal(await page.locator('#storyList [data-story]').count(),1);assert.match(await page.locator('#metrics').textContent(),/\$19\.00/);
@@ -49,5 +50,14 @@ try {
   assert.equal(await page.evaluate(()=>window.tidestat.checkout()),true,'cross-origin module, preflight and collector work together');
   await page.evaluate(()=>window.tidestat.destroy());
  } finally {await new Promise(resolve=>storefront.close(resolve));}
+ const session='a'.repeat(43);
+ sql.prepare('INSERT INTO account_users VALUES (?,?,?,?,?)').run('owner','google-test','test@example.com','Test',Date.now());
+ sql.prepare('INSERT INTO account_sites VALUES (?,?,?,?,?)').run('store','owner','Store',base,Date.now());
+ sql.prepare('INSERT INTO account_sessions VALUES (?,?,?)').run(await hashToken(session),'owner',Date.now()+60000);
+ const cookieHeaders={cookie:`__Host-tidestat_session=${session}`};
+ assert.equal((await fetch(base+'/api/revenue?site=store',{headers:cookieHeaders})).status,200);
+ assert.equal((await fetch(base+'/api/revenue?site=other',{headers:cookieHeaders})).status,401);
+ assert.equal((await fetch(base+'/api/search-console?site=store',{method:'POST',headers:{...cookieHeaders,origin:'https://attacker.example'},body:JSON.stringify({rows:[]})})).status,403);
+ assert.equal((await fetch(base+'/api/collect',{method:'POST',headers:{origin:base},body:'{}'})).status,400);
  assert.deepEqual(errors,[]);console.log('End-to-end passed: real SDK → Worker → SQLite → signed duplicate payment → authenticated UI story → live identity, with website isolation.');
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve));sql.close();}

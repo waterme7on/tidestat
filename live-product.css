@@ -15,3 +15,56 @@ html[data-theme] body[data-view] .live-signals{background:var(--tide-surface);co
 html[data-theme] body[data-view] .visitor-popup{background:var(--tide-surface);color:var(--tide-ink);border-color:var(--tide-line)}
 html[data-theme] body[data-view] .signal-label,html[data-theme] body[data-view] .signals-receipts{color:var(--tide-muted)}
 @media(max-width:860px){header>[data-product-controls]{margin-left:auto}header{flex-wrap:wrap;gap:10px!important}header .live{margin-left:auto}}
+
+/* Signals belong to the workspace, not on top of geographic content. */
+.workspace > #liveSignals { position: static; width: 100%; max-width: none; flex: none; box-shadow: none; background: var(--tide-surface); border-color: var(--tide-line); color: var(--tide-ink); }
+.workspace > #liveSignals summary { min-height: 44px; }
+body[data-view] .theme-picker { display: none; }
+.mobile-visitor-detail { position: relative; flex: none; padding: 18px; border: 1px solid var(--tide-line); border-radius: 14px; background: var(--tide-surface); }
+.mobile-visitor-detail .visitor-popup { max-height: none; overflow: visible; }
+.mobile-visitor-detail .visitor-popup-head { padding-right: 28px; }
+.mobile-visitor-detail .visitor-context-grid { grid-template-columns: 1fr 1fr; max-height: none; overflow: visible; }
+.mobile-visitor-close { position: absolute; top: 6px; right: 6px; width: 44px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: var(--tide-ink); font-size: 24px; cursor: pointer; }
+body[data-view=park] .mobile-visitor-detail { display: none; }
+@media(max-width:600px) {
+  body[data-view] header { display: grid; grid-template-columns: minmax(0,1fr) auto; padding: 12px; gap: 10px; }
+  body[data-view] header .brand { font-size: 20px; margin: 0; gap: 6px; }
+  body[data-view] header .brand .tide-brand-mark { width: 24px; height: 24px; }
+  body[data-view] header .live { grid-column: 1 / -1; margin: 0; font-size: 11px; }
+  body[data-view] header .tabs { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr auto; width: 100%; padding: 3px; gap: 2px; }
+  body[data-view] header .tabs button, body[data-view] header .tabs a { min-width: 0; min-height: 44px; padding: 8px 6px; font-size: 11px; display: flex; align-items: center; justify-content: center; text-align: center; white-space: normal; }
+  body[data-view=map] .visitor-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .metric-primary { grid-column: 1 / -1; }
+  .metric-number > span { max-width: none; }
+  .metric-status { max-width: none; flex-wrap: nowrap; align-items: baseline; }
+  .metric-secondary { padding: 0 12px; }
+  .map-heading { align-items: flex-start; gap: 10px; }
+  body[data-view=map] .stage { height: 420px; }
+  body[data-view=map] .globe-mode { display: none; }
+  body[data-view=map] .map-caption { top: 8px; left: 8px; right: 8px; padding: 4px; font-size: 10px; }
+  .activity-key { top: 36px; left: 12px; }
+  body[data-view=map] .map-controls { right: 10px; bottom: 76px; gap: 6px; }
+  body[data-view=map] .globe-regions { left: 10px; right: 10px; bottom: 24px; display: grid; grid-template-columns: repeat(3, 1fr); }
+  body[data-view=map] .globe-regions button { padding: 8px 4px; font-size: 10px; }
+}
+
+/* The marketing site and observatory use one type and color system. */
+html[data-theme] body[data-view] { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+html[data-theme] body[data-view] .brand { text-decoration: none; font-size: 21px; font-weight: 700; letter-spacing: -.8px; }
+html[data-theme] body[data-view] .tabs { background: transparent; border: 0; border-radius: 0; gap: 8px; }
+html[data-theme] body[data-view] .tabs button, html[data-theme] body[data-view] .tabs .revenue-entry { border-radius: 0; border-bottom: 2px solid transparent; background: transparent; box-shadow: none; font-size: 12px; }
+html[data-theme] body[data-view] .tabs button.active { border-bottom-color: var(--tide-accent); background: transparent; box-shadow: none; }
+html[data-theme] body[data-view] .panel h2, html[data-theme] body[data-view] .online-visitor strong, html[data-theme] body[data-view] .visitor-popup-head strong { color: var(--tide-ink); }
+html[data-theme] body[data-view] .panel h2 { text-transform: none; letter-spacing: 0; font-size: 12px; }
+html[data-theme] body[data-view] .panel h2, html[data-theme] body[data-view] .ev { border-color: var(--tide-line); }
+html[data-theme] body[data-view] .count, html[data-theme] body[data-view] .online-visitor.selected, html[data-theme] body[data-view] .visitor-popup-page { background: var(--tide-soft); color: var(--tide-ink); }
+html[data-theme] body[data-view] .visitor-popup-page b { color: var(--tide-ink); }
+html[data-theme] body[data-view] .visitor-popup-page span, html[data-theme] body[data-view] .visitor-popup-head div > span, html[data-theme] body[data-view] .visitor-privacy, html[data-theme] body[data-view] .online-visitor span { color: var(--tide-muted); }
+html[data-theme] body[data-view] .visitor-privacy { font-size: 10px; line-height: 1.6; margin-top: 12px; }
+html[data-theme] body[data-view] .visitor-popup button { color: var(--tide-accent); }
+#liveMap .maplibregl-popup-content { max-height: 340px; overflow: auto; }
+@media(max-width:600px) {
+  html[data-theme] body[data-view] .tabs { gap: 2px; }
+  html[data-theme] body[data-view] .tabs button, html[data-theme] body[data-view] .tabs .revenue-entry { font-size: 11px; }
+  body[data-view=map] aside > #visitorDetail { display: none !important; }
+}

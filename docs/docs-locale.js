@@ -1,6 +1,9 @@
 import { registerMessages, translate } from '../product-ui.js';
 
 registerMessages({
+  "The public":"公开的",
+  "endpoint supplies the plan catalog and a":"端点提供方案目录及",
+  "configuration flag. That flag describes deployment readiness, not the signed-in account’s paid entitlement. Static pricing previews use the same listed fallback amounts when this API is unavailable.":"配置标记。该标记说明部署是否就绪，不代表登录账号拥有付费权益。API 不可用时，静态价格预览使用相同的已列明备用价格。",
   "TideStat Documentation": "TideStat 文档",
   "Skip to content": "跳至正文",
   "DOCS": "文档",
@@ -276,7 +279,39 @@ registerMessages({
   "Copied": "已复制",
   "Select to copy": "选中复制",
   "Copy code example": "复制代码示例",
-  "TideStat Docs": "TideStat 文档"
+  "TideStat Docs": "TideStat 文档",
+  "Sign in and own your websites": "登录并管理你的网站",
+  "Open": "打开",
+  "your account": "你的账号",
+  "and sign in with Google when this deployment has enabled it. Websites created there belong to the signed-in account. The account’s plan controls website count and monthly event allowance; every plan includes the same analytics, Revenue Story and live features.": "；当前部署启用 Google 登录后，即可登录。通过账号创建的网站归该账号所有。订阅方案决定网站数量及每月事件额度；所有方案都包含相同的分析、收入故事和实时功能。",
+  "Free includes 1 website and 10,000 monthly events. Starter is USD 9/month or USD 90/year, with 3 websites and 100,000 monthly events. Growth is USD 29/month or USD 290/year, with 10 websites and 1,000,000 monthly events. Yearly prices are the full annual charge. See": "免费版包含 1 个网站和每月 10,000 个事件。起步版每月 9 美元或每年 90 美元，包含 3 个网站和每月 100,000 个事件。成长版每月 29 美元或每年 290 美元，包含 10 个网站和每月 1,000,000 个事件。年价为全年总费用，当前方案请查看",
+  "pricing": "价格页面",
+  "for the current catalog.": "。",
+  "Paid entitlements are granted only after the server verifies the current Stripe subscription. Returning from checkout or changing a URL does not activate a paid plan. The account page reports whether Google sign-in and paid billing are configured; displaying a plan is not evidence that live billing is activated.": "服务端验证当前 Stripe 订阅后才授予付费权益。从结账页面返回或修改 URL 都不能激活付费方案。账号页会显示 Google 登录及付费是否完成配置；展示方案不代表线上计费已启用。",
+  "Event allowances reset by calendar month in UTC and are shared across the account’s websites. Accepted canonical behavior events count once after deduplication; activity heartbeats support live presence without consuming the allowance. New events over the allowance are rejected with HTTP 429. Downgrading retains existing websites and readable history, blocks creation beyond the new website limit, and applies the new shared event allowance.": "事件额度按 UTC 自然月重置，由账号下所有网站共享。已接受的标准行为事件去重后计数；活跃心跳用于实时在线展示，不消耗额度。超出额度的新事件返回 HTTP 429。降级保留现有网站及可读取的历史数据，但禁止创建超出新上限的网站，并应用新的共享事件额度。",
+  "Operator-managed websites": "部署者管理的网站",
+  "User-owned account websites and legacy operator-managed websites are separate. Signing in alone does not claim an arbitrary legacy website; an administrator may preassign a verified-email migration claim. Teams, invitations and delegated role administration are not included.": "账号拥有的网站与旧版部署者配置的网站相互独立。仅登录不会获得任意旧网站的所有权；管理员可以预先设置经验证邮箱的迁移归属。暂不包含团队、邀请及委派角色管理。",
+  "Enable Google sign-in and subscriptions": "启用 Google 登录及订阅",
+  "Apply": "执行",
+  "to add account, ownership and billing storage. Configure the following values on the Worker; keep secrets out of the repository and client-side code.": "，增加账号、所有权和计费存储。在 Worker 上配置以下值，密钥不要写入仓库或客户端代码。",
+  "Setting": "配置项",
+  "Purpose": "用途",
+  "Canonical HTTPS origin of this TideStat deployment.": "此 TideStat 部署的标准 HTTPS 来源地址。",
+  "Google OAuth web application credentials.": "Google OAuth Web 应用凭据。",
+  "Server-side Stripe credential for TideStat subscriptions.": "用于 TideStat 订阅的服务端 Stripe 凭据。",
+  "Signing secret for the dedicated subscription-billing webhook.": "专用订阅计费 webhook 的签名密钥。",
+  "USD 9 monthly and USD 90 yearly recurring Stripe Price IDs.": "每月 9 美元和每年 90 美元的 Stripe 循环价格 ID。",
+  "USD 29 monthly and USD 290 yearly recurring Stripe Price IDs.": "每月 29 美元和每年 290 美元的 Stripe 循环价格 ID。",
+  "In Google’s OAuth configuration, register the exact callback": "在 Google OAuth 配置中登记准确的回调地址",
+  ", replacing APP_ORIGIN with your deployment’s HTTPS origin. Use a web application client. Configure Stripe recurring prices to match the public catalog and complete a real test-mode sign-in, checkout and subscription-webhook cycle before enabling production billing.": "，将 APP_ORIGIN 替换为部署的 HTTPS 来源地址。使用 Web 应用客户端。Stripe 循环价格必须与公开方案一致；启用生产计费前，完整验证真实测试模式下的登录、结账和订阅 webhook 流程。",
+  "Google sign-in starts at": "Google 登录入口为",
+  ". Register the subscription webhook at": "。在以下地址注册订阅 webhook：",
+  "for": "，订阅事件包括",
+  ". The handler refetches the current subscription; only active or trialing subscriptions with configured prices grant paid entitlements. This does not imply a free trial is offered.": "。处理器会重新获取当前订阅；只有使用已配置价格且状态为 active 或 trialing 的订阅才授予付费权益。这并不代表产品提供免费试用。",
+  "TideStat subscription billing is separate from a website’s revenue connector. The billing signing secret controls payment for TideStat plans; site-level Stripe and Shopify webhook secrets verify the website’s customer revenue. Do not interchange those endpoints or secrets.": "TideStat 订阅计费与网站收入连接器相互独立。计费签名密钥用于 TideStat 方案付款；网站级 Stripe 和 Shopify webhook 密钥用于验证网站客户带来的收入。不要混用端点或密钥。",
+  "Account sessions use opaque HttpOnly, Secure, SameSite=Lax cookies and server-side hashed session identifiers. Mutating requests require the same Origin. User ownership is checked on the server; a site ID in the URL is not permission to read another account’s analytics.": "账号会话使用不透明的 HttpOnly、Secure、SameSite=Lax Cookie，服务端保存会话标识的哈希值。修改请求必须来自相同来源。网站所有权在服务端验证；URL 中的网站 ID 并不赋予读取其他账号数据的权限。",
+  "Activation requires deployment configuration": "激活需要完成部署配置",
+  "Google OAuth credentials, Stripe prices, webhook registration and production test receipts must be supplied and verified by the deployment owner. This documentation does not mean those services are already live.": "Google OAuth 凭据、Stripe 价格、webhook 注册及生产测试回执，都需要由部署者提供并验证。这份文档不代表相关服务已经上线。"
 });
 translate();
 await import('./docs.js');

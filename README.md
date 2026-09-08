@@ -61,6 +61,12 @@ The existing Cloudflare Worker and D1 remain the core. The revenue schema is add
 - Revenue data has a separate lifetime from legacy realtime records. Operate an explicit retention/deletion policy; do not assume all data expires after 24 hours.
 - A complete-looking demo does not prove a live integration. Merchant credentials and end-to-end test payments are required before production reliance.
 
+## Accounts and pricing
+
+Google sign-in and user-owned websites use the account workflow at `/account.html`; legacy operator-managed sites remain separate. The shared plan catalog is served by `/api/plans`: Free ($0, 1 website, 10,000 monthly events), Starter ($9/month or $90/year, 3 websites, 100,000 events), and Growth ($29/month or $290/year, 10 websites, 1,000,000 events). All analytics features are included; annual prices are annual totals in USD.
+
+Apply `migrations/0003_accounts.sql`. Configure `APP_ORIGIN`, Google OAuth credentials, the Stripe billing secret and recurring Price IDs described in [deployment documentation](docs/index.html#deployment). Google sign-in and billing are not considered activated until those settings and their end-to-end flows are verified. Checkout return URLs never grant entitlements; the server verifies subscription state. TideStat plan billing is separate from website revenue payment connectors.
+
 ## Verification
 
 ```sh

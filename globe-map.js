@@ -101,6 +101,7 @@ export function groupVisitors(list) {
   for (const group of result.values()) group.ids.sort();
   return result;
 }
+window.matchMedia('(max-width: 600px)').addEventListener('change', () => clearPopup());
 function clearPopup() { popup?.remove(); popup = null; popupState = null; }
 function visitorCard(v, id) {
   const card = txt('div', '', 'visitor-popup');
@@ -117,11 +118,24 @@ function visitorCard(v, id) {
 }
 function showPopup(loc, content) {
   clearPopup();
+  const mobileDetails = window.matchMedia('(max-width: 600px)').matches && !document.querySelector('.map-expanded');
   // Cap the card to the map height in JS: a container-query on #liveMap would create a stacking
   // context that drops the popup below the Live signals panel and blocks its buttons.
   const host = engine === 'globe' ? map?.getContainer() : flat?.getContainer();
-  if (host?.clientHeight) content.style.maxHeight = Math.max(150, Math.round(host.clientHeight * .42)) + 'px';
-  if (engine === 'globe') {
+  if (!mobileDetails && host?.clientHeight) content.style.maxHeight = Math.max(150, Math.round(host.clientHeight * .42)) + 'px';
+  if (mobileDetails) {
+    const panel = document.createElement('section');
+    panel.className = 'mobile-visitor-detail';
+    const close = document.createElement('button');
+    close.className = 'mobile-visitor-close'; close.type = 'button';
+    close.textContent = '×'; close.setAttribute('aria-label', t('关闭访客时间线'));
+    const body = document.createElement('div'); body.append(content);
+    panel.append(close, body); document.querySelector('.stage').after(panel);
+    let onClose;
+    const replace = node => body.replaceChildren(node);
+    popup = {remove() { panel.remove(); onClose?.(); }, once(event, callback) { onClose = callback; }, getElement: () => panel, setDOMContent: replace, setContent: replace};
+    const current = popup; close.onclick = () => current.remove();
+  } else if (engine === 'globe') {
     // MapLibre popups do not auto-pan like Leaflet; anchor above the point and nudge the map so the card stays inside the container.
     // focusAfterOpen would focus the bottom button and scroll the card; focus the card itself instead.
     // Everything runs synchronously with zero duration so the camera is settled before any observer reads it.
@@ -362,7 +376,7 @@ function controls() {
   const expand = txt('button', '⛶'); expand.id = 'mapExpand'; expand.type = 'button'; expand.setAttribute('aria-label', t('展开地图')); expand.setAttribute('aria-pressed', 'false');
   expand.onclick = () => {
     if (stage.classList.contains('map-expanded')) { collapse(); return; }
-    stage.classList.add('map-expanded'); document.body.classList.add('map-is-expanded'); expand.setAttribute('aria-pressed', 'true'); expand.dataset.i18nAriaLabel='收起地图';expand.setAttribute('aria-label', t('收起地图')); resize();
+    clearPopup(); stage.classList.add('map-expanded'); document.body.classList.add('map-is-expanded'); expand.setAttribute('aria-pressed', 'true'); expand.dataset.i18nAriaLabel='收起地图';expand.setAttribute('aria-label', t('收起地图')); resize();
   };
   el('mapControls').prepend(expand);
   const presets = txt('div', '', 'globe-regions map-only'); presets.setAttribute('role', 'group'); presets.setAttribute('aria-label', t('快速查看地区'));
