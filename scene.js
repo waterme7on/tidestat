@@ -12,8 +12,8 @@ const bridge = () => window.__tide || {}, site = window.__tideSite;
 const pageName=(v,s)=>t(rawPageName(v,s));
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 const palettes = {
-  dark: { bg: '#0a1420', base: '#152743', rim: '#2d4a73', wall: '#54779f', roof: '#243d63', pane: '#12233f', line: '#3f5f8c', lit: '#35e0c8' },
-  light: { bg: '#0a1420', base: '#152743', rim: '#2d4a73', wall: '#54779f', roof: '#243d63', pane: '#12233f', line: '#3f5f8c', lit: '#35e0c8' },
+  dark: { bg: '#f6f4ee', base: '#e7e4d7', rim: '#565c68', wall: '#ffffff', roof: '#6a7180', pane: '#c9ccd6', line: '#8f939c', lit: '#2438e8' },
+  light: { bg: '#f6f4ee', base: '#e7e4d7', rim: '#565c68', wall: '#ffffff', roof: '#6a7180', pane: '#c9ccd6', line: '#8f939c', lit: '#2438e8' },
 };
 const LABELS = { gate: '入口', home: '首页', work: '作品馆', writing: '文章林', dyor: '研究室', about: '关于 / 其他', subscribe: '订阅角' };
 const label = id => t(LABELS[id] || site.nodes.find(n => n.id === id)?.label || id || '未分类');

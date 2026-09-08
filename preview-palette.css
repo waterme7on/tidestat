@@ -1,39 +1,40 @@
-/* Preview candidate A — 深海潮汐 deep-tide (scratch, not for merge) */
+/* Preview candidate B — 印刷海报 poster-ink (scratch, not for merge) */
 :root, html[data-theme] body[data-view] {
-  --bg: #0a1420; --bg-2: #0c1828; --paper: #101f36;
-  --ink: #e9f1fb; --ink-soft: #7e94b0; --line: rgba(140,170,210,.16);
-  --blue: #5b8de8; --blue-soft: rgba(91,141,232,.14);
-  --green: #3ecf9a; --accent-warm: #35e0c8;
+  --bg: #f6f4ee; --bg-2: #efece1; --paper: #ffffff;
+  --ink: #131519; --ink-soft: #5c6068; --line: rgba(19,21,25,.14);
+  --blue: #2438e8; --blue-soft: rgba(36,56,232,.09);
+  --green: #2438e8; --accent-warm: #2438e8;
 }
-html, html[data-theme="light"], html[data-theme="dark"] { background: #0a1420; }
-body { background: linear-gradient(180deg, #0a1420 0%, #0c1828 100%) !important; color: #e9f1fb; }
-header { background: #0a1420ee !important; border-color: #1d3050 !important; }
-.tabs { background: #101f36 !important; border-color: #22375f !important; }
-.tabs button { color: #7e94b0 !important; }
-.tabs button.active { color: #35e0c8 !important; background: #16294a !important; box-shadow: none !important; }
+html, html[data-theme="light"], html[data-theme="dark"] { background: #f6f4ee; }
+body { background: linear-gradient(180deg, #f6f4ee 0%, #efece1 100%) !important; color: #131519; }
+header { background: #f6f4eeee !important; border-color: #131519 !important; border-width: 0 0 2px !important; }
+.brand, h1 { color: #131519 !important; }
+.brand svg, .tide-brand-mark { color: #2438e8 !important; }
+.tabs { background: #ffffff !important; border: 1px solid #131519 !important; box-shadow: 3px 3px 0 #13151922 !important; }
+.tabs button { color: #5c6068 !important; }
+.tabs button.active { color: #ffffff !important; background: #2438e8 !important; box-shadow: none !important; }
+h1, .metric-number strong, .metric-secondary strong { color: #131519 !important; }
+.metric-number span, .metric-secondary span, .metric-status { color: #5c6068 !important; }
 aside > div, .metric-primary, .panel, .visitor-metrics, #visitorDetail, .events {
-  background: #101f36 !important; border-color: #22375f !important; color: #e9f1fb !important;
+  background: #ffffff !important; border: 1px solid #131519 !important; color: #131519 !important;
 }
-#liveMap { background: #0b1526 !important; background-image: none !important; }
-#liveSignals { background: #101f36ee !important; border-color: #22375f !important; color: #e9f1fb !important; }
-.signal-chip { background: #16294a !important; }
-.signal-chip small, #liveSignals summary:after { color: #35e0c8 !important; }
-.online-visitor { border-color: #22375f !important; }
-.online-visitor.is-selected { background: #16294a !important; }
+#liveMap { background: #eae7dd !important; background-image: none !important; }
+#liveSignals { background: #fffffff2 !important; border: 1px solid #131519 !important; color: #131519 !important; }
+.signal-chip { background: #efece1 !important; }
+.signal-chip b { color: #131519 !important; }
+.signal-chip small, #liveSignals summary:after { color: #2438e8 !important; }
+.online-visitor strong, .ev .txt b, .tl b { color: #131519 !important; }
+.online-visitor span, .ev .txt span, .tl small, .tl time { color: #5c6068 !important; }
+.online-visitor { border-color: #e3e0d5 !important; }
+.online-visitor.is-selected { background: #eef0ff !important; }
 #liveMap .maplibregl-popup-content, #liveMap .leaflet-popup-content-wrapper {
-  background: #101f36f5 !important; border-color: #2a3f5e !important; color: #e9f1fb !important;
+  background: #ffffff !important; border: 1px solid #131519 !important; color: #131519 !important;
 }
-.visitor-popup-page { background: #0e2438 !important; }
-.visitor-popup-page span { color: #6fc4b2 !important; }
-.visitor-popup-page b { color: #a9ead9 !important; }
-.map-footer, .map-caption { color: #7e94b0 !important; }
-/* second pass: contrast ladder fixes */
-h1, .metric-number strong, .metric-secondary strong { color: #e9f1fb !important; }
-.metric-number span, .metric-secondary span, .metric-status { color: #7e94b0 !important; }
-.online-visitor strong, .ev .txt b, .tl b { color: #dce8f7 !important; }
-.online-visitor span, .ev .txt span, .tl small, .tl time { color: #7e94b0 !important; }
+.visitor-popup-page { background: #eef0ff !important; }
+.visitor-popup-page span { color: #2438e8 !important; }
+.visitor-popup-page b { color: #131519 !important; }
 .map-controls button, .theme-picker, .region-tabs button, .park-controls button, .stage button {
-  background: #101f36 !important; border-color: #2a3f5e !important; color: #cfe0f5 !important;
+  background: #ffffff !important; border: 1px solid #131519 !important; color: #131519 !important;
 }
-.theme-picker option { background: #101f36; color: #e9f1fb; }
-.footprint-node, .node-label { background: #101f36ee !important; border-color: #2a3f5e !important; color: #dce8f7 !important; }
+.footprint-node, .node-label { background: #ffffffee !important; border: 1px solid #131519 !important; color: #131519 !important; }
+.map-footer, .map-caption { color: #5c6068 !important; }

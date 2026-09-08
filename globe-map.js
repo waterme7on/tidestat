@@ -23,8 +23,8 @@ let applied = '', currentImages = new Set(), requestedCenter = HOME, popupState 
 
 // Update paint only: never setStyle, rebuild the map, change the camera or regenerate B faces.
 const THEMES = {
-  dark: { ocean: '#0b1526', land: '#16273f', border: '#2a3f5e', ring: '#35e0c8', stroke: '#a9ead9' },
-  light: { ocean: '#0b1526', land: '#16273f', border: '#2a3f5e', ring: '#35e0c8', stroke: '#a9ead9' },
+  dark: { ocean: '#eae7dd', land: '#fbfaf5', border: '#2a2d33', ring: '#2438e8', stroke: '#2438e8' },
+  light: { ocean: '#eae7dd', land: '#fbfaf5', border: '#2a2d33', ring: '#2438e8', stroke: '#2438e8' },
 };
 const scheme = () => window.__tideTheme?.resolved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 const palette = () => THEMES[scheme()];
@@ -428,11 +428,11 @@ async function init() {
         // Gentle light under actual online locations. No fabricated cities or always-on animation.
         { id: 'visitor-light-haze', type: 'circle', source: 'people', paint: {
           'circle-radius': ['interpolate', ['linear'], ['min', ['get', 'count'], 8], 1, 37, 8, 53],
-          'circle-color': '#35e0c8', 'circle-blur': .9, 'circle-opacity': .5,
+          'circle-color': '#2438e8', 'circle-blur': .9, 'circle-opacity': .5,
           'circle-pitch-alignment': 'map', 'circle-pitch-scale': 'viewport'
         } },
         { id: 'visitor-light-warmth', type: 'circle', source: 'people', paint: {
-          'circle-radius': 27, 'circle-color': '#7ef0dc', 'circle-blur': .75,
+          'circle-radius': 27, 'circle-color': '#5a6cff', 'circle-blur': .75,
           'circle-opacity': scheme() === 'dark' ? .22 : 0, 'circle-pitch-alignment': 'map', 'circle-pitch-scale': 'viewport'
         } },
         { id: 'selected-person', type: 'circle', source: 'people', filter: ['==', ['get', 'selected'], 1], paint: { 'circle-radius': 25, 'circle-color': palette().ring, 'circle-opacity': .4, 'circle-stroke-width': 1.5, 'circle-stroke-color': palette().stroke } },
