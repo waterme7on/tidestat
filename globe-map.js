@@ -118,7 +118,12 @@ function visitorCard(v, id) {
 }
 function showPopup(loc, content) {
   clearPopup();
-  if (window.matchMedia('(max-width: 600px)').matches && !document.querySelector('.map-expanded')) {
+  const mobileDetails = window.matchMedia('(max-width: 600px)').matches && !document.querySelector('.map-expanded');
+  // Cap the card to the map height in JS: a container-query on #liveMap would create a stacking
+  // context that drops the popup below the Live signals panel and blocks its buttons.
+  const host = engine === 'globe' ? map?.getContainer() : flat?.getContainer();
+  if (!mobileDetails && host?.clientHeight) content.style.maxHeight = Math.max(150, Math.round(host.clientHeight * .42)) + 'px';
+  if (mobileDetails) {
     const panel = document.createElement('section');
     panel.className = 'mobile-visitor-detail';
     const close = document.createElement('button');
@@ -130,8 +135,29 @@ function showPopup(loc, content) {
     const replace = node => body.replaceChildren(node);
     popup = {remove() { panel.remove(); onClose?.(); }, once(event, callback) { onClose = callback; }, getElement: () => panel, setDOMContent: replace, setContent: replace};
     const current = popup; close.onclick = () => current.remove();
-  } else if (engine === 'globe') popup = new maplibregl.Popup({ offset: 30, maxWidth: '300px', className: 'live-visitor-popup', closeOnClick: false }).setLngLat(loc).setDOMContent(content).addTo(map);
+  } else if (engine === 'globe') {
+    // MapLibre popups do not auto-pan like Leaflet; anchor above the point and nudge the map so the card stays inside the container.
+    // focusAfterOpen would focus the bottom button and scroll the card; focus the card itself instead.
+    // Everything runs synchronously with zero duration so the camera is settled before any observer reads it.
+    popup = new maplibregl.Popup({ offset: 30, maxWidth: '300px', className: 'live-visitor-popup', closeOnClick: false, anchor: 'bottom', focusAfterOpen: false }).setLngLat(loc).setDOMContent(content).addTo(map);
+    const card = popup.getElement()?.getBoundingClientRect(), box = map.getContainer().getBoundingClientRect();
+    if (card) {
+      const dx = Math.min(0, card.left - (box.left + 10)) + Math.max(0, card.right - (box.right - 10));
+      const dy = Math.min(0, card.top - (box.top + 10));
+      // panBy moves the camera center, so content shifts the opposite way: pass the overflow delta directly.
+      if (dx || dy) map.panBy([dx, dy], { duration: 0 });
+      map.getContainer().scrollIntoView({ block: 'nearest', behavior: 'auto' });
+      content.tabIndex = -1; content.focus({ preventScroll: true });
+    }
+  }
   else if (flat) popup = L.popup({ className: 'live-visitor-popup', maxWidth: 280, minWidth: 230, offset: [0, -25] }).setLatLng([loc[1], loc[0]]).setContent(content).openOn(flat);
+  // #liveMap is a stacking context below the Live signals overlay, so the card can never paint above it:
+  // collapse the aggregate panel when the two would overlap and it would swallow the card's clicks.
+  const signals = document.getElementById('liveSignals'), cardBox = popup?.getElement?.()?.getBoundingClientRect();
+  if (signals?.open && cardBox) {
+    const s = signals.getBoundingClientRect();
+    if (cardBox.left < s.right && cardBox.right > s.left && cardBox.top < s.bottom && cardBox.bottom > s.top) signals.open = false;
+  }
   // Native close controls must release our pause state, not just remove the map's DOM.
   const opened = popup;
   opened?.once(engine === 'globe' ? 'close' : 'remove', () => {

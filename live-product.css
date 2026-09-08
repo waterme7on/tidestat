@@ -21,6 +21,7 @@ html[data-theme] body[data-view] .signal-label,html[data-theme] body[data-view] 
 .workspace > #liveSignals summary { min-height: 44px; }
 body[data-view] .theme-picker { display: none; }
 .mobile-visitor-detail { position: relative; flex: none; padding: 18px; border: 1px solid var(--tide-line); border-radius: 14px; background: var(--tide-surface); }
+.mobile-visitor-detail .visitor-popup { max-height: none; overflow: visible; }
 .mobile-visitor-detail .visitor-popup-head { padding-right: 28px; }
 .mobile-visitor-detail .visitor-context-grid { grid-template-columns: 1fr 1fr; max-height: none; overflow: visible; }
 .mobile-visitor-close { position: absolute; top: 6px; right: 6px; width: 44px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: var(--tide-ink); font-size: 24px; cursor: pointer; }

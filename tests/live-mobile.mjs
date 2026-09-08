@@ -11,6 +11,7 @@ try {
   await page.setViewportSize({width,height:844});
   await page.locator('.online-visitor').first().click();
   await page.locator('.mobile-visitor-detail').waitFor();
+  assert.equal(await page.locator('.mobile-visitor-detail .visitor-popup').evaluate(e=>getComputedStyle(e).maxHeight),'none');
   for(const language of ['zh','en']) {
    await page.locator('[data-product-language]').selectOption(language);
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

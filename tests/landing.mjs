@@ -7,6 +7,11 @@ page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(new URL(
 try{
  await page.goto(base+'/');await page.getByRole('heading',{name:'See which visits lead to revenue.'}).waitFor();
  await page.locator('#demo').scrollIntoViewIfNeeded();const frame=page.frameLocator('iframe');
+ // The demo opens on the live world map; the revenue story sits behind its own tab.
+ assert.match(await page.locator('#demoFrame').getAttribute('src'),/live\.html\?demo=1&embed=1/);
+ await frame.locator('#realtimeCount').waitFor();
+ await page.getByRole('tab',{name:'Revenue stories',exact:true}).click();
+ assert.match(await page.locator('#demoOpenLink').getAttribute('href'),/revenue\.html\?demo=1/);
  await frame.locator('#metrics').getByText('$97.00',{exact:true}).waitFor();
  await frame.getByRole('tab',{name:'Countries',exact:true}).waitFor();
  await frame.getByRole('tab',{name:'Cities',exact:true}).click();assert.match(await frame.locator('#rows-geography').textContent(),/San Francisco/);
