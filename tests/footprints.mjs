@@ -71,7 +71,7 @@ try{
  await page.setViewportSize({width:1440,height:1000});
  for(let i=0;i<3;i++){await page.locator('#tab-map').click();await page.waitForTimeout(100);await page.locator('#tab-park').click();await page.waitForTimeout(100);}
  assert.equal(await page.locator('#footprintPanel').count(),1);assert.equal(await page.locator('#liveMap canvas').count(),1);assert.equal(await page.locator('#stage3d').count(),1);
- await page.locator('#tab-map').click();assert.equal(await page.locator('#mapTheme').inputValue(),'dark');await page.locator('#tab-park').click();
+ await page.locator('#tab-map').click();assert.equal(await page.locator('#mapTheme').getAttribute('aria-checked'),'true');await page.locator('#tab-park').click();
  status=503;await refresh(page);assert.equal(await page.locator('#footprintCount').textContent(),'16');assert.equal(await page.locator('.stage').getAttribute('data-footprint-lights'),'0');
  status=200;visitors=[];await refresh(page);assert.equal(await page.locator('#footprintCount').textContent(),'0');assert.equal(await page.locator('.footprint-avatar').count(),0);
  assert.ok((await page.locator('.footprint-notice').textContent()).includes('目前没有在线访客'));
