@@ -101,6 +101,7 @@ export function groupVisitors(list) {
   for (const group of result.values()) group.ids.sort();
   return result;
 }
+window.matchMedia('(max-width: 600px)').addEventListener('change', () => clearPopup());
 function clearPopup() { popup?.remove(); popup = null; popupState = null; }
 function visitorCard(v, id) {
   const card = txt('div', '', 'visitor-popup');
@@ -117,7 +118,19 @@ function visitorCard(v, id) {
 }
 function showPopup(loc, content) {
   clearPopup();
-  if (engine === 'globe') popup = new maplibregl.Popup({ offset: 30, maxWidth: '300px', className: 'live-visitor-popup', closeOnClick: false }).setLngLat(loc).setDOMContent(content).addTo(map);
+  if (window.matchMedia('(max-width: 600px)').matches && !document.querySelector('.map-expanded')) {
+    const panel = document.createElement('section');
+    panel.className = 'mobile-visitor-detail';
+    const close = document.createElement('button');
+    close.className = 'mobile-visitor-close'; close.type = 'button';
+    close.textContent = '×'; close.setAttribute('aria-label', t('关闭访客时间线'));
+    const body = document.createElement('div'); body.append(content);
+    panel.append(close, body); document.querySelector('.stage').after(panel);
+    let onClose;
+    const replace = node => body.replaceChildren(node);
+    popup = {remove() { panel.remove(); onClose?.(); }, once(event, callback) { onClose = callback; }, getElement: () => panel, setDOMContent: replace, setContent: replace};
+    const current = popup; close.onclick = () => current.remove();
+  } else if (engine === 'globe') popup = new maplibregl.Popup({ offset: 30, maxWidth: '300px', className: 'live-visitor-popup', closeOnClick: false }).setLngLat(loc).setDOMContent(content).addTo(map);
   else if (flat) popup = L.popup({ className: 'live-visitor-popup', maxWidth: 280, minWidth: 230, offset: [0, -25] }).setLatLng([loc[1], loc[0]]).setContent(content).openOn(flat);
   // Native close controls must release our pause state, not just remove the map's DOM.
   const opened = popup;
@@ -337,7 +350,7 @@ function controls() {
   const expand = txt('button', '⛶'); expand.id = 'mapExpand'; expand.type = 'button'; expand.setAttribute('aria-label', t('展开地图')); expand.setAttribute('aria-pressed', 'false');
   expand.onclick = () => {
     if (stage.classList.contains('map-expanded')) { collapse(); return; }
-    stage.classList.add('map-expanded'); document.body.classList.add('map-is-expanded'); expand.setAttribute('aria-pressed', 'true'); expand.dataset.i18nAriaLabel='收起地图';expand.setAttribute('aria-label', t('收起地图')); resize();
+    clearPopup(); stage.classList.add('map-expanded'); document.body.classList.add('map-is-expanded'); expand.setAttribute('aria-pressed', 'true'); expand.dataset.i18nAriaLabel='收起地图';expand.setAttribute('aria-label', t('收起地图')); resize();
   };
   el('mapControls').prepend(expand);
   const presets = txt('div', '', 'globe-regions map-only'); presets.setAttribute('role', 'group'); presets.setAttribute('aria-label', t('快速查看地区'));

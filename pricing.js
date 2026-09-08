@@ -9,7 +9,7 @@ const fallbackPlans = [
 ];
 let plans = fallbackPlans;
 const isPricingPage = document.body.classList.contains('pricing-page');
-let interval = isPricingPage && new URLSearchParams(location.search).get('interval') === 'year' ? 'year' : 'month';
+let interval = new URLSearchParams(location.search).get('interval') === 'year' ? 'year' : 'month';
 const cards = [...document.querySelectorAll('[data-pricing-card]')];
 const money = amount => new Intl.NumberFormat(locale(), { style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol', maximumFractionDigits: 0 }).format(amount);
 function render() {

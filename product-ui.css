@@ -3,3 +3,10 @@ html[data-theme="light"]{--tide-bg:#f8f9f6;--tide-surface:#fff;--tide-ink:#26323
 .brand .tide-brand-mark{width:30px;height:30px;flex-shrink:0;color:var(--tide-accent);display:block}
 .product-controls{display:flex;align-items:center;gap:7px;flex-shrink:0}.product-controls label{margin:0;display:flex}.product-controls select{max-width:138px;min-height:34px;padding:6px 8px;font:11px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--tide-ink);background:var(--tide-surface);border:1px solid var(--tide-line);border-radius:6px;cursor:pointer}.product-controls select:focus-visible{outline:2px solid var(--tide-accent);outline-offset:3px}.product-sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media(max-width:600px){.product-controls{gap:4px}.product-controls select{max-width:98px;font-size:10px;padding:5px;min-height:32px}}
+
+/* Keep native selection behavior while giving all platforms the same control. */
+.product-controls label { position: relative; }
+.product-controls label::after { content: ''; position: absolute; right: 12px; top: 50%; width: 5px; height: 5px; border-right: 1.5px solid var(--tide-muted); border-bottom: 1.5px solid var(--tide-muted); transform: translateY(-70%) rotate(45deg); pointer-events: none; }
+.product-controls select { appearance: none; -webkit-appearance: none; border-radius: 9px; padding: 9px 28px 9px 12px; min-height: 40px; font-size: 12px; background: var(--tide-soft); }
+.product-controls select:hover { border-color: var(--tide-muted); }
+@media(max-width:600px) { .product-controls select { max-width: 116px; min-height: 44px; font-size: 12px; padding: 9px 25px 9px 9px; } }
