@@ -3,38 +3,16 @@ name: Preview Worker Version
 on:
   push:
     branches: ['preview/**']
-  workflow_dispatch:
 
 jobs:
-  preview:
+  cleanup:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - run: npm ci --ignore-scripts
-      - name: Deploy preview worker on its own subdomain
+      - name: Delete preview workers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          BRANCH: ${{ github.ref_name }}
         run: |
-          SUFFIX="${BRANCH##*-}"
-          case "$SUFFIX" in a|b) ;; *) echo "unexpected preview suffix: $SUFFIX"; exit 1;; esac
-          cat > wrangler.preview.toml <<CFG
-          name = "tidestat-preview-$SUFFIX"
-          main = "worker.js"
-          compatibility_date = "2025-05-03"
-          routes = [ { pattern = "tidestat-preview-$SUFFIX.yololab.cc", custom_domain = true } ]
-          [assets]
-          binding = "ASSETS"
-          directory = "./dist"
-          [[d1_databases]]
-          binding = "DB"
-          database_name = "tidestat"
-          database_id = "83d47f45-d78b-403a-a9fb-e6fab984fca6"
-          [build]
-          command = "npm run build"
-          CFG
-          npx -y wrangler@4.128.0 deploy --config wrangler.preview.toml
+          for s in a b; do
+            npx -y wrangler@4.128.0 delete --name "tidestat-preview-$s" --force || echo "worker $s already gone or delete needs no force"
+          done
