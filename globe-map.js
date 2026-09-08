@@ -1,3 +1,4 @@
+import { createThemeSwitch } from './product-ui.js';
 import { visitorContextCard } from './live-intelligence.js';
 /* Native MapLibre globe + local Natural Earth geography. No custom sphere or remote tiles. */
 import { avatarSVG } from './visitor-avatar.js';
@@ -50,7 +51,7 @@ function applyMapTheme() {
   flatLand?.setStyle(flatStyle());
   const key = el('activityKey');
   if (key) key.textContent = !signal ? t('等候访客数据 · 暂停点灯') : dark ? t('柔光 = 此处有在线访客') : t('圆形头像 = 在线访客');
-  const select = el('mapTheme'); if (select) select.value = window.__tideTheme?.preference || 'system';
+  const select = el('mapTheme'); if (select) select.setAttribute('aria-checked', String(window.__tideTheme?.resolved === 'dark'));
 }
 window.addEventListener('tide:themechange', applyMapTheme);
 reduced.addEventListener('change', applyMapTheme);
@@ -385,14 +386,8 @@ function controls() {
   for (const [label, center] of regions) { const b = txt('button', label); b.type = 'button'; b.onclick = () => showWorld(center); presets.append(b); }
   stage.append(presets);
   const picker = txt('label', '', 'theme-picker map-only');
-  const icon = txt('span', '◐'); icon.setAttribute('aria-hidden', 'true');
-  const select = document.createElement('select'); select.id = 'mapTheme'; select.setAttribute('aria-label', t('地图主题'));
-  for (const [value, label] of [['system','跟随系统'], ['light','浅色 · 白天'], ['dark','深色 · 夜间']]) {
-    const option = txt('option', label); option.value = value; select.append(option);
-  }
-  select.value = window.__tideTheme?.preference || 'system';
-  select.onchange = () => window.__tideTheme?.setPreference(select.value);
-  picker.append(icon, select); stage.append(picker);
+  const select = createThemeSwitch(); select.id = 'mapTheme'; select.removeAttribute('data-product-theme');
+  picker.append(select); stage.append(picker);
   const key = txt('span', '', 'activity-key map-only'); key.id = 'activityKey'; stage.append(key);
   applyMapTheme();
   const mode = txt('span', '地球视图', 'globe-mode map-only'); mode.id = 'globeMode'; stage.append(mode);

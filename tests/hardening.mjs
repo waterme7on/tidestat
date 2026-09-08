@@ -27,7 +27,7 @@ await check('Latest events survive the 2000-row window; ties are deterministic a
     statement.run('new-reader', now - 1000, '/zh/writing/second');
     statement.run('new-reader', now - 1000, '/zh/writing/third');
     db.exec('COMMIT');
-    const env = { SITES_JSON: JSON.stringify({test:{origin:'https://example.test',readToken:'test-token'}}), DB: { prepare(sql) { return { bind(...args) { return { all: async () => ({ results: db.prepare(sql).all(...args) }) }; } }; } } };
+    const env = { SITES_JSON: JSON.stringify({test:{origin:'https://example.test',readToken:'test-token'}}), DB: { prepare(sql) { return { bind(...args) { return { all: async () => ({ results: db.prepare(sql).all(...args) }), first: async () => db.prepare(sql).get(...args) || null }; } }; } } };
     const response = await worker.fetch(new Request('https://example.test/api/live?site=test',{headers:{authorization:'Bearer test-token'}}), env);
     assert.equal(response.status, 200);
     const data = await response.json();

@@ -86,3 +86,5 @@ body[data-embed="1"] .visitor-popup button, body[data-embed="1"] .visitor-revenu
  body[data-embed="1"] .stage:has(.live-visitor-popup) > .activity-key,
  body[data-embed="1"] .stage:has(.live-visitor-popup) > .globe-regions { visibility:hidden; }
 }
+
+body[data-view] .map-expanded .theme-picker { display:flex; padding:0; border:0; background:transparent; }

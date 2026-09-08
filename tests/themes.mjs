@@ -44,7 +44,7 @@ try {
   const context = await browser.newContext({locale:'zh-CN', viewport: { width: 1440, height: 1000 }, colorScheme: 'dark', reducedMotion: 'reduce' });
   page = await context.newPage(); await watch(page); await page.goto(base + '/live.html'); await ready(page);
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
-  assert.equal(await page.locator('#mapTheme').inputValue(), 'system');
+  assert.equal(await page.evaluate(()=>window.__tideTheme.preference), 'system');
   assert.equal(await page.evaluate(() => window.__tideMap.appearance().lightOpacity), .34);
   assert.equal(await page.evaluate(() => window.__tideMap.appearance().locations), 18, 'No invented lights for unlocated visitors');
   await page.screenshot({ path: `${out}/theme-dark-desktop.png` });
@@ -77,17 +77,17 @@ try {
   await page.getByRole('button', { name: '展开地图', exact: true }).click(); await page.waitForTimeout(400);
   await page.screenshot({ path: `${out}/theme-light-expanded.png` }); await page.keyboard.press('Escape');
 
-  await page.locator('#mapTheme').selectOption('dark');
+  if(await page.locator('[data-product-theme]').getAttribute('aria-checked')!==String('dark'==='dark'))await page.locator('[data-product-theme]').click();
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
   await page.reload(); await ready(page);
-  assert.equal(await page.locator('#mapTheme').inputValue(), 'dark');
+  assert.equal(await page.evaluate(()=>window.__tideTheme.preference), 'dark');
   await page.emulateMedia({ colorScheme: 'light' });
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
   const other = await context.newPage(); await watch(other); await other.goto(base + '/live.html'); await ready(other);
-  await other.locator('#mapTheme').selectOption('light');
+  if(await other.locator('[data-product-theme]').getAttribute('aria-checked')!==String('light'==='dark'))await other.locator('[data-product-theme]').click();
   await page.waitForFunction(() => window.__tideTheme.preference === 'light');
   await other.close();
-  await page.locator('#mapTheme').selectOption('system');
+  await page.evaluate(()=>window.__tideTheme.setPreference('system'));
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
   assert.equal(await page.evaluate(() => document.querySelector('meta[name="theme-color"]').content), '#121719');
@@ -106,11 +106,11 @@ try {
 
   await page.setViewportSize({ width: 390, height: 844 }); await page.waitForTimeout(600);
   for (const theme of ['dark', 'light']) {
-    await page.locator('#mapTheme').selectOption(theme);
+    if(await page.locator('[data-product-theme]').getAttribute('aria-checked')!==String(theme==='dark'))await page.locator('[data-product-theme]').click();
     await page.waitForTimeout(350);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-    const picker = await page.locator('.theme-picker').boundingBox(), caption = await page.locator('.map-caption').boundingBox();
-    assert.ok(picker.x >= caption.x + caption.width, 'Theme control does not cover the map hint on mobile');
+    const picker = await page.locator('[data-product-theme]').boundingBox(), caption = await page.locator('.map-caption').boundingBox();
+    assert.ok(picker.y + picker.height <= caption.y, 'Theme control does not cover the map hint on mobile');
     await page.getByRole('button', { name: '展开地图', exact: true }).click(); await page.waitForTimeout(350);
     assert.ok(await page.locator('#mapTheme').isVisible());
     await page.screenshot({ path: `${out}/theme-${theme}-mobile.png` }); await page.keyboard.press('Escape');
@@ -127,9 +127,9 @@ try {
   });
   page = await safeContext.newPage(); await watch(page); await page.goto(base + '/live.html'); await ready(page);
   assert.equal(await page.locator('#liveMap').getAttribute('data-engine'), 'flat');
-  await page.locator('#mapTheme').selectOption('dark');
+  if(await page.locator('[data-product-theme]').getAttribute('aria-checked')!==String('dark'==='dark'))await page.locator('[data-product-theme]').click();
   assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
-  await page.locator('#mapTheme').selectOption('light');
+  if(await page.locator('[data-product-theme]').getAttribute('aria-checked')!==String('light'==='dark'))await page.locator('[data-product-theme]').click();
   const fill = await page.locator('#liveMap path.leaflet-interactive, #liveMap .leaflet-overlay-pane path').first().getAttribute('fill');
   assert.equal(fill, '#fafbf7');
   await page.locator('.online-visitor[data-visitor-id="guest-009"]').click(); await page.waitForSelector('.visitor-popup');
