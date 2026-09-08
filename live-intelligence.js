@@ -8,7 +8,9 @@ const node=(tag,text,className)=>{const e=document.createElement(tag);if(text!=n
 export function visitorContextCard(visitor) {
  const c=visitor.context||{}, wrapper=node('div',null,'visitor-context-grid');
  const unknown=label('Unknown','未知');
- const values=[['source',label('Acquisition','流量来源'),[c.channel,visitor.source||c.referrer].filter(Boolean).join(' · ')||unknown],['location',label('Location','地理位置'),[c.country,c.region,c.city].filter(Boolean).join(' / ')||unknown],['device',label('Device','设备'),[c.device||visitor.device,c.os,c.browser].filter(Boolean).join(' · ')||unknown],['page',label('Entry page','进入页面'),visitor.entryPage||visitor.paths?.[0]?.path||unknown]];
+ // Demo/collector city and region names are stored in one language; render through i18n like the popup head does.
+ const place=value=>value&&(window.__tideI18n?.t?.(value)??value);
+ const values=[['source',label('Acquisition','流量来源'),[c.channel,visitor.source||c.referrer].filter(Boolean).join(' · ')||unknown],['location',label('Location','地理位置'),[c.country,place(c.region),place(c.city)].filter(Boolean).join(' / ')||unknown],['device',label('Device','设备'),[c.device||visitor.device,c.os,c.browser].filter(Boolean).join(' · ')||unknown],['page',label('Entry page','进入页面'),visitor.entryPage||visitor.paths?.[0]?.path||unknown]];
  if(c.campaign)values.push(['source',label('Campaign','推广活动'),c.campaign]);
  if(c.keyword)values.push(['source',label('Campaign term','推广词'),c.keyword]);
  if(c.viewportWidth&&c.viewportHeight)values.push(['device',label('Viewport','视口'),`${c.viewportWidth} × ${c.viewportHeight}`]);
