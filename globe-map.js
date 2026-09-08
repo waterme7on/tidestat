@@ -120,19 +120,17 @@ function showPopup(loc, content) {
   if (engine === 'globe') {
     // MapLibre popups do not auto-pan like Leaflet; anchor above the point and nudge the map so the card stays inside the container.
     // focusAfterOpen would focus the bottom button and scroll the card; focus the card itself instead.
+    // Everything runs synchronously with zero duration so the camera is settled before any observer reads it.
     popup = new maplibregl.Popup({ offset: 30, maxWidth: '300px', className: 'live-visitor-popup', closeOnClick: false, anchor: 'bottom', focusAfterOpen: false }).setLngLat(loc).setDOMContent(content).addTo(map);
-    const openedGlobe = popup;
-    requestAnimationFrame(() => {
-      if (popup !== openedGlobe) return;
-      const card = openedGlobe.getElement()?.getBoundingClientRect(), box = map.getContainer().getBoundingClientRect();
-      if (!card) return;
+    const card = popup.getElement()?.getBoundingClientRect(), box = map.getContainer().getBoundingClientRect();
+    if (card) {
       const dx = Math.min(0, card.left - (box.left + 10)) + Math.max(0, card.right - (box.right - 10));
       const dy = Math.min(0, card.top - (box.top + 10));
       // panBy moves the camera center, so content shifts the opposite way: pass the overflow delta directly.
-      if (dx || dy) map.panBy([dx, dy], { duration: 200 });
+      if (dx || dy) map.panBy([dx, dy], { duration: 0 });
       map.getContainer().scrollIntoView({ block: 'nearest', behavior: 'auto' });
       content.tabIndex = -1; content.focus({ preventScroll: true });
-    });
+    }
   }
   else if (flat) popup = L.popup({ className: 'live-visitor-popup', maxWidth: 280, minWidth: 230, offset: [0, -25] }).setLatLng([loc[1], loc[0]]).setContent(content).openOn(flat);
   // Native close controls must release our pause state, not just remove the map's DOM.
