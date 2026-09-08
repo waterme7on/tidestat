@@ -14,8 +14,27 @@ jobs:
         with:
           node-version: 22
       - run: npm ci --ignore-scripts
-      - name: Upload preview version (no production traffic change)
-        run: npx -y wrangler@4.128.0 versions upload
+      - name: Deploy preview worker on its own subdomain
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          SUFFIX="${BRANCH##*-}"
+          case "$SUFFIX" in a|b) ;; *) echo "unexpected preview suffix: $SUFFIX"; exit 1;; esac
+          cat > wrangler.preview.toml <<CFG
+          name = "tidestat-preview-$SUFFIX"
+          main = "worker.js"
+          compatibility_date = "2025-05-03"
+          routes = [ { pattern = "tidestat-preview-$SUFFIX.yololab.cc", custom_domain = true } ]
+          [assets]
+          binding = "ASSETS"
+          directory = "./dist"
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "tidestat"
+          database_id = "83d47f45-d78b-403a-a9fb-e6fab984fca6"
+          [build]
+          command = "npm run build"
+          CFG
+          npx -y wrangler@4.128.0 deploy --config wrangler.preview.toml
