@@ -284,12 +284,14 @@ async function groupImage(group) {
   map.addImage(name, ctx.getImageData(0, 0, canvas.width, canvas.height), { pixelRatio: 2 });
   images.set(signature, { name }); return name;
 }
+let siteGeneration = 0;
 async function renderGlobe(signature) {
+  const generation = siteGeneration;
   rendering = true;
   try {
     const snapshot = [...groups.values()], focus = selected();
     const features = await Promise.all(snapshot.map(async group => ({ type: 'Feature', geometry: { type: 'Point', coordinates: group.loc }, properties: { key: group.key, count: group.ids.length, image: await groupImage(group), selected: group.ids.includes(focus) ? 1 : 0 } })));
-    if (disposed || engine !== 'globe') return;
+    if (disposed || engine !== 'globe' || generation !== siteGeneration) return;
     currentImages = new Set(features.map(f => f.properties.image));
     map.getSource('people').setData({ type: 'FeatureCollection', features: features.filter(f => f.properties.image) });
     applied = signature;
@@ -487,5 +489,12 @@ window.__tideMap = { collapse, activate, focusVisitor, showWorld, ready: () => r
 window.addEventListener('pagehide', event => {
   if (event.persisted) return;
   disposed = true; cancelAnimationFrame(rotationFrame);viewportObserver.disconnect();unsubscribeMotion(); window.removeEventListener('tide:themechange', applyMapTheme); reduced.removeEventListener('change', applyMapTheme); clearInterval(timer); observer?.disconnect(); clearPopup(); map?.remove(); flat?.remove();
+});
+window.addEventListener('tide:livecleared',()=>{
+  siteGeneration++; clearPopup(); groups.clear(); selection=null; applied='';
+  for(const row of rows.values())row.remove();rows.clear();
+  if(engine==='globe')map?.getSource('people')?.setData({type:'FeatureCollection',features:[]});
+  else if(ready)renderFlat();
+  sync();
 });
 init(); sync(); timer = setInterval(sync, 350);rotationFrame=requestAnimationFrame(rotateIdle);

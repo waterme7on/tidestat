@@ -55,7 +55,7 @@ body[data-view="park"] button:focus-visible, body[data-view="park"] select:focus
 .footprint-overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 3; }
 .footprint-node, .footprint-avatar { position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer; }
 .footprint-node { display: flex; align-items: center; justify-content: center; gap: 7px; padding: 6px 9px; min-height: 32px; border: 1px solid var(--fp-border); border-radius: 9px; color: var(--fp-soft); background: var(--fp-panel); font-family: inherit; font-size: 11px; line-height: 1.2; white-space: nowrap; box-shadow: 0 3px 8px #00000008; }
-.footprint-node span { font-size: 11px; }
+.footprint-node span { font-size: 11px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
 .footprint-node b { font: 10px/1.5 var(--mono); min-width: 16px; border-left: 1px solid var(--fp-border); padding-left: 6px; }
 .footprint-node i { width: 4px; height: 4px; border-radius: 50%; background: var(--fp-border); }
 .footprint-node.is-active i { background: var(--fp-accent); }
@@ -79,7 +79,7 @@ body[data-view="park"] button:focus-visible, body[data-view="park"] select:focus
 .footprint-journey { position: absolute; left: 16px; right: 16px; bottom: 68px; display: flex; align-items: center; gap: 12px; padding: 12px 15px; border: 1px solid var(--fp-border); border-radius: 10px; background: var(--fp-panel); z-index: 5; font-size: 11px; }
 .footprint-route-title { color: var(--fp-accent); flex-shrink: 0; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .footprint-route-steps { display: flex; align-items: center; gap: 8px; overflow-x: auto; white-space: nowrap; flex: 1; padding: 3px 0; scrollbar-width: thin; }
-.footprint-step { color: var(--fp-ink); }
+.footprint-step { color: var(--fp-ink); overflow-wrap: anywhere; }
 .footprint-step-arrow { color: var(--fp-soft); opacity: .6; }
 .footprint-journey > button { border: 0; color: var(--fp-soft); background: transparent; cursor: pointer; padding: 8px 0 8px 8px; font: inherit; }
 .footprint-explain { font-size: 9.5px; color: var(--fp-soft); line-height: 1.6; }

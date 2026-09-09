@@ -59,5 +59,11 @@ try {
  assert.equal((await fetch(base+'/api/revenue?site=other',{headers:cookieHeaders})).status,401);
  assert.equal((await fetch(base+'/api/search-console?site=store',{method:'POST',headers:{...cookieHeaders,origin:'https://attacker.example'},body:JSON.stringify({rows:[]})})).status,403);
  assert.equal((await fetch(base+'/api/collect',{method:'POST',headers:{origin:base},body:'{}'})).status,400);
+ await page.goto(base+'/live.html?view=park');
+ await page.waitForFunction(()=>window.__tide?.status==='ready'&&window.__tide3d?.ready());
+ await page.locator('.footprint-node[data-node-id="/revenue.html"]').waitFor();
+ assert.ok(await page.evaluate(id=>window.__tide.visitors.has(id),metadata.tidestat_visitor_id));
+ assert.equal(await page.locator('.footprint-node[data-node-id="home"]').count(),0);
+ await page.screenshot({path:'visual-review/journeys-connected-e2e.png',fullPage:true});
  assert.deepEqual(errors,[]);console.log('End-to-end passed: real SDK → Worker → SQLite → signed duplicate payment → authenticated UI story → live identity, with website isolation.');
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve));sql.close();}

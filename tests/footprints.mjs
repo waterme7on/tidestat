@@ -18,7 +18,7 @@ const browser=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftsh
 const errors=[],results=['pure model: occupancy, leaving/unknown visitors, reverse paths and repeated visits'];
 const data=(()=>{const now=Date.now();const points=[['上海','CN',31,121],['伦敦','GB',51,0],['纽约','US',40,-74],['东京','JP',35,139]];
  return Array.from({length:16},(_,i)=>{const [city,country,lat,lng]=points[i%4];return{id:`footprint-full-${i}`,city,country,lat,lng,firstTs:now-i*3000-20000,lastTs:now,
- paths:[{path:'/zh',ts:now-20000},{path:'/zh/work',ts:now-10000},{path:['/zh/writing','/zh/work','/zh/writing/dyor','/contact'][i%4],ts:now}]};});})();
+ paths:[{path:'/zh',sessionId:'session',ts:now-20000},{path:'/zh/work',sessionId:'session',ts:now-10000},{path:['/zh/writing','/zh/work','/zh/writing/dyor','/contact'][i%4],sessionId:'session',ts:now}]};});})();
 let visitors=data,status=200;
 const page=await browser.newPage({locale:'zh-CN',viewport:{width:1440,height:1000},colorScheme:'dark',reducedMotion:'reduce'});
 let inspected=page;
@@ -39,15 +39,15 @@ async function selected(p,id){
 try{
  await open(page);assert.equal(await page.locator('.stage').getAttribute('data-footprint-engine'),'3d');
  assert.equal(await page.locator('#footprintCount').textContent(),'16');assert.equal(await page.locator('#footprintActive').textContent(),'4');
- assert.equal(await page.locator('.footprint-node').count(),7);assert.equal(await page.locator('.footprint-person').count(),16);
+ assert.equal(await page.locator('.footprint-node').count(),5);assert.equal(await page.locator('.footprint-person').count(),16);
  const view=await page.evaluate(()=>window.__tide3d.viewState());await page.waitForTimeout(500);assert.deepEqual(await page.evaluate(()=>window.__tide3d.viewState()),view,'no unsolicited rotation');
  const pixels=await page.locator('#stage3d').evaluate(c=>{const gl=c.getContext('webgl2'),p=new Uint8Array(4),colors=new Set();for(let x=.15;x<.9;x+=.05)for(let y=.15;y<.9;y+=.05){gl.readPixels(Math.floor(x*c.width),Math.floor(y*c.height),1,1,gl.RGBA,gl.UNSIGNED_BYTE,p);colors.add([...p].join(','));}return colors.size;});
  assert.ok(pixels>8,'actual rendered buildings, not an empty canvas');
  await page.screenshot({path:'visual-review/footprints-dark-desktop.png'});
- await page.locator('.footprint-node[data-node-id="writing"]').click();assert.equal(await page.locator('.footprint-person').count(),4);
+ await page.locator('.footprint-node[data-node-id="/zh/writing"]').click();assert.equal(await page.locator('.footprint-person').count(),4);
  await page.getByRole('button',{name:'显示全部分区'}).click();assert.equal(await page.locator('.footprint-person').count(),16);
  const person=page.locator('.footprint-person[data-visitor-id="footprint-full-0"]');await person.press('Enter');await selected(page,'footprint-full-0');
- assert.deepEqual(JSON.parse(await page.locator('.stage').getAttribute('data-footprint-route')),[['home','work'],['work','writing']]);
+ assert.deepEqual(JSON.parse(await page.locator('.stage').getAttribute('data-footprint-route')),[['/zh','/zh/work'],['/zh/work','/zh/writing']]);
  const svg=await person.locator('svg').evaluate(e=>e.outerHTML);
  assert.equal(await page.locator('.footprint-avatar[data-visitor-id="footprint-full-0"] svg').evaluate(e=>e.outerHTML),svg);
  await page.screenshot({path:'visual-review/footprints-tracked.png'});
@@ -58,7 +58,7 @@ try{
  await page.locator('.footprint-avatar[data-visitor-id="footprint-full-1"]').click();await selected(page,'footprint-full-1');
  await page.getByRole('button',{name:'取消访客追踪'}).click();await page.locator('.footprint-journey').waitFor({state:'hidden'});
  await page.screenshot({path:'visual-review/footprints-light-desktop.png'});
- results.push('desktop: native 3D, correct counts, seven labeled sections, node filter, keyboard and actual avatar selection, actual route and matching B avatars');
+ results.push('desktop: native 3D, correct counts, five observed pages, node filter, keyboard and actual avatar selection, actual route and matching B avatars');
  const bounds=await page.locator('#stage3d').boundingBox();await page.mouse.move(bounds.x+bounds.width*.4,bounds.y+bounds.height*.7);await page.mouse.down();await page.mouse.move(bounds.x+bounds.width*.4+70,bounds.y+bounds.height*.7+15,{steps:8});await page.mouse.up();await page.waitForTimeout(900);
  await page.locator('#footprintReset').click();await page.locator('#footprintPlan').click();assert.equal(await page.locator('#footprintPlan').getAttribute('aria-pressed'),'true');
  await page.locator('#footprintPlan').click();await page.locator('#footprintExpand').click();assert.ok(await page.locator('.footprint-expanded').count());

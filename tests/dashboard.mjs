@@ -41,7 +41,7 @@ try{
  results.push('Timeline explicitly opens in normal/expanded mode, traps focus, handles Escape and keeps history after departure; masked/unknown IP labels; English/Chinese preserves camera, avatar and persisted preference');
  await page.locator('#tab-park').click();await page.waitForFunction(()=>window.__tide3d?.ready());await page.waitForTimeout(350);
  assert.equal(await page.locator('.footprint-heading h1').textContent(),'Site journeys');
- assert.equal(await page.locator('.footprint-node[data-node-id="home"] span').textContent(),'Home');
+ assert.equal(await page.locator('.footprint-node').count(),0,'A visitor without recorded paths must not create sample pages');
  await page.locator('.footprint-person').click();await page.getByRole('button',{name:'View visit timeline →',exact:true}).click();await page.locator('#timelineDialog[open]').waitFor();
  assert.match(await page.locator('#vdTimeline').textContent(),/No recorded pages yet/);
  await page.locator('#vdClose').click();

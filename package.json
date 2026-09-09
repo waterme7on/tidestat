@@ -6,7 +6,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node server.cjs",
-    "test": "node --test tests/revenue-backend.mjs tests/accounts.mjs tests/docs.mjs packages/browser-sdk/test.mjs && node tests/privacy.mjs",
+    "test": "node --test tests/revenue-backend.mjs tests/accounts.mjs tests/site-journeys.mjs tests/docs.mjs packages/browser-sdk/test.mjs && node tests/privacy.mjs",
     "test:revenue-ui": "node tests/revenue-ui.mjs",
     "test:e2e": "npm run build && node tests/revenue-e2e.mjs"
   },

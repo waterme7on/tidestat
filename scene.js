@@ -16,7 +16,7 @@ const palettes = {
   light: { bg: '#f6f8f3', base: '#e5eadd', rim: '#c2cdb8', wall: '#f4f0e5', roof: '#8c9c85', pane: '#b9c9bf', line: '#bac8af', lit: '#678357' },
 };
 const LABELS = { gate: '入口', home: '首页', work: '作品馆', writing: '文章林', dyor: '研究室', about: '关于 / 其他', subscribe: '订阅角' };
-const label = id => t(LABELS[id] || site.nodes.find(n => n.id === id)?.label || id || '未分类');
+const label = id => t((bridge().demo && LABELS[id]) || site.nodes.find(n => n.id === id)?.label || id || '未分类');
 const objects = new Set(), nodeViews = new Map(), avatars = new Map(), listRows = new Map(), routes = new Map();
 const scene = new THREE.Scene(), camera = new THREE.OrthographicCamera(-15, 15, 12, -12, .1, 200);
 const target = new THREE.Vector3(0, .5, 0), home = new THREE.Vector3(4, 27, 29);
@@ -72,7 +72,7 @@ function buildNode(n) {
   // A location lamp shares the real occupancy state, not a fabricated activity signal.
   const lampMat = own(new THREE.MeshBasicMaterial({ color:'#f4ca87',transparent:true,opacity:0,depthWrite:false }));
   const lamp = mesh(group,new THREE.RingGeometry(1.58,1.78,64),lampMat,0,.19); lamp.rotation.x=-Math.PI/2;
-  const button = text('button','', 'footprint-node'); button.type='button'; button.dataset.nodeId=n.id;
+  const button = text('button','', 'footprint-node'); button.type='button'; button.dataset.nodeId=n.id; button.title=n.label;
   const dot = text('i',''); dot.setAttribute('aria-hidden','true'); button.append(dot,text('span',label(n.id)),text('b','0'));
   button.onclick=()=>setFilter(filter===n.id?null:n.id); overlay.append(button);
   nodeViews.set(n.id,{originalZ:point.z,point, group, button, windows, lamp:lampMat, count:0});
@@ -150,6 +150,7 @@ function syncList(s) {
 }
 function sync() {
   if(disposed||!active)return;
+  refreshSite();
   const data=bridge(),s=snapshot(data,site);snapshotValue=s;
   el('footprintCount').textContent=s.unavailable?'—':s.visitors.length;
   el('footprintActive').textContent=s.unavailable?'—':s.activeNodes;
@@ -166,6 +167,7 @@ function sync() {
     n.windows.emissiveIntensity=theme==='dark'&&n.count>0&&s.fresh ? .65 : 0;
     n.lamp.color.set(palettes[theme].lit);n.lamp.opacity=n.count&&s.fresh?(theme==='dark'?.5:.12):0;
   }
+  if (!data.demo) explain.textContent = (window.__tideI18n.language==='en' ? 'Observed pages and transitions · Last 10 minutes of online visitors · Up to 12 paths per visitor' : '真实页面与已记录跳转 · 在线访客最近 10 分钟足迹 · 每人最多 12 条路径') + (site.omittedPages ? (window.__tideI18n.language==='en' ? ` · ${site.omittedPages} more pages omitted` : ` · 另有 ${site.omittedPages} 个页面未展示`) : '');
   syncList(s);
   const ids=new Set(s.visitors.map(([id])=>id));
   for(const[id,a]of avatars)if(!ids.has(id)){a.node.remove();avatars.delete(id);}
@@ -188,7 +190,7 @@ function sync() {
   if(chipSig!==stepSignature){
     chips.replaceChildren();footer.hidden=!chosen;
     if(chosen){routeTitle.textContent=t('{location}访客的足迹',{location:cityName(chosen.city?.[0]||'匿名')});
-      history.forEach((s,i)=>{if(i)chips.append(text('span','→','footprint-step-arrow'));const chip=text('span',label(s.node),'footprint-step');
+      history.forEach((s,i)=>{if(i)chips.append(text('span',!s.breakBefore&&history[i-1].sessionId===s.sessionId&&(!site.observed||s.sessionId)?'→':'·','footprint-step-arrow'));const chip=text('span',label(s.node),'footprint-step');
         chip.title=s.path||label(s.node);chips.append(chip);});
       if(!history.length)chips.append(text('span','尚无已记录路径'));
     }stepSignature=chipSig;
@@ -288,8 +290,32 @@ function updateLanguage(){
   stepSignature='';sync();dirty=true;
 }
 window.addEventListener('tide:languagechange',updateLanguage);
-window.__tide3d={collapse,ready:()=>ready,activate,reset,viewState:()=>({mode:flat?'flat':'3d',position:camera.position.toArray(),zoom:camera.zoom})};
-for(const n of site.nodes)buildNode(n);for(const[a,b]of site.edges)addRoute(a,b,true);
+let graphSignature = '';
+function refreshSite() {
+  const next = JSON.stringify([site.nodes,site.edges]);
+  if (next === graphSignature) return;
+  graphSignature = next; filter = null; signature = ''; stepSignature = '';
+  for (const view of nodeViews.values()) {
+    scene.remove(view.group); view.button.remove();
+    view.group.traverse(o => { if(o.geometry){o.geometry.dispose();objects.delete(o.geometry);} });
+    for (const material of [view.windows,view.lamp]) { material.dispose();objects.delete(material); }
+  }
+  nodeViews.clear();
+  for (const route of routes.values()) { scene.remove(route.line);for(const o of [route.line.geometry,route.line.material]){o.dispose();objects.delete(o);} }
+  routes.clear();
+  for(const a of avatars.values())a.node.remove();avatars.clear();
+  for(const row of listRows.values())row.remove();listRows.clear();
+  chips.replaceChildren();footer.hidden=true;routeTitle.textContent='';panelTitle.textContent='';
+  stage.dataset.footprintRoute='[]';stage.dataset.footprintLights='0';
+  flatSVG?.replaceChildren();
+  for(const n of site.nodes)buildNode(n);
+  for(const n of nodeViews.values()){n.point.z=n.originalZ*depthScale;n.group.position.copy(n.point);if(site.nodes.length>16)n.group.scale.setScalar(.7);}
+  for(const [a,b] of site.edges)addRoute(a,b,true);
+  dirty=true;
+  if(ready){snapshotValue=snapshot(bridge(),site);layout();renderer&&!flat&&renderer.render(scene,camera);}
+}
+window.__tide3d={refreshSite,collapse,ready:()=>ready,activate,reset,viewState:()=>({mode:flat?'flat':'3d',position:camera.position.toArray(),zoom:camera.zoom})};
+refreshSite();
 applyTheme();reset();
 try{
   renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power',preserveDrawingBuffer:true});renderer.outputColorSpace=THREE.SRGBColorSpace;
