@@ -27,7 +27,12 @@ try {
  const payload={id:'evt_e2e',type:'checkout.session.completed',created:now,data:{object:{id:'cs_e2e',payment_intent:'pi_e2e',payment_status:'paid',amount_total:1900,currency:'usd',metadata}}};
  const body=JSON.stringify(payload),signature=createHmac('sha256','stripe-test').update(`${now}.${body}`).digest('hex');
  for(let i=0;i<2;i++)assert.equal((await fetch(base+'/api/webhooks/stripe?site=store',{method:'POST',headers:{'stripe-signature':`t=${now},v1=${signature}`},body})).status,200);
- await page.locator('#connectionButton').click();await page.locator('input[name=site]').fill('store');await page.locator('input[name=token]').fill('read-store');await page.getByRole('button',{name:'Open workspace →'}).click();
+ await page.locator('#connectionButton').click();await page.locator('#websiteForm [name=url]').fill(base);await page.locator('#websiteForm [name=site]').fill('store');await page.locator('#websiteForm button').click();await page.locator('input[name=token]').fill('read-store');await page.locator('#connectForm [type=submit]').click();
+ await page.locator('#verifyStep').waitFor({state:'visible'});
+ await page.locator('#verifyVisit').click();await page.waitForFunction(()=>document.querySelector('#verifyResult').textContent.includes('Waiting'));
+ assert.equal(await page.locator('#finishSetup').isVisible(),false,'historical visits must not complete setup');
+ await page.evaluate(async(base)=>{const {createTideStat}=await import('/sdk/index.js');const sdk=createTideStat({siteId:'store',endpoint:base+'/api/collect',consent:true,autoPageview:false});await sdk.page();sdk.destroy();},base);
+ await page.locator('#verifyVisit').click();await page.locator('#finishSetup').waitFor({state:'visible'});await page.locator('#finishSetup').click();
  await page.locator('nav [data-view=stories]').click();
  await page.waitForFunction(()=>document.querySelector('#storyList [data-story]'));
  assert.equal(await page.locator('#storyList [data-story]').count(),1);assert.match(await page.locator('#metrics').textContent(),/\$19\.00/);

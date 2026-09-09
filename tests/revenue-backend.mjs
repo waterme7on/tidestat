@@ -178,3 +178,17 @@ test('analytics window edges and context joins remain exact and isolated',async(
  assert.equal(result.overview.visitors,1);assert.equal(result.daily.reduce((n,d)=>n+d.pageviews,0),2);assert.deepEqual(result.dimensions.countries.map(r=>r.name),['US']);
  const secret=event('one','invalid-link','visitor1','session1','outbound_click',start);secret.properties={outbound_url:'javascript:alert(1)'};await assert.rejects(ingest(db,secret,{}),/Invalid outbound/);
 });
+
+test('setup verification requires auth, exact origin and a fresh same-site pageview',async()=>{
+ const {db}=database();const env={DB:db,SITES_JSON:JSON.stringify({one:{origin:'https://shop.example',readToken:'private-one'},two:{origin:'https://other.example',readToken:'private-two'}})};
+ const since=Date.now()-1000;
+ const check=(token='private-one',origin='https://shop.example',start=since)=>worker.fetch(new Request(`https://tide.example/api/setup?site=one&origin=${encodeURIComponent(origin)}&since=${start}`,{headers:{Authorization:`Bearer ${token}`}}),env);
+ assert.equal((await check('private-two')).status,401);
+ await ingest(db,event('one','old','v-old','s-old','page_view',since-5000),{});
+ await ingest(db,event('two','other','v-other','s-other','page_view',since+10),{});
+ let result=await(await check()).json();assert.equal(result.originAllowed,true);assert.equal(result.pageviewReceived,false);
+ assert.equal((await(await check('private-one','https://wrong.example')).json()).originAllowed,false);
+ await ingest(db,event('one','fresh','v-fresh','s-fresh','page_view',since+20),{});
+ result=await(await check()).json();assert.equal(result.pageviewReceived,true);assert.equal(result.lastPageviewAt,since+20);assert.ok(!JSON.stringify(result).includes('private-one'));
+ assert.equal((await check('private-one','https://shop.example','nope')).status,400);
+});

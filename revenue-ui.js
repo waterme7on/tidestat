@@ -1,4 +1,5 @@
 import './revenue-locale.js';
+import { initOnboarding } from './onboarding.js';
 import { tr, locale, translate } from './product-ui.js';
 import { avatarSVG } from './visitor-avatar.js';
 import { icon, brandMark, trendSVG, exportSVG, escapeHTML as esc } from './revenue-visuals.js';
@@ -72,16 +73,16 @@ async function load() {
   if(ticket!==generation)return;
   const connection=window.tideConnection.get();
   if(!connection.site||(!connection.token&&!connection.session)){data=null;notice('');render();return;}
+  $('refresh').disabled=true;$('refresh').setAttribute('aria-busy','true');
   data=null;render();notice('Loading observed journeys and verified payments…');
   const request=window.tideConnection.request('/api/revenue',{days:$('range').value});
-  try {const res=await fetch(request.url,{headers:request.headers,cache:'no-store',signal:AbortSignal.timeout(15000)});if(!res.ok)throw new Error(res.status===401||res.status===403?'The website ID or read token was not accepted.':tr('Revenue data is unavailable ({status}).',{status:res.status}));const result=await res.json();if(!result.overview||!Array.isArray(result.stories))throw new Error('Unexpected response. Check that the Revenue Story Worker is deployed.');if(ticket!==generation)return;data=result;notice(data.truncated||data.historyComplete===false?'The available history is incomplete or exceeds the report limit. Totals describe the returned sample; narrow the date range.':'');render();}catch(e){if(ticket!==generation)return;data=null;notice(e.name==='TimeoutError'?'The request timed out. Refresh to try again.':e.message,true);render();}
+  try {const res=await fetch(request.url,{headers:request.headers,cache:'no-store',signal:AbortSignal.timeout(15000)});if(!res.ok)throw new Error(res.status===401||res.status===403?'The website ID or read token was not accepted.':tr('Revenue data is unavailable ({status}).',{status:res.status}));const result=await res.json();if(!result.overview||!Array.isArray(result.stories))throw new Error('Unexpected response. Check that the Revenue Story Worker is deployed.');if(ticket!==generation)return;data=result;notice(data.truncated||data.historyComplete===false?'The available history is incomplete or exceeds the report limit. Totals describe the returned sample; narrow the date range.':'');render();}catch(e){if(ticket!==generation)return;data=null;notice(e.name==='TimeoutError'?'The request timed out. Refresh to try again.':e.message,true);render();}finally{if(ticket===generation){$('refresh').disabled=false;$('refresh').removeAttribute('aria-busy');}}
 }
 if($('brandMark'))$('brandMark').innerHTML=brandMark();
 document.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=icon(el.dataset.icon));
 if(params.get('embed')==='1'){document.body.classList.add('embedded');document.addEventListener('click',event=>{const a=event.target.closest('a');if(a&&!a.getAttribute('href').startsWith('#'))a.target='_top';});}
 $('connectionButton').onclick=()=> $('connectDialog').showModal();
-$('connectForm').onsubmit=e=>{e.preventDefault();const form=new FormData(e.target);window.tideConnection.set(form.get('site').trim(),form.get('token').trim());demo=false;visitorFilter='';sourceFilter='';$('connectDialog').close();load();};
-$('disconnect').onclick=()=>{window.tideConnection.clear();demo=false;data=null;generation++;$('connectDialog').close();notice('');render();};
+initOnboarding({onConnected(){demo=false;visitorFilter='';sourceFilter='';void load();},onDisconnect(){demo=false;data=null;generation++;notice('');render();}});
 for(const button of document.querySelectorAll('[data-close]'))button.onclick=()=>$(button.dataset.close).close();
 $('accountSiteSelect').onchange=e=>{if(window.tideConnection.select(e.target.value)){sourceFilter='';visitorFilter='';statusFilter='';data=null;void load();}};
 $('refresh').onclick=load;$('range').onchange=load;window.addEventListener('hashchange',render);

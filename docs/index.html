@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="./docs.css">
 <link rel="stylesheet" href="../product-ui.css">
 <script type="module" src="./docs-locale.js"></script>
-</head>
+<link rel="stylesheet" href="../ui-polish.css"></head>
 <body>
 <a class="skip" href="#content">Skip to content</a>
 <header>
@@ -122,11 +122,13 @@
 <h1>NPM SDK / Package</h1>
 <p class="lead">Typeable, explicit event tracking for JavaScript sites. Use the same canonical schema as Shopify.</p>
 <div class="notice">
-<strong>Local package</strong>Install the repository package by filesystem path. The registry command <code>npm install @tidestat/browser-sdk</code> is not a supported installation until the package is published.</div>
+<strong>Local package</strong>This SDK is not published to npm. Install it from your local TideStat repository; do not install by registry package name.</div>
 <h2>Install</h2>
 <pre>
-<code>npm install /absolute/path/to/tidestat/packages/browser-sdk</code>
+<code>npm install "/absolute/path/to/tidestat/packages/browser-sdk"</code>
 </pre>
+<p>Run this in your website project and replace the placeholder with the actual TideStat checkout path. The build environment must also have access to this local dependency. Without a checkout, use the <a href="#browser">hosted Browser SDK</a>; no npm installation is needed.</p>
+<details><summary>Connect with an Agent or Skill</summary><p>Use the website setup dialog to copy a task containing your website ID and deployment URL. Alternatively, <a href="./tidestat-connect/SKILL.md" download="SKILL.md">download the Skill</a>, save it in your website project as <code>.agents/skills/tidestat-connect/SKILL.md</code>, and ask your agent to read it and complete the setup task. Verify a real visit before marking setup complete.</p></details>
 <h2>Initialize once in the browser</h2>
 <pre>
 <code>import { createTideStat } from &#x27;@tidestat/browser-sdk&#x27;;

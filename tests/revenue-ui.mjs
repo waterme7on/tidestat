@@ -50,7 +50,7 @@ try {
  }
  await page.screenshot({path:'visual-review/revenue-insights-desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});
- await page.locator('nav [data-view="stories"]').click();
+ await page.locator('[data-tab="stories"]').click();
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'mobile no horizontal overflow');
  await page.screenshot({path:'visual-review/revenue-stories-mobile.png',fullPage:true});
  // Fail-closed connection and escaping check: token travels only in the auth header.
@@ -58,8 +58,9 @@ try {
  await page.route('**/api/revenue?*',r=>{observed=r.request();return r.fulfill({status:401,contentType:'application/json',body:'{"error":"unauthorized"}'});});
  await page.setViewportSize({width:1440,height:1000});
  await page.locator('#connectionButton').click();
- await page.locator('input[name=site]').fill('site-a');await page.locator('input[name=token]').fill('private-test-token');
- await page.getByRole('button',{name:'Open workspace →'}).click();
+ await page.locator('#websiteForm [name=url]').fill('https://shop.example');await page.locator('#websiteForm [name=site]').fill('site-a');await page.locator('#websiteForm button').click();
+ await page.route('**/api/setup?*',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({site:'site-a',originAllowed:true,pageviewReceived:false})}));
+ await page.locator('input[name=token]').fill('private-test-token');await page.locator('#connectForm [type=submit]').click();
  await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('not accepted'));
  assert.equal(new URL(observed.url()).searchParams.get('site'),'site-a');assert.equal(observed.headers().authorization,'Bearer private-test-token');assert.ok(!observed.url().includes('private-test-token'));
  assert.equal(await page.locator('#storyList').count(),0,'previous site data must clear on auth failure');
@@ -74,7 +75,7 @@ try {
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'embed mobile no horizontal overflow');
  await page.screenshot({path:'visual-review/revenue-embed-mobile.png',fullPage:true});
  // Shared controls translate the dashboard, preserve preferences and apply light surfaces.
- await page.locator('[data-product-language]').selectOption('zh');
+ await page.locator('.workspace-settings summary').click();await page.locator('[data-product-language]').selectOption('zh');
  if(await page.locator('[data-product-theme]').getAttribute('aria-checked')!=='false')await page.locator('[data-product-theme]').click();
  await page.waitForFunction(()=>document.querySelector('#pageTitle').textContent.includes('看懂'));
  assert.equal(await page.locator('html').getAttribute('data-theme'),'light');
@@ -100,7 +101,7 @@ try {
  const {readFile}=await import('node:fs/promises');
  const exportContent=await readFile(await translatedDownload.path(),'utf8');
  assert.match(exportContent,/收入快照/);assert.ok(!exportContent.includes('sample_payment_'));
- await page.locator('[data-product-language]').selectOption('en');
+ await page.locator('.workspace-settings summary').click();await page.locator('[data-product-language]').selectOption('en');
  if(await page.locator('[data-product-theme]').getAttribute('aria-checked')!=='true')await page.locator('[data-product-theme]').click();
  await page.waitForFunction(()=>document.querySelector('#pageTitle').textContent.includes('bigger'));
  assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
