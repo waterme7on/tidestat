@@ -125,8 +125,8 @@ function showPopup(loc, content) {
   // context that drops the popup below the Live signals panel and blocks its buttons.
   const host = engine === 'globe' ? map?.getContainer() : flat?.getContainer();
   const embedded = document.body.dataset.embed === '1';
-  const popupWidth = embedded ? '420px' : '300px';
-  if (!mobileDetails && host?.clientHeight) content.style.maxHeight = (embedded ? Math.max(200, host.clientHeight - 64) : Math.max(150, Math.round(host.clientHeight * .42))) + 'px';
+  const popupWidth = '420px';
+  if (!mobileDetails && host?.clientHeight) content.style.maxHeight = Math.max(180, host.clientHeight - 64) + 'px';
   if (mobileDetails) {
     const panel = document.createElement('section');
     panel.className = 'mobile-visitor-detail';
@@ -145,7 +145,7 @@ function showPopup(loc, content) {
     // Everything runs synchronously with zero duration so the camera is settled before any observer reads it.
     popup = new maplibregl.Popup({ offset: 30, maxWidth: popupWidth, className: 'live-visitor-popup', closeOnClick: false, anchor: 'bottom', focusAfterOpen: false }).setLngLat(loc).setDOMContent(content).addTo(map);
     const card = popup.getElement()?.getBoundingClientRect(), box = map.getContainer().getBoundingClientRect();
-    if (card && !embedded) {
+    if (card && !embedded && !window.matchMedia('(min-width: 601px)').matches) {
       const dx = Math.min(0, card.left - (box.left + 10)) + Math.max(0, card.right - (box.right - 10));
       const dy = Math.min(0, card.top - (box.top + 10));
       // panBy moves the camera center, so content shifts the opposite way: pass the overflow delta directly.

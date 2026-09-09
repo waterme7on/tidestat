@@ -1,3 +1,4 @@
+import {selectLanguage} from './language-helper.mjs';
 import { chromium } from 'playwright';
 import { DatabaseSync } from 'node:sqlite';
 import assert from 'node:assert/strict';
@@ -85,7 +86,7 @@ try {
       data = { ...data, truncated: true };
       await page.evaluate(() => window.__tide.refresh());
       await page.waitForFunction(() => document.getElementById('liveStatus').textContent.includes('Latest 2,000 events'));
-      await page.locator('#languageSelect').selectOption('zh');
+      await selectLanguage(page,'zh');
       await page.waitForFunction(() => document.getElementById('liveStatus').textContent.includes('最近 2,000 条'));
       await page.locator('#tab-park').click();
       await page.waitForFunction(() => window.__tide3d?.ready());
@@ -126,7 +127,7 @@ try {
       assert.equal(await page.locator('.group-people button').count(), 3);
       assert.equal(await page.evaluate(() => window.__tide.selectedId), null);
       await page.locator('.maplibregl-popup-close-button').click();
-      await page.locator('#languageSelect').selectOption('zh');
+      await selectLanguage(page,'zh');
       await page.locator('#mapReset').focus();
       await page.mouse.move(10, 10);
       assert.equal(await page.locator('.maplibregl-popup').count(), 0);

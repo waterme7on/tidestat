@@ -1,3 +1,4 @@
+import {selectLanguage} from './language-helper.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
@@ -57,7 +58,7 @@ try {
  let observed;
  await page.route('**/api/revenue?*',r=>{observed=r.request();return r.fulfill({status:401,contentType:'application/json',body:'{"error":"unauthorized"}'});});
  await page.setViewportSize({width:1440,height:1000});
- await page.locator('#connectionButton').click();
+ await page.goto(base+'/revenue.html?advanced=1');
  await page.locator('#websiteForm [name=url]').fill('https://shop.example');await page.locator('#websiteForm [name=site]').fill('site-a');await page.locator('#websiteForm button').click();
  await page.route('**/api/setup?*',r=>r.fulfill({contentType:'application/json',body:JSON.stringify({site:'site-a',originAllowed:true,pageviewReceived:false})}));
  await page.locator('input[name=token]').fill('private-test-token');await page.locator('#connectForm [type=submit]').click();
@@ -75,14 +76,14 @@ try {
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'embed mobile no horizontal overflow');
  await page.screenshot({path:'visual-review/revenue-embed-mobile.png',fullPage:true});
  // Shared controls translate the dashboard, preserve preferences and apply light surfaces.
- await page.locator('.workspace-settings summary').click();await page.locator('[data-product-language]').selectOption('zh');
+ await page.locator('.workspace-settings summary').click();await selectLanguage(page,'zh');
  if(await page.locator('[data-product-theme]').getAttribute('aria-checked')!=='false')await page.locator('[data-product-theme]').click();
  await page.waitForFunction(()=>document.querySelector('#pageTitle').textContent.includes('看懂'));
  assert.equal(await page.locator('html').getAttribute('data-theme'),'light');
  assert.match(await page.locator('#metrics').textContent(),/净收入/);
  await page.reload();
  await page.locator('.dimension-grid').waitFor();
- assert.equal(await page.locator('[data-product-language]').inputValue(),'zh');
+ assert.equal(await page.locator('.language-options button[data-language=zh]').getAttribute('aria-checked'),'true');
  assert.equal(await page.locator('[data-product-theme]').getAttribute('aria-checked'),'false');
  assert.match(await page.locator('#metrics').textContent(),/访客/);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Chinese mobile light no overflow');
@@ -101,7 +102,7 @@ try {
  const {readFile}=await import('node:fs/promises');
  const exportContent=await readFile(await translatedDownload.path(),'utf8');
  assert.match(exportContent,/收入快照/);assert.ok(!exportContent.includes('sample_payment_'));
- await page.locator('.workspace-settings summary').click();await page.locator('[data-product-language]').selectOption('en');
+ await page.locator('.workspace-settings summary').click();await selectLanguage(page,'en');
  if(await page.locator('[data-product-theme]').getAttribute('aria-checked')!=='true')await page.locator('[data-product-theme]').click();
  await page.waitForFunction(()=>document.querySelector('#pageTitle').textContent.includes('bigger'));
  assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');

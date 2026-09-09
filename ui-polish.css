@@ -62,3 +62,14 @@ header .menu,header .menu-toggle{display:inline-flex;align-items:center;justify-
 #verifyResult[data-status]{display:flex;align-items:flex-start;gap:12px;padding:16px;margin:20px 0;border:1px solid var(--tide-line);border-radius:14px;background:var(--tide-soft);color:var(--tide-ink)}.verification-symbol{display:grid;place-items:center;width:30px;height:30px;flex:none;border:1px solid var(--tide-line);border-radius:50%;background:var(--tide-surface);color:var(--tide-muted)}.verification-copy{display:grid;gap:6px;align-self:center;line-height:1.6}.verification-copy time{color:var(--tide-muted);font-size:11px}#verifyResult[data-status=success]{border-color:color-mix(in srgb,var(--tide-accent) 40%,var(--tide-line));background:color-mix(in srgb,var(--tide-accent) 6%,var(--tide-surface))}#verifyResult[data-status=success] .verification-symbol{color:var(--tide-accent);border-color:var(--tide-accent)}#verifyResult[data-status=error] .verification-symbol{color:var(--tide-accent)}#verifyResult[data-status=pending] .tide-icon{animation:action-turn 1.2s linear infinite}
 @keyframes action-turn{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){[data-action-state=pending] .action-state-icon,#verifyResult[data-status=pending] .tide-icon{animation:none!important}.settings-sheet::backdrop{backdrop-filter:none}}
+
+/* Theme-aware language options in the browser top layer. */
+.language-menu{display:flex;position:relative}
+html .language-trigger{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 12px;border:1px solid transparent;border-radius:12px;background:transparent;color:var(--tide-ink);font:inherit;font-size:12px;cursor:pointer}
+html .language-trigger:hover,html .language-trigger[aria-expanded=true]{background:var(--tide-soft);border-color:var(--tide-line)}
+.language-trigger .tide-icon{width:16px;height:16px}.language-trigger .tide-icon:last-child{width:12px}
+html .language-options{position:fixed;inset:auto;margin:0;width:200px;padding:6px;border:1px solid var(--tide-line);border-radius:14px;background:var(--tide-surface);color:var(--tide-ink);box-shadow:0 12px 36px #10202424}
+html .language-options button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;min-height:44px;padding:10px 12px;border:0;border-radius:9px;background:transparent;color:var(--tide-ink);font:12px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;text-align:left;cursor:pointer}
+html .language-options button:hover,html .language-options button:focus-visible{background:var(--tide-soft);outline:0}
+html .language-options button[aria-checked=true]{color:var(--tide-accent);background:var(--tide-soft)}
+.language-options button:not([aria-checked=true]) .tide-icon{visibility:hidden}

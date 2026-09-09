@@ -1,3 +1,4 @@
+import {selectLanguage} from './language-helper.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 const base=process.env.BASE_URL||'http://127.0.0.1:8897';
@@ -13,7 +14,7 @@ try {
   await page.locator('.mobile-visitor-detail').waitFor();
   assert.equal(await page.locator('.mobile-visitor-detail .visitor-popup').evaluate(e=>getComputedStyle(e).maxHeight),'none');
   for(const language of ['zh','en']) {
-   await page.locator('[data-product-language]').selectOption(language);
+   await selectLanguage(page,language);
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    assert.ok(await page.evaluate(()=>document.querySelector('.mobile-visitor-detail').getBoundingClientRect().top>=document.querySelector('.stage').getBoundingClientRect().bottom));
   }

@@ -1,3 +1,4 @@
+import {selectLanguage} from './language-helper.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -17,10 +18,10 @@ try{
  assert.doesNotMatch(await page.locator('.visitor-popup-head').textContent(),/long-internal/);
  const svg=await page.locator('.visitor-popup svg[data-avatar-style]').evaluate(e=>e.outerHTML);
  const camera=await page.evaluate(()=>window.__tideMap.camera());
- await page.locator('#languageSelect').selectOption('zh');await page.waitForTimeout(400);
+ await selectLanguage(page,'zh');await page.waitForTimeout(400);
  assert.equal(await page.locator('html').getAttribute('lang'),'zh-CN');assert.equal(await page.locator('#tab-map').textContent(),'实时访问人数');
  assert.equal(await page.locator('.visitor-popup svg[data-avatar-style]').evaluate(e=>e.outerHTML),svg);assert.deepEqual(await page.evaluate(()=>window.__tideMap.camera()),camera);
- await page.getByRole('button',{name:'查看访问时间线 →',exact:true}).click();
+ await page.getByRole('button',{name:/^查看访问时间线(?: →)?$/}).click();
  await page.locator('#timelineDialog[open]').waitFor();assert.equal(await page.locator('#timelineDialog #vdTimeline li').count(),3);
  assert.match(await page.locator('#timelineDialog').textContent(),/\/zh\/writing\/example/);
  assert.equal(await page.evaluate(()=>document.activeElement.id),'vdClose');
@@ -28,36 +29,36 @@ try{
  // Native modal keyboard trap and Escape restore the same sidebar panel.
  await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.getElementById('timelineDialog').contains(document.activeElement)),true);
  await page.keyboard.press('Escape');await page.waitForFunction(()=>!window.__tide.timelineOpen);assert.equal(await page.locator('#visitorDetail').count(),1);
- assert.equal(await page.evaluate(()=>document.activeElement.textContent),'查看访问时间线 →');
+ assert.match(await page.evaluate(()=>document.activeElement.textContent),/^查看访问时间线(?: →)?\s*$/);
  await page.locator('#mapExpand').click();await page.locator('.online-visitor').filter({hasText:/London|伦敦/}).evaluate(e=>e.click());
- await page.getByRole('button',{name:'查看访问时间线 →',exact:true}).click();await page.locator('#timelineDialog[open]').waitFor();assert.equal(await page.locator('.map-expanded').count(),0);
+ await page.getByRole('button',{name:/^查看访问时间线(?: →)?$/}).click();await page.locator('#timelineDialog[open]').waitFor();assert.equal(await page.locator('.map-expanded').count(),0);
  // A visitor departing while the timeline is open must not close it or retain an online count.
  visitors=visitors.slice(1);await page.evaluate(()=>window.__tide.refresh());await page.waitForTimeout(700);
  assert.equal(await page.locator('#realtimeCount').textContent(),'1');assert.equal(await page.locator('#timelineDialog[open]').count(),1);assert.match(await page.locator('#vdMeta').textContent(),/已离线/);
  await page.locator('#vdClose').click();
  await page.locator('.online-visitor').click();assert.match(await page.locator('.visitor-popup-head').textContent(),/IP 暂不可用/);
- await page.locator('#languageSelect').selectOption('en');assert.match(await page.locator('.visitor-popup-head').textContent(),/IP unavailable/);
+ await selectLanguage(page,'en');assert.match(await page.locator('.visitor-popup-head').textContent(),/IP unavailable/);
  await page.reload();await page.waitForFunction(()=>window.__tideMap?.ready());assert.equal(await page.locator('html').getAttribute('lang'),'en');
  results.push('Timeline explicitly opens in normal/expanded mode, traps focus, handles Escape and keeps history after departure; masked/unknown IP labels; English/Chinese preserves camera, avatar and persisted preference');
  await page.locator('#tab-park').click();await page.waitForFunction(()=>window.__tide3d?.ready());await page.waitForTimeout(350);
  assert.equal(await page.locator('.footprint-heading h1').textContent(),'Site journeys');
  assert.equal(await page.locator('.footprint-node[data-node-id="home"] span').textContent(),'Home');
- await page.locator('.footprint-person').click();await page.getByRole('button',{name:'View visit timeline →',exact:true}).click();await page.locator('#timelineDialog[open]').waitFor();
+ await page.locator('.footprint-person').click();await page.getByRole('button',{name:/^View visit timeline(?: →)?$/}).click();await page.locator('#timelineDialog[open]').waitFor();
  assert.match(await page.locator('#vdTimeline').textContent(),/No recorded pages yet/);
  await page.locator('#vdClose').click();
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'visual-review/journeys-en-mobile.png',fullPage:true});
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
- await page.locator('#languageSelect').selectOption('zh');assert.equal(await page.locator('.footprint-heading h1').textContent(),'网站足迹');
+ await selectLanguage(page,'zh');assert.equal(await page.locator('.footprint-heading h1').textContent(),'网站足迹');
  await page.close();
  // No real collect/live calls, dense realistic demo, complete per-visitor history.
  const demo=await browser.newPage({locale:'en-US',viewport:{width:1440,height:1000},reducedMotion:'reduce'});watch(demo);const api=[];demo.on('request',r=>{if(r.url().includes('/api/'))api.push(r.url());});
  await ready(demo,'/?demo=1');const counts=[];for(let i=0;i<8;i++){counts.push(await demo.evaluate(()=>window.__tide.visitors.size));await demo.waitForTimeout(600);}
  assert.ok(counts.every(n=>n>=100&&n<=150),JSON.stringify(counts));assert.equal(api.length,0);
- await demo.locator('.online-visitor[data-visitor-id="v0050"]').click();await demo.getByRole('button',{name:'View visit timeline →',exact:true}).click();await demo.locator('#timelineDialog[open]').waitFor();
+ await demo.locator('.online-visitor[data-visitor-id="v0050"]').click();await demo.getByRole('button',{name:/^View visit timeline(?: →)?$/}).click();await demo.locator('#timelineDialog[open]').waitFor();
  assert.ok(await demo.locator('#vdTimeline li').count()>=3);assert.match(await demo.locator('#vdId').textContent(),/203\.\*\.\*\./);assert.match(await demo.locator('#vdMeta').textContent(),/Simulated IP/);
  await demo.screenshot({path:'visual-review/timeline-demo-en.png'});await demo.locator('#vdClose').click();
  await demo.screenshot({path:'visual-review/demo-120-en-desktop.png'});
- await demo.setViewportSize({width:390,height:844});await demo.locator('.online-visitor').first().click();await demo.getByRole('button',{name:'View visit timeline →',exact:true}).click();
+ await demo.setViewportSize({width:390,height:844});await demo.locator('.online-visitor').first().click();await demo.getByRole('button',{name:/^View visit timeline(?: →)?$/}).click();
  assert.ok(await demo.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await demo.screenshot({path:'visual-review/timeline-en-mobile.png'});
  results.push('120-person warm start and bounded 100–150 sampled demo population; simulated IP and multi-step timeline; English mobile; no demo API calls');await demo.close();
  // Idle spin is slow, cancellable, and independent from data updates. Real waiting validates the browser clock.
@@ -87,7 +88,7 @@ try{
  // WebGL-less timeline, localization and masked display remain usable.
  const flat=await browser.newPage({locale:'en-US',viewport:{width:390,height:844},reducedMotion:'reduce'});watch(flat);await mock(flat);
  await flat.addInitScript(()=>{const old=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)?null:old.call(this,type,...args);};});
- await ready(flat);await flat.locator('.online-visitor').first().click();await flat.getByRole('button',{name:'View visit timeline →',exact:true}).click();await flat.locator('#timelineDialog[open]').waitFor();await flat.locator('#vdClose').click();
+ await ready(flat);await flat.locator('.online-visitor').first().click();await flat.getByRole('button',{name:/^View visit timeline(?: →)?$/}).click();await flat.locator('#timelineDialog[open]').waitFor();await flat.locator('#vdClose').click();
  assert.equal(await flat.locator('#globeMode').textContent(),'2D compatibility mode');await flat.close();
  assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
  await fs.writeFile('visual-review/dashboard-results.json',JSON.stringify({passed:true,results,counts,errors,external},null,2));console.log(results.join('\n'));

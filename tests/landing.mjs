@@ -1,3 +1,4 @@
+import {selectLanguage} from './language-helper.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {readFile,mkdir} from 'node:fs/promises';
@@ -35,7 +36,7 @@ try{
  await page.locator('[data-billing-interval="year"]').click();assert.equal(await page.locator('[data-plan="starter"] [data-price]').textContent(),'$90');
  assert.match(await page.locator('[data-plan="starter"] [data-plan-cta]').getAttribute('href'),/interval=year/);
  await page.reload();assert.equal(await page.locator('[data-billing-interval="year"]').getAttribute('aria-pressed'),'true');
- for(const width of [320,390,430,768,1024,1440]) { await page.setViewportSize({width,height:900}); for(const language of ['zh','en']) { await page.locator('[data-product-language]').selectOption(language); assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${width} ${language} fits`); } }
+ for(const width of [320,390,430,768,1024,1440]) { await page.setViewportSize({width,height:900}); for(const language of ['zh','en']) { await selectLanguage(page,language); assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`${width} ${language} fits`); } }
 
  assert.match(await readFile('dist/index.html','utf8'),/id="hero-title"/);assert.match(await readFile('dist/live.html','utf8'),/liveSignals/);assert.deepEqual(errors,[]);
  console.log('Landing passed: built homepage, embedded interactive demo, visitor story, mobile layout and no private API calls.');
