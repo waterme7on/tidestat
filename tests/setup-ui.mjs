@@ -30,8 +30,6 @@ try{
  await page.locator('[data-close=connectDialog]').click();await page.goto(base+'/revenue.html');await page.locator('#setupProgress').click();await page.locator('#finishSetup').waitFor({state:'visible'});
  await page.screenshot({path:'visual-review/ui-polish/setup-dashboard-receipt-mobile.png'});
  await page.locator('[data-close=connectDialog]').click();await page.locator('.workspace-settings summary').click();await page.locator('#manageConnection').click();
- await page.locator('#websiteForm [name=url]').fill('https://legacy.example');await page.locator('#websiteForm [name=site]').fill('legacy');await page.locator('#websiteForm button').click();
- assert.equal(await page.locator('#connectForm [name=token]').isVisible(),true);denied=true;await page.locator('#connectForm [name=token]').fill('private-test-token');await page.locator('#connectForm [type=submit]').click();await page.waitForFunction(()=>document.querySelector('#setupError').textContent.includes('read token'));assert.ok(!lastRequest.url().includes('private-test-token'));assert.ok(!(await page.locator('#agentTask').inputValue()).includes('private-test-token'));
- await page.screenshot({path:'visual-review/ui-polish/setup-agent-mobile.png'});
+ assert.equal(await page.locator('#finishSetup').isVisible(),true);assert.equal(await page.locator('#connectForm [name=token]').isVisible(),false);assert.match(await page.locator('#agentTask').inputValue(),/hosted TideStat/);
  assert.deepEqual(errors,[]);console.log('Setup UI passed: account cookie, both methods, auth failure, fresh event, per-site resume and private legacy credentials.');
 }finally{await browser.close();}

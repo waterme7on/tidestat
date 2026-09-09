@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<meta name="description" content="Connect TideStat with the npm SDK or Shopify. Learn canonical events, verified payment attribution, revenue stories and Cloudflare deployment.">
+<meta name="description" content="Connect your website to TideStat. Send consented events to our hosted service and explore your traffic, visitors and revenue.">
 <title>TideStat Documentation</title>
 <script src="../theme.js"></script>
 <script src="../i18n.js"></script>
@@ -62,7 +62,7 @@
 <p class="nav-group">Operations</p>
 <div>
 <a href="#sites" data-page="sites">Multiple websites</a>
-<a href="#deployment" data-page="deployment">Deployment & migration</a>
+<a href="#deployment" data-page="deployment">Connect your website</a>
 <a href="#privacy" data-page="privacy">Privacy & data boundaries</a>
 <a href="#troubleshooting" data-page="troubleshooting">Troubleshooting</a>
 </div>
@@ -89,10 +89,10 @@
 </div>
 <p>This is an illustrative journey, not customer data. TideStat preserves the live map, anonymous visitor characters, Website Footprints and event stream, then adds the payment evidence that makes those visits meaningful.</p>
 <div class="notice warning">
-<strong>Self-hosted implementation · integration verification required</strong>The SDK is a local package, not a published npm release. Payment connectors need your credentials and end-to-end test payments. Search Console supports aggregate imports; there is no OAuth connection.</div>
+<strong>Hosted analytics · your website, your data</strong>TideStat collects and stores your website events and provides the dashboard. Use our hosted tracker without installing a server or database. The optional local SDK is not a published npm release. Payment connectors require separate activation and verification; Search Console currently supports aggregate imports.</div>
 <div class="cards">
-<a class="card" href="#npm">
-<strong>NPM / Browser SDK ↗</strong>
+<a class="card" href="#browser">
+<strong>Browser tracker ↗</strong>
 <span>Instrument a JavaScript website and link a server-created checkout.</span>
 </a>
 <a class="card" href="#shopify">
@@ -103,8 +103,8 @@
 <h2>Your first complete story</h2>
 <ol>
 <li>
-<a href="#deployment">Deploy the Worker and initialize D1</a>. Configure one website and its allowed origin.</li>
-<li>Install the SDK or Shopify adapter. Honor the visitor’s consent choice.</li>
+<a href="../account.html">Sign in and add your website</a>. TideStat creates its website ID and registers its origin.</li>
+<li>Copy the Agent task or add the hosted tracker to your website. Honor the visitor’s consent choice.</li>
 <li>Observe page views, then instrument checkout and any signup step your website uses.</li>
 <li>Pass the SDK attribution context to your payment creation flow.</li>
 <li>Send a signed test payment and inspect its Revenue Story.</li>
@@ -128,14 +128,14 @@
 <code>npm install "/absolute/path/to/tidestat/packages/browser-sdk"</code>
 </pre>
 <p>Run this in your website project and replace the placeholder with the actual TideStat checkout path. The build environment must also have access to this local dependency. Without a checkout, use the <a href="#browser">hosted Browser SDK</a>; no npm installation is needed.</p>
-<details><summary>Connect with an Agent or Skill</summary><p>Use the website setup dialog to copy a task containing your website ID and deployment URL. Alternatively, <a href="./tidestat-connect/SKILL.md" download="SKILL.md">download the Skill</a>, save it in your website project as <code>.agents/skills/tidestat-connect/SKILL.md</code>, and ask your agent to read it and complete the setup task. Verify a real visit before marking setup complete.</p></details>
+<details><summary>Connect with an Agent or Skill</summary><p>Use the website setup dialog to copy a task containing your website ID and TideStat service URL. Alternatively, <a href="./tidestat-connect/SKILL.md" download="SKILL.md">download the Skill</a>, save it in your website project as <code>.agents/skills/tidestat-connect/SKILL.md</code>, and ask your agent to read it and complete the setup task. Verify a real visit before marking setup complete.</p></details>
 <h2>Initialize once in the browser</h2>
 <pre>
 <code>import { createTideStat } from &#x27;@tidestat/browser-sdk&#x27;;
 
 const tide = createTideStat({
   siteId: &#x27;my-site&#x27;,
-  endpoint: &#x27;https://analytics.example.com/api/collect&#x27;,
+  endpoint: &#x27;https://tidestat.yololab.cc/api/collect&#x27;,
   consent: false,
   autoPageview: true,
   trackClicks: false
@@ -170,11 +170,11 @@ const attribution = tide.attribution();</code>
 <pre>
 <code>&lt;script type=&quot;module&quot;&gt;
   import { createTideStat } from
-    &#x27;https://analytics.example.com/sdk/index.js&#x27;;
+    &#x27;https://tidestat.yololab.cc/sdk/index.js&#x27;;
 
   const tide = createTideStat({
     siteId: &#x27;my-site&#x27;,
-    endpoint: &#x27;https://analytics.example.com/api/collect&#x27;,
+    endpoint: &#x27;https://tidestat.yololab.cc/api/collect&#x27;,
     consent: false
   });
   // Connect this to your real consent manager, not a timer.
@@ -184,11 +184,11 @@ const attribution = tide.attribution();</code>
 <p>Alternatively, insert this wrapper only after analytics consent is granted:</p>
 <pre>
 <code>&lt;script type=&quot;module&quot;
-  src=&quot;https://analytics.example.com/t.js&quot;
+  src=&quot;https://tidestat.yololab.cc/t.js&quot;
   data-site=&quot;my-site&quot;
   data-consent=&quot;true&quot;&gt;&lt;/script&gt;</code>
 </pre>
-<p>It exposes <code>window.tidestat</code>. The module option is required; an old classic script tag will not work. The canonical <code>/t.js</code> module flow has been verified in a cross-origin browser test; merchant payment setup still requires your own end-to-end verification. Use your own deployed asset URL. Run <code>npm run build</code> to publish the SDK at <code>/sdk/index.js</code>. Keep the SDK asset origin and collection endpoint aligned with your deployment.</p>
+<p>It exposes <code>window.tidestat</code>. The module option is required; an old classic script tag will not work. The canonical <code>/t.js</code> module flow has been verified in a cross-origin browser test; merchant payment setup still requires your own end-to-end verification. Use the hosted TideStat asset URL shown above. Events are sent to TideStat for storage and visualization; you only publish the tracker changes to your own website.</p>
 <h2>Existing websites</h2>
 <p>The <code>/t.js</code> endpoint redirects to the browser module wrapper. Use a module script and explicit site configuration when migrating an old tag. Migrating to the canonical SDK adds session context and business events. Remove the old script after enabling the new integration to avoid duplicate page views. Historical legacy events are not retroactively linked to payments.</p>
 <h2>Automatic versus intentional tracking</h2>
@@ -223,9 +223,9 @@ await fetch(cartRoot + &#x27;cart/update.js&#x27;, {
 <p>Use <a href="../integrations/shopify/customer-pixel.js">the customer-pixel adapter</a> and its <a href="../integrations/shopify/README.md">installation notes</a>. The adapter translates Shopify customer events into the same canonical event schema. Checkout-completed browser events remain unverified behavior.</p>
 <h2>4. Register the paid-order webhook</h2>
 <pre>
-<code>https://analytics.example.com/api/webhooks/shopify?site=my-site</code>
+<code>https://tidestat.yololab.cc/api/webhooks/shopify?site=my-site</code>
 </pre>
-<p>Subscribe to <code>orders/paid</code> and <code>refunds/create</code>. The Worker verifies the raw-body HMAC and configured shop domain, then accepts orders with <code>financial_status: paid</code>. Order IDs make repeated deliveries idempotent. Refunds sum successful refund transactions and link to the original order; linked refunds inherit its attribution.</p>
+<p>Subscribe to <code>orders/paid</code> and <code>refunds/create</code>. TideStat verifies the raw-body HMAC and configured shop domain, then accepts orders with <code>financial_status: paid</code>. Order IDs make repeated deliveries idempotent. Refunds sum successful refund transactions and link to the original order; linked refunds inherit its attribution.</p>
 <h2>5. Verify the entire path</h2>
 <p>Place a test order through your storefront. Confirm that the order carries the three <code>tidestat_*</code> note attributes, the webhook succeeds, and the Revenue Story contains the matching visit. An order without known matching context stays unattributed. Accelerated checkout flows that skip your cart-linking step need separate testing.</p>
 <div class="pager">
@@ -297,7 +297,7 @@ GET /api/stories?site=my-site&amp;visitor=visitor-id
 GET /api/live?site=my-site
 Authorization: Bearer YOUR_SITE_READ_TOKEN</code>
 </pre>
-<p>The stories endpoint supports exact <code>visitor</code>, <code>source</code> and <code>currency</code> filters, plus <code>offset</code> and <code>limit</code> (at most 100). Read <code>total</code> and <code>nextOffset</code> for pagination. The revenue summary includes at most 100 stories and exposes <code>storyCount</code>/<code>nextOffset</code>. Individual timelines are capped at 200 events with <code>timelineTruncated</code> when incomplete. Keep site read tokens private. They authorize sensitive analytics reads; the site ID in a public tracker is not a credential.</p>
+<p>The stories endpoint supports exact <code>visitor</code>, <code>source</code> and <code>currency</code> filters, plus <code>offset</code> and <code>limit</code> (at most 100). Read <code>total</code> and <code>nextOffset</code> for pagination. The revenue summary includes at most 100 stories and exposes <code>storyCount</code>/<code>nextOffset</code>. Individual timelines are capped at 200 events with <code>timelineTruncated</code> when incomplete. Dashboard reads require your signed-in account. The site ID in a public tracker is not a credential.</p>
 <div class="pager">
 <a href="#shopify">← Shopify</a>
 <a href="#stripe">Stripe payment linking →</a>
@@ -323,9 +323,9 @@ Authorization: Bearer YOUR_SITE_READ_TOKEN</code>
 </pre>
 <h2>2. Configure the webhook</h2>
 <pre>
-<code>https://analytics.example.com/api/webhooks/stripe?site=my-site</code>
+<code>https://tidestat.yololab.cc/api/webhooks/stripe?site=my-site</code>
 </pre>
-<p>Subscribe to <code>checkout.session.completed</code>, <code>checkout.session.async_payment_succeeded</code>, <code>invoice.paid</code>, <code>refund.created</code>, <code>refund.updated</code> and <code>charge.refunded</code>. For subscriptions, also pass the attribution keys into <code>subscription_data.metadata</code> so renewal invoices can preserve the link. Set the endpoint signing secret as <code>stripeWebhookSecret</code> in the corresponding website’s server configuration. The Worker checks the signature against the raw request body and enforces a five-minute timestamp tolerance.</p>
+<p>Subscribe to <code>checkout.session.completed</code>, <code>checkout.session.async_payment_succeeded</code>, <code>invoice.paid</code>, <code>refund.created</code>, <code>refund.updated</code> and <code>charge.refunded</code>. For subscriptions, also pass the attribution keys into <code>subscription_data.metadata</code> so renewal invoices can preserve the link. Have the TideStat operator activate the connector and securely configure its signing secret; self-service connector activation is not yet available. TideStat checks the signature against the raw request body and enforces a five-minute timestamp tolerance.</p>
 <h2>3. Verify the result</h2>
 <p>Only sessions with <code>payment_status: paid</code> become payments. Checkout confirmations deduplicate on Checkout Session ID. Invoice and payment-intent aliases prevent double-counting an initial invoice also seen through Checkout. Paid invoices use <code>amount_paid</code>; refunds are dated by their own creation time and count only when <code>status: succeeded</code>. The connector deduplicates individual refund IDs. <code>charge.refunded</code> also expands its refund list, but that list can be partial: subscribe to the independent refund events too.</p>
 <div class="notice warning">
@@ -416,97 +416,25 @@ Content-Type: application/json
 <h1>Multiple websites</h1>
 <p class="lead">Keep traffic, sessions, payments and analytics reads scoped to the right website.</p>
 <h2>Sign in and own your websites</h2>
-<p>Open <a href="../account.html">your account</a> and sign in with Google when this deployment has enabled it. Websites created there belong to the signed-in account. The account’s plan controls website count and monthly event allowance; every plan includes the same analytics, Revenue Story and live features.</p>
+<p>Open <a href="../account.html">your account</a> and sign in with Google. Websites created there belong to the signed-in account. The account’s plan controls website count and monthly event allowance; every plan includes the same analytics, Revenue Story and live features.</p>
 <p>Free includes 1 website and 10,000 monthly events. Starter is USD 9/month or USD 90/year, with 3 websites and 100,000 monthly events. Growth is USD 29/month or USD 290/year, with 10 websites and 1,000,000 monthly events. Yearly prices are the full annual charge. See <a href="../pricing.html">pricing</a> for the current catalog.</p>
 <p>Paid entitlements are granted only after the server verifies the current Stripe subscription. Returning from checkout or changing a URL does not activate a paid plan. The account page reports whether Google sign-in and paid billing are configured; displaying a plan is not evidence that live billing is activated.</p>
 <p>Event allowances reset by calendar month in UTC and are shared across the account’s websites. Accepted canonical behavior events count once after deduplication; activity heartbeats support live presence without consuming the allowance. New events over the allowance are rejected with HTTP 429. Downgrading retains existing websites and readable history, blocks creation beyond the new website limit, and applies the new shared event allowance.</p>
 <p>The public <code>GET /api/plans</code> endpoint supplies the plan catalog and a <code>billingAvailable</code> configuration flag. That flag describes deployment readiness, not the signed-in account’s paid entitlement. Static pricing previews use the same listed fallback amounts when this API is unavailable.</p>
-<h2>Operator-managed websites</h2>
-<p>Configure <code>SITES_JSON</code> as an object keyed by site ID. Each entry has its own collection origin, read token and optional connector settings.</p>
-<pre>
-<code>{
-  &quot;my-site&quot;: {
-    &quot;origin&quot;: &quot;https://example.com&quot;,
-    &quot;readToken&quot;: &quot;GENERATE_A_LONG_RANDOM_SECRET&quot;,
-    &quot;stripeWebhookSecret&quot;: &quot;YOUR_STRIPE_SIGNING_SECRET&quot;
-  },
-  &quot;my-shop&quot;: {
-    &quot;origin&quot;: &quot;https://shop.example.com&quot;,
-    &quot;readToken&quot;: &quot;GENERATE_A_DIFFERENT_SECRET&quot;,
-    &quot;shopifyWebhookSecret&quot;: &quot;YOUR_SHOPIFY_WEBHOOK_SECRET&quot;,
-    &quot;shopDomain&quot;: &quot;your-store.myshopify.com&quot;
-  }
-}</code>
-</pre>
-<p>Store the whole configuration with <code>wrangler secret put SITES_JSON</code>. Never commit actual tokens or signing secrets. SDK site IDs are public identifiers; read tokens and webhook secrets are private.</p>
-<h2>Isolation checklist</h2>
-<ul>
-<li>Use the exact same site ID in the SDK, webhook URL and payment metadata.</li>
-<li>Use a unique read token for each website.</li>
-<li>Verify site A’s token cannot read site B’s data.</li>
-<li>A payment with cross-site visitor/session metadata must remain unattributed.</li>
-</ul>
-<p>User-owned account websites and legacy operator-managed websites are separate. Signing in alone does not claim an arbitrary legacy website; an administrator may preassign a verified-email migration claim. Teams, invitations and delegated role administration are not included.</p>
-<div class="pager">
+<h2>Connect each website</h2><p>Select a website in your account and open Website setup. Copy the Agent task or install the hosted tracker manually with that website’s ID. Your account session authorizes dashboard access; no read token or service deployment is needed.</p><h2>Keep websites separate</h2><p>Use the matching website ID and registered origin in every tracker. TideStat checks account ownership before showing analytics. A public website ID does not grant access to private data. Select the intended website before verifying a new visit.</p><p>Additional origins and payment connectors currently require TideStat operator assistance; they are not a self-service server deployment task. Browser pageviews can be verified independently.</p><div class="pager">
 <a href="#journeys">← Journeys, sources & leaks</a>
-<a href="#deployment">Deployment & migration →</a>
+<a href="#deployment">Connect your website →</a>
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
 </article>
-<article data-page="deployment" data-doc-title="Deployment &amp; migration" hidden>
-<div class="eyebrow">Operations</div>
-<h1>Deployment & migration</h1>
-<p class="lead">Keep the existing Cloudflare Worker and D1. Add the revenue model without replacing the live experience.</p>
-<h2>Prepare your own deployment</h2>
-<p>Review <code>wrangler.toml</code> and replace the repository’s account-specific D1 identifier and custom domain with yours. Take a D1 backup before applying schema changes to a live database. The schema adds revenue tables alongside the legacy realtime data.</p>
-<pre>
-<code>npm install
-npm run build
-npx wrangler d1 execute tidestat --local --file=schema.sql
-npx wrangler secret put SITES_JSON
-npx wrangler dev</code>
-</pre>
-<p>After checking the local behavior, apply the schema to your configured remote database and deploy:</p>
-<pre>
-<code>npx wrangler d1 execute tidestat --remote --file=schema.sql
-npx wrangler deploy</code>
-</pre>
-<p>Existing Revenue Story deployments can add the context tables with <code>migrations/0002_analytics_context.sql</code>; it is idempotent and the full <code>schema.sql</code> includes the same tables. This does not backfill historical dimensions. The build copies only browser assets into <code>dist/</code>; the Worker configuration runs it before deployment. The schema is additive and idempotent. It does not reconstruct historical sessions or payments from old page views. Review the actual database name if you renamed the binding.</p>
-<h2>Enable Google sign-in and subscriptions</h2>
-<p>Apply <code>migrations/0003_accounts.sql</code> to add account, ownership and billing storage. Configure the following values on the Worker; keep secrets out of the repository and client-side code.</p>
-<div class="table-wrap"><table><thead><tr><th>Setting</th><th>Purpose</th></tr></thead><tbody>
-<tr><td><code>APP_ORIGIN</code></td><td>Canonical HTTPS origin of this TideStat deployment.</td></tr>
-<tr><td><code>GOOGLE_CLIENT_ID</code> / <code>GOOGLE_CLIENT_SECRET</code></td><td>Google OAuth web application credentials.</td></tr>
-<tr><td><code>STRIPE_SECRET_KEY</code></td><td>Server-side Stripe credential for TideStat subscriptions.</td></tr>
-<tr><td><code>BILLING_WEBHOOK_SECRET</code></td><td>Signing secret for the dedicated subscription-billing webhook.</td></tr>
-<tr><td><code>STRIPE_PRICE_STARTER_MONTHLY</code> / <code>STRIPE_PRICE_STARTER_YEARLY</code></td><td>USD 9 monthly and USD 90 yearly recurring Stripe Price IDs.</td></tr>
-<tr><td><code>STRIPE_PRICE_GROWTH_MONTHLY</code> / <code>STRIPE_PRICE_GROWTH_YEARLY</code></td><td>USD 29 monthly and USD 290 yearly recurring Stripe Price IDs.</td></tr>
-</tbody></table></div>
-<p>In Google’s OAuth configuration, register the exact callback <code>APP_ORIGIN/api/auth/callback</code>, replacing APP_ORIGIN with your deployment’s HTTPS origin. Use a web application client. Configure Stripe recurring prices to match the public catalog and complete a real test-mode sign-in, checkout and subscription-webhook cycle before enabling production billing.</p>
-<p>Google sign-in starts at <code>/api/auth/google</code>. Register the subscription webhook at <code>APP_ORIGIN/api/billing/webhook</code> for <code>customer.subscription.created</code>, <code>customer.subscription.updated</code>, <code>customer.subscription.deleted</code>, <code>checkout.session.completed</code>, <code>invoice.paid</code> and <code>invoice.payment_failed</code>. The handler refetches the current subscription; only active or trialing subscriptions with configured prices grant paid entitlements. This does not imply a free trial is offered.</p>
-<p>TideStat subscription billing is separate from a website’s revenue connector. The billing signing secret controls payment for TideStat plans; site-level Stripe and Shopify webhook secrets verify the website’s customer revenue. Do not interchange those endpoints or secrets.</p>
-<p>Account sessions use opaque HttpOnly, Secure, SameSite=Lax cookies and server-side hashed session identifiers. Mutating requests require the same Origin. User ownership is checked on the server; a site ID in the URL is not permission to read another account’s analytics.</p>
-<div class="notice warning"><strong>Activation requires deployment configuration</strong>Google OAuth credentials, Stripe prices, webhook registration and production test receipts must be supplied and verified by the deployment owner. This documentation does not mean those services are already live.</div>
-<h2>Documentation and static preview</h2>
-<pre>
-<code>node server.cjs
-# Open http://127.0.0.1:8893/docs/index.html</code>
-</pre>
-<p>The static preview does not run Worker APIs. Use Wrangler for collection, D1 and webhook verification. An asset-only deployment cannot serve verified Revenue Stories.</p>
-<h2>Before collecting production data</h2>
-<ol>
-<li>Verify site isolation and collection origin handling.</li>
-<li>Exercise the full SDK → checkout metadata → signed webhook → story workflow with test payments.</li>
-<li>Confirm replayed payments do not duplicate revenue.</li>
-<li>Check consent behavior and set an operational data-retention/deletion policy.</li>
-<li>Inspect unattributed and truncated results before relying on reports.</li>
-</ol>
-<div class="pager">
-<a href="#sites">← Multiple websites</a>
-<a href="#privacy">Privacy & data boundaries →</a>
-</div>
-<p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
-</article>
+<article data-page="deployment" data-doc-title="Connect your website" hidden>
+<div class="eyebrow">Getting started</div><h1>Connect your website</h1><p class="lead">TideStat stores your events and turns them into visual analytics. Add the tracker to your website; we run the analytics service.</p>
+<h2>1. Add your website</h2><p><a href="../account.html">Sign in to TideStat</a> and add your website URL. Select the website to open its setup guide. Your website ID and registered origin are supplied for you.</p>
+<h2>2. Install the tracker</h2><p>Recommended: copy the Agent task from Website setup into your website project. It reads the TideStat Skill, adds the hosted tracker and connects your existing consent flow. You can also <a href="./tidestat-connect/SKILL.md" download="SKILL.md">download the Skill</a> or follow the <a href="#browser">manual browser guide</a>. No npm package, TideStat repository or server deployment is required for the hosted tracker.</p>
+<h2>3. Verify and explore</h2><p>Publish the changes to your own website, check its connection in TideStat, then open the website and allow analytics through its consent flow. Visit a page and check for a new pageview. Once verified, explore your dashboard, live visitors and site journeys.</p>
+<h2>Who does what?</h2><p>You add the tracker and control visitor consent on your website. TideStat receives and stores the events, isolates your websites, and provides visual reports. Never place private credentials in the tracker.</p>
+<h2>Optional payment data</h2><p>Pageviews do not require a payment integration. Verified revenue requires a separately configured Stripe or Shopify connector. Connector activation currently needs TideStat operator assistance; a self-service credential form is not yet available. Do not deploy your own analytics service or send signing secrets in an Agent task.</p>
+<div class="pager"><a href="#sites">← Multiple websites</a><a href="#privacy">Privacy & data boundaries →</a></div></article>
 <article data-page="privacy" data-doc-title="Privacy &amp; data boundaries" hidden>
 <div class="eyebrow">Operations</div>
 <h1>Privacy & data boundaries</h1>
@@ -517,11 +445,11 @@ npx wrangler deploy</code>
 <h2>Geography and identity</h2>
 <p>Cloudflare supplies approximate geographic context for the real-time map. The collector does not need to store raw IP addresses. Map positions are approximate, and missing geography should remain unknown. A cartoon avatar is an anonymous visualization, not a personal identity.</p>
 <h2>Retention</h2>
-<p>Revenue history is stored separately from the legacy short-lived realtime event table. Do not apply the old “24 hours” claim to revenue data. Configure and operate deletion/retention procedures for your deployment; there is no self-service deletion portal in this release.</p>
+<p>Revenue history is stored separately from the legacy short-lived realtime event table. Do not apply the old “24 hours” claim to revenue data. TideStat operates data storage. A self-service deletion portal is not yet available; contact the TideStat operator for retention or deletion requests.</p>
 <h2>Trusted versus untrusted events</h2>
 <p>Browser analytics can be blocked or forged. Origin checks and schema validation are not proof of payment. Only signed provider payment events populate monetary results. Payment links still require the matching site, visitor and session context.</p>
 <div class="pager">
-<a href="#deployment">← Deployment & migration</a>
+<a href="#deployment">← Connect your website</a>
 <a href="#troubleshooting">Troubleshooting →</a>
 </div>
 <p class="page-meta">TideStat · Revenue Story documentation · Schema v1</p>
@@ -535,10 +463,10 @@ npx wrangler deploy</code>
 <li>Confirm consent is enabled and the tracker is initialized in the browser.</li>
 <li>Check the exact site ID and allowed website origin.</li>
 <li>Inspect the collection response and browser network restrictions.</li>
-<li>Use the Worker runtime, not the static-only preview, for live data.</li>
+<li>Make sure you are viewing your own website in TideStat, not the demo.</li>
 </ul>
 <h2>Unauthorized dashboard request</h2>
-<p>Confirm the Bearer token belongs to the requested site. Do not put that token into a public script tag or commit it to the repository.</p>
+<p>Sign in again and select a website owned by your account. The tracker uses a public website ID; your account session protects dashboard reads.</p>
 <h2>Payment appears without a journey</h2>
 <p>Inspect the provider metadata or Shopify order note attributes. All three context keys must be present and reference a known same-site session. Check whether checkout started before the session event reached the collector or whether a cart update was skipped.</p>
 <h2>Payment is missing</h2>
@@ -546,7 +474,7 @@ npx wrangler deploy</code>
 <h2>Revenue does not match the payment dashboard</h2>
 <p>Check reporting period, currencies, duplicate checkout IDs, missing webhooks and unsupported payment types, missing renewal metadata or refund events. TideStat reports supported receipts less observed refunds; it is not a full ledger.</p>
 <h2>The example looks complete but live data is empty</h2>
-<p>Demo data illustrates the interface. It does not confirm your deployment, credentials or connector setup. Run a test visit and test payment on your own configured website.</p>
+<p>Demo data illustrates the interface. It does not confirm your tracker or connector setup. Run a test visit and test payment on your own configured website.</p>
 <div class="pager">
 <a href="#privacy">← Privacy & data boundaries</a>
 <a href="../revenue.html">Open TideStat →</a>

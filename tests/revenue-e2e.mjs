@@ -27,7 +27,7 @@ try {
  const payload={id:'evt_e2e',type:'checkout.session.completed',created:now,data:{object:{id:'cs_e2e',payment_intent:'pi_e2e',payment_status:'paid',amount_total:1900,currency:'usd',metadata}}};
  const body=JSON.stringify(payload),signature=createHmac('sha256','stripe-test').update(`${now}.${body}`).digest('hex');
  for(let i=0;i<2;i++)assert.equal((await fetch(base+'/api/webhooks/stripe?site=store',{method:'POST',headers:{'stripe-signature':`t=${now},v1=${signature}`},body})).status,200);
- await page.locator('#connectionButton').click();await page.locator('#websiteForm [name=url]').fill(base);await page.locator('#websiteForm [name=site]').fill('store');await page.locator('#websiteForm button').click();await page.locator('input[name=token]').fill('read-store');await page.locator('#connectForm [type=submit]').click();
+ await page.goto(base+'/revenue.html?advanced=1');await page.locator('#websiteForm [name=url]').fill(base);await page.locator('#websiteForm [name=site]').fill('store');await page.locator('#websiteForm button').click();await page.locator('input[name=token]').fill('read-store');await page.locator('#connectForm [type=submit]').click();
  await page.locator('#verifyStep').waitFor({state:'visible'});
  await page.locator('#verifyVisit').click();await page.waitForFunction(()=>document.querySelector('#verifyResult').textContent.includes('Waiting'));
  assert.equal(await page.locator('#finishSetup').isVisible(),false,'historical visits must not complete setup');

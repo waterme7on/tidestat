@@ -70,21 +70,43 @@ html[data-theme] body[data-view] .visitor-popup button { color: var(--tide-accen
 }
 
 /* Embedded visitor details use the available map height and one scroll area. */
-body[data-embed="1"] #liveMap .maplibregl-popup-content { max-height: none; overflow: visible; padding: 20px; }
-body[data-embed="1"] #liveMap .visitor-popup { scrollbar-gutter: stable; padding-right: 4px; }
-body[data-embed="1"] .visitor-popup-head strong { font-size: 15px; }
-body[data-embed="1"] .visitor-popup-head div > span, body[data-embed="1"] .visitor-context-grid small { font-size: 11px; }
-body[data-embed="1"] .visitor-context-grid b, body[data-embed="1"] .visitor-popup-page b { font-size: 13px; }
-body[data-embed="1"] .visitor-popup button, body[data-embed="1"] .visitor-revenue-link { font-size: 12px; min-height: 40px; }
+body[data-view="map"] #liveMap .maplibregl-popup-content { max-height: none; overflow: visible; padding: 20px; }
+body[data-view="map"] #liveMap .visitor-popup { scrollbar-gutter: stable; padding-right: 4px; }
+body[data-view="map"] .visitor-popup-head strong { font-size: 15px; }
+body[data-view="map"] .visitor-popup-head div > span, body[data-view="map"] .visitor-context-grid small { font-size: 11px; }
+body[data-view="map"] .visitor-context-grid b, body[data-view="map"] .visitor-popup-page b { font-size: 13px; }
+body[data-view="map"] .visitor-popup button, body[data-view="map"] .visitor-revenue-link { font-size: 12px; min-height: 40px; }
 
 @media(min-width:601px) {
- body[data-embed="1"] #liveMap .live-visitor-popup.maplibregl-popup { top:12px; left:12px; right:auto; bottom:auto; transform:none !important; width:420px; max-width:calc(100% - 24px) !important; }
- body[data-embed="1"] #liveMap .live-visitor-popup .maplibregl-popup-tip { display:none; }
+ body[data-view="map"] #liveMap .live-visitor-popup.maplibregl-popup { top:12px; left:12px; right:auto; bottom:auto; transform:none !important; width:420px; max-width:calc(100% - 24px) !important; }
+ body[data-view="map"] #liveMap .live-visitor-popup .maplibregl-popup-tip { display:none; }
 }
 @media(min-width:601px) {
- body[data-embed="1"] .stage:has(.live-visitor-popup) > .map-caption,
- body[data-embed="1"] .stage:has(.live-visitor-popup) > .activity-key,
- body[data-embed="1"] .stage:has(.live-visitor-popup) > .globe-regions { visibility:hidden; }
+ body[data-view="map"] .stage:has(.live-visitor-popup) > .map-caption,
+ body[data-view="map"] .stage:has(.live-visitor-popup) > .activity-key,
+ body[data-view="map"] .stage:has(.live-visitor-popup) > .globe-regions { visibility:hidden; }
 }
 
 body[data-view] .map-expanded .theme-picker { display:flex; padding:0; border:0; background:transparent; }
+
+/* Give the standalone observatory the same calm proportions as the embedded demo. */
+body[data-view="map"]:not([data-embed="1"]) main{width:100%;max-width:1480px;margin:0 auto;padding:24px 28px;gap:24px}
+body[data-view="map"]:not([data-embed="1"]) .workspace{gap:14px}
+body[data-view="map"]:not([data-embed="1"]) .stage:not(.map-expanded){min-height:480px;flex:1}
+body[data-view="map"]:not([data-embed="1"]) .visitor-metrics{padding:0 0 16px}
+body[data-view="map"]:not([data-embed="1"]) .map-heading h1{font-size:24px;letter-spacing:-.7px}
+body[data-view="map"]:not([data-embed="1"]) aside{width:280px}
+body[data-view="map"]:not([data-embed="1"]) #liveSignals{border-radius:12px}
+@media(max-width:860px){body[data-view="map"]:not([data-embed="1"]) main{padding:18px 16px}body[data-view="map"]:not([data-embed="1"]) aside{width:100%}}
+@media(max-width:600px){
+ body[data-view="map"]:not([data-embed="1"]) .stage:not(.map-expanded){min-height:420px;flex:none}
+ body[data-view="map"]:not([data-embed="1"]) .visitor-metrics{grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center}
+ body[data-view="map"]:not([data-embed="1"]) .metric-primary{grid-column:auto;min-width:0}
+ body[data-view="map"]:not([data-embed="1"]) .metric-number{display:block}
+ body[data-view="map"]:not([data-embed="1"]) .metric-number strong{font-size:34px}
+ body[data-view="map"]:not([data-embed="1"]) .metric-number>span{display:block;font-size:10px;margin-top:4px}
+ body[data-view="map"]:not([data-embed="1"]) .metric-status{font-size:9px;line-height:1.5;align-items:flex-start}
+ body[data-view="map"]:not([data-embed="1"]) .metric-secondary{padding:0 8px;gap:6px}
+ body[data-view="map"]:not([data-embed="1"]) .metric-secondary span{font-size:9px;max-width:62px}
+ body[data-view="map"]:not([data-embed="1"]) header .live{display:none}
+}

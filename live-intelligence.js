@@ -36,5 +36,5 @@ function renderSignals() {
  if(amount.size){const parts=[...amount].map(([currency,minor])=>{try{const format=new Intl.NumberFormat(undefined,{style:'currency',currency});return format.format(minor/10**format.resolvedOptions().maximumFractionDigits);}catch{return `${currency} ${minor}`;}});footer.textContent=label('Observed receipts · ','已记录收款 · ')+parts.join(' / ');}else footer.textContent=bridge.demo?label('Sample visitors · no estimated revenue','演示访客 · 不估算收入'):label('No payments in this live window','当前实时窗口暂无付款');
  body.append(footer);signals.classList.toggle('signals-stale',stale);if(stale)body.append(node('p',label('Last received data · reconnecting','上次收到的数据 · 正在重连'),'signals-receipts'));
 }
-if(signals){if(matchMedia('(min-width: 900px)').matches)signals.open=true;renderSignals();const timer=setInterval(renderSignals,1000);window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});window.addEventListener('tide:languagechange',renderSignals);}
+if(signals){if(document.body.dataset.embed==='1'&&matchMedia('(min-width: 900px)').matches)signals.open=true;renderSignals();const timer=setInterval(renderSignals,1000);window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});window.addEventListener('tide:languagechange',renderSignals);}
 window.__tideVisitorContext=visitorContextCard;

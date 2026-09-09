@@ -1,3 +1,4 @@
+import {createLanguageMenu} from './language-menu.js';
 import {icon} from './ui-icons.js';
 import {initProductMotion} from './ui-motion.js';
 import {polishUI} from './ui-polish.js';
@@ -25,7 +26,7 @@ export function translate(root=document){
    cache[key]={source,rendered};if(rendered!==current)element.setAttribute(key,rendered);
   }attributes.set(element,cache);
  }
- document.querySelectorAll('[data-product-language]').forEach(select=>select.value=engine.preference);
+
  document.querySelectorAll('[data-product-theme]').forEach(button=>button.setAttribute('aria-checked',String(window.__tideTheme.resolved==='dark')));
 }
 export function registerMessages(messages){engine?.registerMessages(messages);engine?.registerMessages(Object.fromEntries(Object.entries(messages).map(([en,zh])=>[en.replace(/\s*[↗→↓]$/u,''),zh.replace(/\s*[↗→↓]$/u,'')])));translate();}
@@ -46,10 +47,7 @@ function init(){
  }
  for(const host of document.querySelectorAll('[data-product-controls]')){
   if(host.children.length)continue;
-  host.classList.add('product-controls');host.innerHTML='<label class="language-control">'+icon('language')+'<span class="product-sr-only">Language</span><select data-product-language aria-label="Language"><option value="system">Auto</option><option value="en">English</option><option value="zh">简体中文</option></select></label>';
-  host.append(createThemeSwitch());
-  const language=host.querySelector('[data-product-language]');if(!document.getElementById('languageSelect'))language.id='languageSelect';
-  language.onchange=e=>engine.setLanguage(e.target.value);host.querySelector('[data-product-theme]').onclick=()=>window.__tideTheme.setPreference(window.__tideTheme.resolved==='dark'?'light':'dark');
+  host.classList.add('product-controls');host.append(createLanguageMenu(engine),createThemeSwitch());
  }
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('#settingsSheet[open]'))for(const menu of document.querySelectorAll('.workspace-settings[open]')){menu.open=false;menu.querySelector('summary').focus();}});
  document.addEventListener('pointerdown',e=>{for(const menu of document.querySelectorAll('.workspace-settings[open]'))if(!document.querySelector('#settingsSheet[open]')&&!menu.contains(e.target))menu.open=false;});

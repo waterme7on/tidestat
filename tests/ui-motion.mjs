@@ -33,7 +33,7 @@ try{
  const aligned=()=>page.evaluate(()=>{const a=document.querySelector('.top-tabs .active').getBoundingClientRect(),b=document.querySelector('.top-tabs .sliding-tab-indicator').getBoundingClientRect();return Math.abs(a.x-b.x)<2&&Math.abs(a.width-b.width)<2;});await settle();assert.ok(await aligned());
  await page.locator('.top-tabs [data-tab=stories]').press('ArrowRight');await page.waitForFunction(()=>location.hash.includes('insights'));await settle();assert.ok(await aligned());
  await page.emulateMedia({reducedMotion:'reduce'});await openSheet();assert.equal(await page.locator('#settingsSheet').evaluate(el=>el.getAnimations().length),0);await page.keyboard.press('Escape');await closed();
- await openSheet();await page.locator('#manageConnection').click();await page.locator('#connectDialog').waitFor({state:'visible'});await closed();await page.locator('[data-close=connectDialog]').click();
+ await openSheet();await page.locator('#manageConnection').click();await page.waitForURL('**/account.html');
  await page.goto(base+'/account.html');await page.locator('#startWebsiteSetup').click();
  await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw Error('denied');}}}));await page.locator('#copyAgent').click();await page.waitForFunction(()=>document.querySelector('#copyAgent').dataset.actionState==='error');
  await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{}}}));await page.locator('#copyAgent').click();await page.waitForFunction(()=>document.querySelector('#copyAgent').dataset.actionState==='success');

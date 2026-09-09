@@ -11,7 +11,8 @@
     "test:e2e": "npm run build && node tests/revenue-e2e.mjs",
     "test:ui-polish": "node tests/ui-polish.mjs",
     "test:setup-ui": "node tests/setup-ui.mjs",
-    "test:ui-motion": "node tests/ui-motion.mjs"
+    "test:ui-motion": "node tests/ui-motion.mjs",
+    "test:live-presentation": "node tests/live-presentation.mjs"
   },
   "devDependencies": {
     "@radix-ui/react-icons": "1.3.2",
