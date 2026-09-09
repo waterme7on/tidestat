@@ -30,3 +30,13 @@ test('checkout fails closed when provider price amount, currency or interval dif
   const result=await handleAccountRequest(request('/api/billing/checkout','POST',{plan:'starter',interval:'monthly'},headers),env);assert.equal(result.status,503);assert.equal(created,false);
  }
 });
+
+test('setup verification uses the owning account session and rejects another account',async()=>{
+ const {db,sql}=database();sql.exec(readFileSync(new URL('../schema.sql',import.meta.url),'utf8'));
+ const owner=await signedUser(db),other=await signedUser(db,'user2');
+ await db.prepare('INSERT INTO account_sites VALUES (?,?,?,?,?)').bind('owned','user1','Owned website','https://shop.example',Date.now()).run();
+ const {default:worker}=await import('../worker.js');
+ const path='/api/setup?site=owned&origin=https%3A%2F%2Fshop.example&since='+Date.now();
+ const accepted=await worker.fetch(request(path,'GET',undefined,owner),{DB:db,APP_ORIGIN:origin});assert.equal(accepted.status,200);const body=await accepted.json();assert.equal(body.originAllowed,true);assert.equal(body.pageviewReceived,false);
+ assert.equal((await worker.fetch(request(path,'GET',undefined,other),{DB:db,APP_ORIGIN:origin})).status,401);
+});

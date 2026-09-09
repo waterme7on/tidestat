@@ -4,7 +4,7 @@ const page=await browser.newPage({viewport:{width:1440,height:1000},locale:'en-U
 try{
  let mark;
  for(const route of ['/','/revenue.html?demo=1','/live.html?demo=1','/docs/index.html']){
-  await page.goto(base+route);await page.locator('[data-product-theme]').waitFor();
+  await page.goto(base+route);await page.locator('[data-product-theme]').waitFor({state:'attached'});if(await page.locator('.workspace-settings:not([open])>summary').count())await page.locator('.workspace-settings>summary').click();
   await page.locator('[data-product-language]').selectOption('zh');if(await page.locator('[data-product-theme]').getAttribute('aria-checked')!=='true')await page.locator('[data-product-theme]').click();
   await page.waitForFunction(()=>document.documentElement.lang==='zh-CN'&&document.documentElement.dataset.theme==='dark');
   const path=await page.locator('.brand .tide-brand-mark path').first().getAttribute('d');if(mark)assert.equal(path,mark);else mark=path;

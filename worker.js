@@ -44,6 +44,14 @@ export default {
    const legacyAccess=authorized(request,config);
    if(!legacyAccess&&!await canReadSite(request,env,site))return json({error:'Sign in or provide a site read token'},401);
    if(!legacyAccess&&!['GET','HEAD'].includes(request.method)&&request.headers.get('origin')!==url.origin)return json({error:'Same-origin request required'},403);
+   if(url.pathname==='/api/setup' && request.method==='GET') {
+    const origin=url.searchParams.get('origin');
+    const allowedOrigins=[config.origin,...(Array.isArray(config.allowedOrigins)?config.allowedOrigins:[])].filter(Boolean);
+    const since=Number(url.searchParams.get('since')||Date.now());
+    if(!Number.isFinite(since)||since<0||since>Date.now()+60000)return json({error:'Invalid verification window'},400);
+    const latest=await env.DB.prepare("SELECT MAX(ts) AS ts FROM story_events WHERE site_id=? AND type='page_view' AND ts>=?").bind(site,Math.max(since,Date.now()-1800000)).first();
+    return json({site,originAllowed:allowedOrigins.includes(origin),pageviewReceived:!!latest?.ts,lastPageviewAt:latest?.ts||null});
+   }
    if(url.pathname==='/api/search-console') {
     if(request.method==='POST') {
      const raw=await request.text();if(raw.length>1048576)return json({error:'Payload too large'},413);

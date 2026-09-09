@@ -1,3 +1,4 @@
+import {icon} from './ui-icons.js';
 import { createThemeSwitch } from './product-ui.js';
 import { visitorContextCard } from './live-intelligence.js';
 /* Native MapLibre globe + local Natural Earth geography. No custom sphere or remote tiles. */
@@ -131,7 +132,7 @@ function showPopup(loc, content) {
     panel.className = 'mobile-visitor-detail';
     const close = document.createElement('button');
     close.className = 'mobile-visitor-close'; close.type = 'button';
-    close.textContent = '×'; close.setAttribute('aria-label', t('关闭访客时间线'));
+    close.innerHTML = icon('close'); close.setAttribute('aria-label', t('关闭访客时间线'));
     const body = document.createElement('div'); body.append(content);
     panel.append(close, body); document.querySelector('.stage').after(panel);
     let onClose;

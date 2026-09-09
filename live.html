@@ -154,7 +154,7 @@
 <link rel="stylesheet" href="./live-product.css">
 <!-- Load before the scene can render; keep last to preserve footprint overrides. -->
 <link rel="stylesheet" href="./footprints.css">
-</head>
+<link rel="stylesheet" href="./ui-polish.css"></head>
 <body data-view="map">
 <header>
   <a class="brand" href="./landing.html" aria-label="TideStat home">
@@ -192,7 +192,7 @@
       <div id="liveMap" role="region" aria-label="实时访客地图，可拖拽、缩放；所有访客也可在右侧列表访问。" data-i18n-aria-label="实时访客地图，可拖拽、缩放；所有访客也可在右侧列表访问。"></div>
       <div class="map-caption map-only"><i aria-hidden="true"></i><span data-i18n="每个头像，都是一位来访者">每个头像，都是一位来访者</span></div>
       <div class="map-controls map-only" id="mapControls" role="group" aria-label="地图控制" data-i18n-aria-label="地图控制">
-        <button id="mapReset" type="button" aria-label="查看全球" data-i18n-aria-label="查看全球" title="查看全球" data-i18n-title="查看全球"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 1v4m0 14v4M1 12h4m14 0h4"/><circle cx="12" cy="12" r="2"/></svg></button>
+        <button id="mapReset" type="button" aria-label="查看全球" data-i18n-aria-label="查看全球" title="查看全球" data-i18n-title="查看全球"><span data-ui="target"></span></button>
         <div class="map-zoom"><button id="mapZoomIn" type="button" aria-label="放大地图" data-i18n-aria-label="放大地图">+</button><button id="mapZoomOut" type="button" aria-label="缩小地图" data-i18n-aria-label="缩小地图">−</button></div>
       </div>
       <div class="map-empty map-only" id="mapEmpty" hidden><b data-i18n="目前没有在线访客">目前没有在线访客</b><p data-i18n="有人来访时，头像会自动出现在这里。">有人来访时，头像会自动出现在这里。</p></div>

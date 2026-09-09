@@ -2,9 +2,13 @@
 
 Zero dependencies, ESM and TypeScript declarations. This package is local and **not published to npm**.
 
+From your **website project**, replace the placeholder with the actual local TideStat checkout path:
+
 ```sh
-npm install ./packages/browser-sdk
+npm install "/absolute/path/to/tidestat/packages/browser-sdk"
 ```
+
+Do not install this unpublished package by its registry name. The local path must also be accessible in the website build environment. Without a local checkout, use your TideStat deployment’s `/sdk/browser.js` module script or `/sdk/index.js` module instead; no npm installation is required.
 
 ```js
 import { createTideStat } from '@tidestat/browser-sdk';

@@ -193,6 +193,7 @@
 };
   Object.assign(EN, {"研究室":"Research lab","关于 / 其他":"About / Other","未分类":"Other","等候访客数据 · 暂停点灯":"Waiting for data · Lights paused","柔光 = 此处有在线访客":"Glow = Visitors online here","圆形头像 = 在线访客":"Circular faces = Online visitors"});
   EN['{count} 位访客，查看详情']='{count} visitors. View details';
+  for(const [zh,en] of Object.entries(EN)){if(/[↗→↓]$/.test(zh)||/[↗→↓]$/.test(en))EN[zh.replace(/\s*[↗→↓]$/, '')]=en.replace(/\s*[↗→↓]$/, '');}
   const REVERSE=Object.fromEntries(Object.entries(EN).map(([key,value])=>[value,key]));
   const KEY = 'tidestat:language';
   const valid = new Set(['system', 'zh', 'en']);

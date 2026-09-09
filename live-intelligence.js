@@ -1,7 +1,6 @@
 import {registerMessages} from './product-ui.js';
 registerMessages({'Revenue Stories ↗':'收入故事 ↗','View revenue story →':'查看收入故事 →','External link clicked':'点击外部链接','Verified payment':'已验证付款','Verified refund':'已验证退款','Signed up':'完成注册','Started checkout':'进入结账','Purchase reported (unverified)':'购买事件（未验证）','Live signals':'实时访客画像','Sources':'来源','Countries':'国家','Devices':'设备','Acquisition':'流量来源','Entry page':'进入页面','Campaign term':'推广词','Viewport':'视口','Sessions':'访问次数'});
-const icons={source:'M4 17 17 4M5 4h12v12',location:'M18 9c0 5-6 11-6 11S6 14 6 9a6 6 0 1 1 12 0Z M14 9a2 2 0 1 1-4 0 2 2 0 0 1 4 0',device:'M3 4h18v12H3z M8 20h8 M12 16v4',coin:'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0 M15 8h-4a2 2 0 0 0 0 4h2a2 2 0 0 1 0 4H9 M12 6v12',page:'M6 3h9l4 4v14H6z M14 3v5h5 M9 12h7 M9 16h5',session:'M4 8h16 M8 4 4 8l4 4 M20 16H4 M16 12l4 4-4 4'};
-const svg=name=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">${`<path d="${icons[name]||icons.page}"/>`}</svg>`;
+import {icon as svg} from './ui-icons.js';
 const isEnglish=()=>window.__tideI18n?.language==='en';
 const label=(en,zh)=>isEnglish()?en:zh;
 const node=(tag,text,className)=>{const e=document.createElement(tag);if(text!=null)e.textContent=text;if(className)e.className=className;return e;};
