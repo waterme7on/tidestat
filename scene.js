@@ -7,7 +7,6 @@ const {t,cityName,identity}=window.__tideI18n;
 import { snapshot, journey, steps, currentNode, edgeKey, pageName as rawPageName } from './footprint-model.js';
 
 // Website footprints only. The native globe, avatar identities and data bridge are unchanged.
-const sheet = document.createElement('link'); sheet.rel = 'stylesheet'; sheet.href = new URL('./footprints.css', import.meta.url).href; document.head.append(sheet);
 const el = id => document.getElementById(id), canvas = el('stage3d'), stage = canvas.parentElement;
 const bridge = () => window.__tide || {}, site = window.__tideSite;
 const pageName=(v,s)=>t(rawPageName(v,s));
