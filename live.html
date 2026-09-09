@@ -223,9 +223,11 @@
   </aside>
 </main>
 
-<script>
+<script type="module">
+import {journey} from "./footprint-model.js";
+import {siteJourneys, pagePath} from "./site-journeys.js";
 "use strict";
-const {t, nodeLabel, cityName, identity, time: displayTime} = window.__tideI18n;
+const {t, cityName, identity, time: displayTime} = window.__tideI18n;
 
 /* ───────────────────────── 数据底座(为真实埋点预留同构结构) ───────────────────────── */
 
@@ -273,25 +275,11 @@ const SITE = {
   ]
 };
 
-/* 真实路径 → 公园节点映射(样例站:yololab 结构) */
-const PATH_NODES = [
-  { match: ["/zh/writing/dyor", "/en/writing/dyor"], node: "dyor" },
-  { match: ["/work", "/zh/work", "/en/work"], node: "work" },
-  { match: ["/writing", "/zh/writing", "/en/writing"], node: "writing" },
-  { match: ["/", "/zh", "/en"], node: "home" }
-];
-function pathNode(path) {
-  const clean = (path || "/").split("?")[0];
-  for (const m of PATH_NODES) {
-    for (const pre of m.match) {
-      if (clean === pre || clean.startsWith(pre + "/") || clean.startsWith(pre + "#")) return m.node;
-    }
-  }
-  return "about"; // 兜底:未知路径归到"关于屋"旁的小径
-}
+function pathNode(path) { return pagePath(path); }
 
 /* 数据源:demo=模拟器;否则轮询 /api/live(同域 Worker) */
 const DEMO = new URLSearchParams(location.search).has("demo") || location.port === "8893";
+if (!DEMO) Object.assign(SITE, siteJourneys([]));
 const EMBED = new URLSearchParams(location.search).get("embed") === "1";
 if (EMBED) { document.body.dataset.embed = "1"; document.addEventListener("click", e => { const a = e.target.closest("a"); if (a && !(a.getAttribute("href") || "").startsWith("#")) a.target = "_top"; }); }
 
@@ -320,6 +308,7 @@ function weightedCity() {
   return CITIES[0];
 }
 const nodeById = id => SITE.nodes.find(n => n.id === id);
+const nodeLabel = id => nodeById(id)?.label || id || "未记录页面";
 function neighbors(id) {
   return SITE.edges.filter(e => e[0] === id || e[1] === id)
     .map(e => ({ to: e[0] === id ? e[1] : e[0], w: e[2] }));
@@ -374,7 +363,7 @@ function stepVisitor(v, dt, now) {
       v.state = "reading";
       v.dwell = rnd(3500, 13000);
       v.visited.push({ node: v.node, arrive: now });
-      pushEvent(now, "pageview", v, nodeById(v.node).label);
+      pushEvent(now, "pageview", v, nodeLabel(v.node));
       // 决定下一步
       if (v.visited.length >= 3 && Math.random() < .38) {
         v.state = "leaving"; v.t = 0;
@@ -394,7 +383,7 @@ function stepVisitor(v, dt, now) {
   } else if (v.state === "leaving") {
     v.t += dt * v.speed * 1.25;
     if (v.t >= 1) {
-      pushEvent(now, "leave", v, nodeById(v.node).label);
+      pushEvent(now, "leave", v, nodeLabel(v.node));
       if (sim.selectedId === v.id && !window.__tide.timelineOpen) deselect();
       sim.visitors.delete(v.id);
     }
@@ -641,6 +630,7 @@ function drawPark(now, dt) {
   for (const v of sim.visitors.values()) {
     const dim = sel && v.id !== sel;
     const a = nodeById(v.node), b = nodeById(v.target);
+    if (!a || !b) continue;
     const path = edgePath(P(a), P(b));
     const tt = v.state === "walking" ? ease(Math.min(v.t, 1)) : v.state === "leaving" ? ease(Math.min(v.t, 1)) : 0;
     let pos = v.state === "reading" ? P(a) : pointOn(path, tt);
@@ -655,13 +645,9 @@ function drawPark(now, dt) {
     if (v.id === sel) {
       ctx.strokeStyle = "rgba(37,99,235,.45)"; ctx.lineWidth = 2;
       ctx.beginPath();
-      const hist = v.visited.map(x => P(nodeById(x.node)));
-      if (hist.length) {
-        ctx.moveTo(hist[0].x, hist[0].y);
-        for (let i = 1; i < hist.length; i++) {
-          const p = edgePath(hist[i - 1], hist[i]);
-          ctx.quadraticCurveTo(p.c.x, p.c.y, p.b.x, p.b.y);
-        }
+      for (const [from,to] of journey(v,SITE)) {
+        const start=P(nodeById(from)), end=P(nodeById(to)), path=edgePath(start,end);
+        ctx.moveTo(start.x,start.y);ctx.quadraticCurveTo(path.c.x,path.c.y,end.x,end.y);
       }
       ctx.stroke();
     }
@@ -837,24 +823,46 @@ tabPark.addEventListener("click", () => setView("park"));
 const liveSeen = new Map();
 const liveEventSeen = new Set();
 let liveTimer = 0, liveBusy = false;
+let liveGeneration = 0, liveController = null;
+function clearLiveSite() {
+  if (DEMO) return;
+  liveGeneration++; liveController?.abort(); liveBusy = false; liveTimer = 0;
+  deselect(); sim.visitors.clear(); sim.events.length = 0; liveSeen.clear(); liveEventSeen.clear();
+  eventsEl.replaceChildren(); eventsDirty = true;
+  document.getElementById("visitorRevenue").href="./revenue.html";
+  document.getElementById("onlineCount").textContent="0";document.getElementById("evCount").textContent="0";
+  for (const id of ["vdId","vdMeta","vdTimeline","vdContext"]) document.getElementById(id)?.replaceChildren();
+  Object.assign(SITE, siteJourneys([]));
+  Object.assign(window.__tide, {status:'loading',updatedAt:null,truncated:false,selectedId:null});
+  window.__tide3d?.refreshSite?.();
+  window.dispatchEvent(new Event('tide:livecleared'));
+}
+window.addEventListener('tide:sitechange', clearLiveSite);
 async function liveTick(now) {
   await window.tideConnection.ready;
   if (DEMO || liveBusy) return;
   liveBusy = true;
-  const controller = new AbortController();
+  const generation = liveGeneration;
+  const controller = liveController = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000);
   try {
     const liveRequest = window.tideConnection.request("/api/live");
+    const requestedSite = new URL(liveRequest.url, location.href).searchParams.get("site");
     const res = await fetch(liveRequest.url, { headers: liveRequest.headers, cache: "no-store", signal: controller.signal });
+    if (generation !== liveGeneration) return;
+    if (res.status === 401 || res.status === 403) { clearLiveSite(); window.__tide.status="error"; liveTimer=4; return; }
     if (!res.ok) throw new Error("Live API " + res.status);
     const data = await res.json();
+    if (generation !== liveGeneration) return;
+    if ((data.site || null) !== requestedSite) throw new Error("Site response mismatch");
     if (!Array.isArray(data.visitors)) throw new Error("Invalid visitor response");
+    Object.assign(SITE, siteJourneys(data.visitors));
     const seen = new Set(), epochToRaf = ts => Number.isFinite(Number(ts)) ? Number(ts) - performance.timeOrigin : performance.now();
     for (const rv of data.visitors) {
       if (!rv || typeof rv.id !== "string" || !Array.isArray(rv.paths)) continue;
       seen.add(rv.id);
       const paths = rv.paths.filter(p => p && typeof p.path === "string");
-      const currentPath = paths[paths.length - 1]?.path || "/";
+      const currentPath = paths[paths.length - 1]?.path || "";
       const node = pathNode(currentPath);
       let v = sim.visitors.get(rv.id);
       if (!v) {
@@ -864,16 +872,18 @@ async function liveTick(now) {
         sim.visitors.set(rv.id, v);
       }
       const isNew = !liveSeen.has(rv.id), prev = liveSeen.get(rv.id);
+      if (prev?.sessionId !== paths.at(-1)?.sessionId || !nodeById(v.node)) { v.state="reading"; v.node=node; v.target=node; }
       v.city = [rv.city || "未知位置", rv.country || "", rv.lat ?? null, rv.lng ?? null, 1];
       v.currentPath = currentPath; v.device = rv.device; v.context = rv.context || {}; v.source=rv.source; v.entryPage=rv.entryPage; v.exitPage=rv.exitPage; v.sessionCount=rv.sessionCount; v.events=rv.events || []; v.maskedIp = rv.maskedIp || null;
-      v.visited = paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts), path: p.path }));
-      if (isNew) pushEvent(now, "visit", v, nodeById(node).label);
+      v.visited = paths.map(p => ({ node: pathNode(p.path), arrive: epochToRaf(p.ts), path: p.path, sessionId: p.sessionId }));
+      if (isNew) pushEvent(now, "visit", v, nodeLabel(node));
       else if (prev.path !== currentPath) {
-        // A second article is a new pageview even when both URLs share one visual area.
-        if (prev.node !== node) {
+        // Animate only the last recorded adjacent transition; a poll may contain several page changes.
+        if (prev.node !== node && prev.sessionId && prev.sessionId === paths.at(-1)?.sessionId && paths.at(-2)?.sessionId === prev.sessionId && pathNode(paths.at(-2)?.path) === prev.node && nodeById(prev.node) && nodeById(node)) {
           v.state = "walking"; v.node = prev.node; v.target = node; v.t = 0; v.speed = 1 / 2.2;
         }
-        pushEvent(now, "pageview", v, nodeById(node).label);
+        if (v.state !== "walking") { v.node = node; v.target = node; }
+        pushEvent(now, "pageview", v, nodeLabel(node));
       }
       for (const event of rv.events || []) {
         if (!['outbound_click','signup','checkout','purchase','payment','refund'].includes(event.type)) continue;
@@ -888,11 +898,11 @@ async function liveTick(now) {
         }
         pushEvent(epochToRaf(event.ts), event.type, v, label);
       }
-      liveSeen.set(rv.id, { node, path: currentPath });
+      liveSeen.set(rv.id, { node, path: currentPath, sessionId: paths.at(-1)?.sessionId });
     }
     // The API already defines online=last 90 seconds. Never accumulate departed visitors.
     for (const [id,v] of sim.visitors) if (!seen.has(id)) {
-      v.state = "leaving"; pushEvent(now, "leave", v, nodeById(v.node).label);
+      v.state = "leaving"; pushEvent(now, "leave", v, nodeLabel(v.node));
       sim.visitors.delete(id); liveSeen.delete(id);
       if (sim.selectedId === id && !window.__tide.timelineOpen) deselect();
     }
@@ -903,8 +913,9 @@ async function liveTick(now) {
     // Dialog updates must not wait for a throttled WebGL animation frame.
     if (sim.selectedId) renderVisitorDetail(true);
   } catch (error) {
+    if (generation !== liveGeneration) return;
     window.__tide.status = "error"; // Preserve last successful data and visibly mark it stale.
-  } finally { clearTimeout(timeout); liveBusy = false; }
+  } finally { clearTimeout(timeout); if (generation === liveGeneration) liveBusy = false; }
 }
 
 window.__tideSite = SITE;

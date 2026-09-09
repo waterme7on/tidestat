@@ -38,4 +38,5 @@ function renderSignals() {
  body.append(footer);signals.classList.toggle('signals-stale',stale);if(stale)body.append(node('p',label('Last received data · reconnecting','上次收到的数据 · 正在重连'),'signals-receipts'));
 }
 if(signals){if(matchMedia('(min-width: 900px)').matches)signals.open=true;renderSignals();const timer=setInterval(renderSignals,1000);window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});window.addEventListener('tide:languagechange',renderSignals);}
+window.addEventListener('tide:livecleared',renderSignals);
 window.__tideVisitorContext=visitorContextCard;

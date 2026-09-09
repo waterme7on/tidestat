@@ -67,7 +67,7 @@ export default {
      let v=map.get(row.visitor_id);
      if(!v){v={id:row.visitor_id,maskedIp:validMaskedIp(row.masked_ip),city:row.city||'未知',country:row.country||'',lat:row.lat,lng:row.lng,device:row.device||'desktop',firstTs:row.ts,lastTs:row.ts,paths:[],events:[]};map.set(v.id,v);}
      v.lastTs=row.ts;if(row.lat!=null){v.lat=row.lat;v.lng=row.lng;}if(row.city)v.city=row.city;
-     const previous=v.paths.at(-1);if(!previous||previous.path!==row.path)v.paths.push({path:row.path,ts:row.ts});if(v.paths.length>12)v.paths.shift();
+     const previous=v.paths.at(-1);if(!previous||previous.path!==row.path||previous.sessionId!==row.session_id)v.paths.push({path:row.path,ts:row.ts,sessionId:row.session_id});if(v.paths.length>12)v.paths.shift();
      if(row.type!=='heartbeat')v.events.push({id:row.event_id,type:row.type,path:row.path,ts:row.ts,properties:readContext(row.properties)});if(v.events.length>12)v.events.shift();
     }
     const {results:payments}=await env.DB.prepare('SELECT provider,payment_id,visitor_id,ts,amount_minor,currency FROM story_payments WHERE site_id=? AND ts>? AND ts<=? ORDER BY ts DESC LIMIT ?').bind(site,now-600000,now,limit+1).all();
@@ -79,7 +79,7 @@ export default {
     for(const summary of summaries.slice(0,limit)){const visitor=map.get(summary.visitor_id);if(visitor){const context=readContext(summary.context);Object.assign(visitor,{context,source:summary.source,channel:context.channel||'Unknown',referrer:context.referrer||'',campaign:context.campaign||'',keyword:context.keyword||'',browser:context.browser||'Unknown',os:context.os||'Unknown',region:context.region||'',viewportWidth:context.viewportWidth||null,viewportHeight:context.viewportHeight||null,firstVisitTs:summary.first_ts,sessionCount:summary.session_count,pageviews:summary.pageviews,entryPage:summary.landing_page,exitPage:summary.exit_page});}}
     const visitors=[...map.values()].filter(v=>now-v.lastTs<onlineMs);
     for(const visitor of visitors)visitor.events=visitor.events.sort((a,b)=>a.ts-b.ts||a.id.localeCompare(b.id)).slice(-12);
-    return json({now,onlineMs,visitors,truncated:results.length>limit||payments.length>limit||summaries.length>limit});
+    return json({site,now,onlineMs,visitors,truncated:results.length>limit||payments.length>limit||summaries.length>limit});
    }
    if(['/api/revenue','/api/stories'].includes(url.pathname) && request.method==='GET') {
     const days=Math.min(365,Math.max(1,Number(url.searchParams.get('days')||30))),to=url.searchParams.has('to')?Number(url.searchParams.get('to')):Date.now(),from=url.searchParams.has('from')?Number(url.searchParams.get('from')):to-days*86400000;

@@ -18,15 +18,17 @@ export function snapshot(data, site) {
 }
 export function steps(visitor, site) {
   const valid = new Set(site.nodes.map(n => n.id));
-  return (visitor?.visited || []).filter(s => valid.has(s.node));
+  const history = visitor?.visited || [];
+  return history.map((s,i) => ({...s, breakBefore:i>0&&!valid.has(history[i-1].node)})).filter(s => valid.has(s.node));
 }
 export function journey(visitor, site) {
-  const history = steps(visitor, site), result = [];
+  const history = visitor?.visited || [], result = [];
+  const valid = new Set(site.nodes.map(n => n.id));
   for (let i = 1; i < history.length; i++) {
-    if (history[i - 1].node !== history[i].node) result.push([history[i - 1].node, history[i].node]);
+    if ((!site.observed || history[i].sessionId) && valid.has(history[i-1].node) && valid.has(history[i].node) && history[i-1].sessionId === history[i].sessionId && history[i - 1].node !== history[i].node) result.push([history[i - 1].node, history[i].node]);
   }
-  // A navigation in progress can already be recorded by the live API. Don't append it twice.
-  if (visitor?.state === 'walking' && visitor.node !== visitor.target &&
+  // Demo motion can precede its next recorded step. Live routes use recorded adjacency only.
+  if (!site.observed && visitor?.state === 'walking' && visitor.node !== visitor.target &&
       site.nodes.some(n => n.id === visitor.node) && site.nodes.some(n => n.id === visitor.target)) {
     const last = result.at(-1);
     if (!last || last[0] !== visitor.node || last[1] !== visitor.target) result.push([visitor.node, visitor.target]);
