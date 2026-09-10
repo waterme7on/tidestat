@@ -13,8 +13,8 @@ test('documentation navigation and local asset links resolve', () => {
     else assert.ok(fs.existsSync(path.resolve(root, 'docs', href.split('#')[0])), href);
   }
 });
-test('documentation distinguishes payments, aggregate search and unpublished installation', () => {
-  for (const text of ['not a published npm release', 'aggregate imports', 'refund.created', 'refund.updated', 'timelineTruncated', 'Sign in and add your website', 'No matching pages']) assert.ok(html.toLowerCase().includes(text.toLowerCase()), text);
+test('documentation distinguishes payments, aggregate search and npm installation', () => {
+  for (const text of ['npm install @waterme7on/tidestat-browser-sdk', 'aggregate imports', 'refund.created', 'refund.updated', 'timelineTruncated', 'Sign in and add your website', 'No matching pages']) assert.ok(html.toLowerCase().includes(text.toLowerCase()), text);
   assert.ok(!html.includes('/packages/browser-sdk/src/'));
   assert.ok(!html.includes('refund deduction'));
 });

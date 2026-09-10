@@ -1,20 +1,24 @@
 # TideStat Browser SDK
 
-Zero dependencies, ESM and TypeScript declarations. This package is local and **not published to npm**.
+Zero dependencies, ESM and TypeScript declarations. Connect your website to the hosted TideStat analytics service.
 
-From your **website project**, replace the placeholder with the actual local TideStat checkout path:
+## Install
 
 ```sh
-npm install "/absolute/path/to/tidestat/packages/browser-sdk"
+npm install @waterme7on/tidestat-browser-sdk
 ```
 
-Do not install this unpublished package by its registry name. The local path must also be accessible in the website build environment. Without a local checkout, use your TideStat deployment’s `/sdk/browser.js` module script or `/sdk/index.js` module instead; no npm installation is required.
+Sign in at https://tidestat.yololab.cc/account.html, add your website, and use its website ID below. TideStat hosts the collector and dashboard; no analytics server or database installation is needed.
+
+For a website without a package build, use the hosted `/sdk/browser.js` module script or `/sdk/index.js` module instead. Use only one tracker integration per page.
+
+## Initialize
 
 ```js
-import { createTideStat } from '@tidestat/browser-sdk';
+import { createTideStat } from '@waterme7on/tidestat-browser-sdk';
 const tide = createTideStat({
   siteId: 'YOUR_SITE_ID',
-  endpoint: 'https://YOUR_TIDESTAT_HOST/api/collect',
+  endpoint: 'https://tidestat.yololab.cc/api/collect',
   consent: false,
   trackClicks: true
 });
@@ -43,7 +47,13 @@ Metadata keys: `tidestat_site_id`, `tidestat_visitor_id`, `tidestat_session_id`.
 
 ## Verification
 
+From a TideStat repository checkout:
+
 ```sh
 npm test --prefix packages/browser-sdk
 npm pack --dry-run ./packages/browser-sdk
 ```
+
+## License
+
+MIT — see [LICENSE](./LICENSE). This license applies to the browser SDK.

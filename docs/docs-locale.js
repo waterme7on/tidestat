@@ -313,5 +313,11 @@ registerMessages({
   "Activation requires deployment configuration": "激活需要完成部署配置",
   "Google OAuth credentials, Stripe prices, webhook registration and production test receipts must be supplied and verified by the deployment owner. This documentation does not mean those services are already live.": "Google OAuth 凭据、Stripe 价格、webhook 注册及生产测试回执，都需要由部署者提供并验证。这份文档不代表相关服务已经上线。"
 });
+registerMessages({
+"npm package · MIT":"npm 软件包 · MIT",
+"Install the browser SDK in your website project. TideStat hosts the analytics service.":"在网站项目中安装浏览器 SDK，分析服务由 TideStat 托管。",
+"Run this in your website project. For websites without a package build, use the":"在网站项目中执行。没有软件包构建流程的网站可以使用",
+"TideStat collects and stores your website events and provides the dashboard. Use our hosted tracker without installing a server or database. The optional browser SDK is available on npm under the MIT license. Payment connectors require separate activation and verification; Search Console currently supports aggregate imports.":"TideStat 负责采集、存储网站事件并提供数据面板。使用托管追踪代码无需安装服务器或数据库，也可选择 MIT 许可的 npm 浏览器 SDK。支付连接器需要单独启用和验证；Search Console 目前支持聚合数据导入。"
+});
 translate();
 await import('./docs.js');

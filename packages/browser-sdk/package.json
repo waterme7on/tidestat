@@ -1,11 +1,44 @@
 {
-  "name": "@tidestat/browser-sdk",
+  "name": "@waterme7on/tidestat-browser-sdk",
   "version": "0.1.0",
   "description": "TideStat canonical browser events and payment attribution helpers",
   "type": "module",
-  "exports": { ".": { "types": "./index.d.ts", "import": "./index.js" } },
-  "files": ["index.js", "browser.js", "index.d.ts", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "browser.js",
+    "index.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
   "sideEffects": false,
-  "scripts": { "test": "node --test test.mjs" },
-  "license": "UNLICENSED"
+  "scripts": {
+    "test": "node --test test.mjs"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/waterme7on/tidestat.git",
+    "directory": "packages/browser-sdk"
+  },
+  "homepage": "https://tidestat.yololab.cc/docs/index.html#npm",
+  "bugs": {
+    "url": "https://github.com/waterme7on/tidestat/issues"
+  },
+  "keywords": [
+    "tidestat",
+    "analytics",
+    "browser",
+    "consent",
+    "attribution"
+  ]
 }
