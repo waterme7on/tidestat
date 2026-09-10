@@ -1,0 +1,41 @@
+import {chromium} from 'playwright';
+import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+const base=process.env.BASE_URL||'http://127.0.0.1:8901';
+const browser=await chromium.launch();
+const page=await browser.newPage({viewport:{width:390,height:844},locale:'en-US'});
+let sites=[],errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+await page.route('**/api/**',route=>{
+ const path=new URL(route.request().url()).pathname;
+ const data=path==='/api/auth/me'?{user:{id:'owner'},billing:{plan:'free',limits:{sites:3,monthlyEvents:10000}},capabilities:{}}:path==='/api/sites'?{sites}:path==='/api/revenue'?{overview:{visitors:0,sessions:0,customers:0,currencies:[]},stories:[],sources:[],journeys:[],daily:[]}:{};
+ return route.fulfill({json:data});
+});
+try{
+ await mkdir('visual-review/website-directory',{recursive:true});
+ await page.goto(base+'/account.html');await page.getByRole('heading',{name:'No websites added yet'}).waitFor();
+ assert.equal(await page.locator('.create-site').getAttribute('open'),'');
+ await page.screenshot({path:'visual-review/website-directory/empty-mobile.png',fullPage:true});
+ sites=[{id:'ready',name:'Yololab',origin:'https://yololab.cc',lastPageviewAt:Date.now()-86400000},{id:'waiting',name:'New website',origin:'https://new.example',lastPageviewAt:null}];
+ await page.reload();await page.locator('.website-card').first().waitFor();
+ assert.match(await page.locator('.website-card').nth(0).textContent(),/Pageview received/);
+ assert.match(await page.locator('.website-card').nth(1).textContent(),/No visits received yet/);
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ await page.screenshot({path:'visual-review/website-directory/cards-mobile.png',fullPage:true});
+ await page.locator('.website-card').nth(1).getByRole('link',{name:'View dashboard'}).click();
+ await page.locator('#websiteConnectionNotice').waitFor({state:'visible'});
+ assert.equal(await page.evaluate(()=>window.tideConnection.get().site),'waiting');
+ assert.match(await page.locator('#websiteConnectionNotice').textContent(),/has not received a pageview/);
+ await page.screenshot({path:'visual-review/website-directory/dashboard-mobile.png',fullPage:true});
+ await page.locator('#dashboardSetup').click();await page.locator('#connectDialog[open]').waitFor();
+ assert.match(await page.locator('#agentTask').inputValue(),/https:\/\/new.example/);
+ const heading=await page.locator('#connectDialog .dialog-heading').boundingBox(),close=await page.locator('[data-close=connectDialog]').boundingBox();
+ assert.ok(close.y>=heading.y&&close.y+close.height<=heading.y+heading.height+1);
+ assert.ok(await page.evaluate(()=>document.querySelector('#connectDialog').scrollWidth<=document.querySelector('#connectDialog').clientWidth));
+ await page.goto(base+'/account.html');await page.locator('.website-card').first().getByRole('link',{name:'Open dashboard'}).click();
+ await page.locator('#accountSiteSelect').waitFor();assert.equal(await page.evaluate(()=>window.tideConnection.get().site),'ready');
+ assert.equal(await page.locator('#websiteConnectionNotice').isVisible(),false,'a zero-traffic date range must not mark an established website as unconnected');
+ await page.locator('#accountSiteSelect').selectOption('waiting');await page.reload();await page.locator('#websiteConnectionNotice').waitFor({state:'visible'});assert.equal(await page.evaluate(()=>window.tideConnection.get().site),'waiting');
+ await page.setViewportSize({width:1440,height:1000});await page.goto(base+'/account.html');await page.locator('.website-card').first().waitFor();await page.screenshot({path:'visual-review/website-directory/cards-desktop.png',fullPage:true});
+ assert.deepEqual(errors,[]);console.log('Website directory passed: empty state, server-backed status, per-card navigation, selected-site setup, zero-range distinction and mobile layout.');
+}finally{await browser.close();}
