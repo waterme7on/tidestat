@@ -27,9 +27,9 @@ The wrapper exposes `window.tidestat` when ready and sends events to `/api/colle
 
 Publish only the customer's website changes within existing authorization. The analytics service is run by TideStat. Website IDs are public; private credentials never belong in the tracker.
 
-### Optional local package
+### Optional npm package
 
-Use only if the customer specifically prefers a local package and has a TideStat checkout. The SDK is not published to npm: do not run `npm install @tidestat/browser-sdk` or equivalent registry commands. From the customer website project, install `npm install "/absolute/path/to/tidestat/packages/browser-sdk"`, replacing the placeholder with the verified local path. Then import `createTideStat` from `@tidestat/browser-sdk`. Confirm that the build environment can resolve this local dependency. Without that path, use the hosted tracker; do not tell the customer to clone or deploy TideStat just to collect events.
+For projects with a package manager, run `npm install @waterme7on/tidestat-browser-sdk` from the website project. Import `createTideStat` from `@waterme7on/tidestat-browser-sdk` and initialize once on the client with the supplied site ID, the service's `/api/collect` endpoint, and the existing consent state. Subscribe to consent changes and call `destroy()` on teardown. Do not combine this instance with the hosted script. No TideStat checkout, Worker, database, or read token is required. The browser SDK is MIT licensed.
 
 ## 3. Verify a real visit
 

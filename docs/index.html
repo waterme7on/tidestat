@@ -89,7 +89,7 @@
 </div>
 <p>This is an illustrative journey, not customer data. TideStat preserves the live map, anonymous visitor characters, Website Footprints and event stream, then adds the payment evidence that makes those visits meaningful.</p>
 <div class="notice warning">
-<strong>Hosted analytics · your website, your data</strong>TideStat collects and stores your website events and provides the dashboard. Use our hosted tracker without installing a server or database. The optional local SDK is not a published npm release. Payment connectors require separate activation and verification; Search Console currently supports aggregate imports.</div>
+<strong>Hosted analytics · your website, your data</strong>TideStat collects and stores your website events and provides the dashboard. Use our hosted tracker without installing a server or database. The optional browser SDK is available on npm under the MIT license. Payment connectors require separate activation and verification; Search Console currently supports aggregate imports.</div>
 <div class="cards">
 <a class="card" href="#browser">
 <strong>Browser tracker ↗</strong>
@@ -122,16 +122,16 @@
 <h1>NPM SDK / Package</h1>
 <p class="lead">Typeable, explicit event tracking for JavaScript sites. Use the same canonical schema as Shopify.</p>
 <div class="notice">
-<strong>Local package</strong>This SDK is not published to npm. Install it from your local TideStat repository; do not install by registry package name.</div>
+<strong>npm package · MIT</strong>Install the browser SDK in your website project. TideStat hosts the analytics service.</div>
 <h2>Install</h2>
 <pre>
-<code>npm install "/absolute/path/to/tidestat/packages/browser-sdk"</code>
+<code>npm install @waterme7on/tidestat-browser-sdk</code>
 </pre>
-<p>Run this in your website project and replace the placeholder with the actual TideStat checkout path. The build environment must also have access to this local dependency. Without a checkout, use the <a href="#browser">hosted Browser SDK</a>; no npm installation is needed.</p>
+<p>Run this in your website project. For websites without a package build, use the <a href="#browser">hosted Browser SDK</a>; no npm installation is needed.</p>
 <details><summary>Connect with an Agent or Skill</summary><p>Use the website setup dialog to copy a task containing your website ID and TideStat service URL. Alternatively, <a href="./tidestat-connect/SKILL.md" download="SKILL.md">download the Skill</a>, save it in your website project as <code>.agents/skills/tidestat-connect/SKILL.md</code>, and ask your agent to read it and complete the setup task. Verify a real visit before marking setup complete.</p></details>
 <h2>Initialize once in the browser</h2>
 <pre>
-<code>import { createTideStat } from &#x27;@tidestat/browser-sdk&#x27;;
+<code>import { createTideStat } from &#x27;@waterme7on/tidestat-browser-sdk&#x27;;
 
 const tide = createTideStat({
   siteId: &#x27;my-site&#x27;,
