@@ -73,3 +73,20 @@ html .language-options button{display:flex;width:100%;align-items:center;justify
 html .language-options button:hover,html .language-options button:focus-visible{background:var(--tide-soft);outline:0}
 html .language-options button[aria-checked=true]{color:var(--tide-accent);background:var(--tide-soft)}
 .language-options button:not([aria-checked=true]) .tide-icon{visibility:hidden}
+
+/* Website directory and setup share the same controls on every product surface. */
+.account-grid{grid-template-columns:1fr}.account-main .site-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.website-card{min-width:0;padding:16px;border:1px solid var(--tide-line);border-radius:12px;background:var(--tide-bg)}
+.account-main .website-card .site-choice{border:0;background:transparent;padding:0;min-height:52px;align-items:center}
+.account-main .website-card:has([aria-pressed=true]){border-color:var(--tide-accent)}
+.website-card .site-actions{margin-top:18px;flex-wrap:wrap}.website-status{display:flex;align-items:center;gap:8px;margin:20px 0 0;font-size:12px;color:var(--tide-muted)}
+.account-connection-summary{display:flex;align-items:center;gap:16px;margin:20px 0 24px;padding:20px;border:1px solid var(--tide-line);border-left:3px solid var(--tide-accent);border-radius:10px;background:var(--tide-soft);color:var(--tide-ink)}
+.account-connection-summary[hidden]{display:none}.account-connection-summary>div{flex:1;min-width:0}.account-connection-summary h2{font-size:16px;margin:0 0 6px}.account-connection-summary p{font-size:12px;line-height:1.65;color:var(--tide-muted);margin:0}.account-connection-summary a{white-space:nowrap}
+#connectDialog .dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}#connectDialog .dialog-heading h2{margin:0;font-size:20px;line-height:1.3}#connectDialog .dialog-heading button{flex:none;width:40px;padding:0}#connectDialog #setupWebsite{overflow-wrap:anywhere;margin:8px 0 20px;font-size:12px}
+#connectDialog .setup-steps{gap:12px;margin:20px 0 24px}#connectDialog .setup-steps li{display:flex;align-items:center;gap:7px;border-bottom:2px solid var(--tide-line);padding:0 0 12px;color:var(--tide-muted);font-size:12px}
+.setup-step-number{display:grid;place-items:center;width:24px;height:24px;flex:none;border:1px solid var(--tide-line);border-radius:50%;font-size:11px}
+#connectDialog .setup-steps li[aria-current]{color:var(--tide-accent);border-color:var(--tide-accent)}#connectDialog .setup-steps .step-complete .setup-step-number{background:var(--tide-soft);color:var(--tide-accent)}
+#connectDialog #visitWebsite{display:inline-flex;align-items:center;gap:8px;min-height:44px}#connectDialog #verifyResult{margin:16px 0 20px}#connectDialog #setupError:empty{display:none}#connectDialog #verifyStep>button{margin-bottom:6px}
+@media(max-width:760px){.account-main .site-list{grid-template-columns:1fr}.account-connection-summary{flex-wrap:wrap;padding:16px;gap:12px}.account-connection-summary>div{flex-basis:100%}#connectDialog{max-height:calc(100dvh - 24px);padding:20px}#connectDialog .setup-steps{gap:8px}#connectDialog button{min-height:44px}#connectDialog textarea{min-height:100px;max-height:150px}.website-card .site-actions>*{flex:1}}
+
+@media(max-width:760px){.website-card .site-actions{display:grid;grid-template-columns:1fr}.website-card .site-actions>*{width:100%}}

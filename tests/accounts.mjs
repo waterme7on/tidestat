@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';import {readFileSync} from 'node:fs';import {generateKeyPairSync,sign,createHmac} from 'node:crypto';
 import {handleAccountRequest,getSessionUser,hashToken,canReadSite,getManagedSite,consumeEventQuota} from '../accounts.js';
 const origin='https://tide.test';
-function database(){const sql=new DatabaseSync(':memory:');sql.exec(readFileSync(new URL('../migrations/0003_accounts.sql',import.meta.url),'utf8'));const db={prepare(query){return {bind(...args){return {first:async()=>sql.prepare(query).get(...args)||null,all:async()=>({results:sql.prepare(query).all(...args)}),run:async()=>sql.prepare(query).run(...args)};}}},async batch(statements){sql.exec('BEGIN');try{const values=[];for(const statement of statements)values.push(await statement.run());sql.exec('COMMIT');return values;}catch(e){sql.exec('ROLLBACK');throw e;}}};return {sql,db};}
+function database(){const sql=new DatabaseSync(':memory:');sql.exec(readFileSync(new URL('../schema.sql',import.meta.url),'utf8'));sql.exec(readFileSync(new URL('../migrations/0003_accounts.sql',import.meta.url),'utf8'));const db={prepare(query){return {bind(...args){return {first:async()=>sql.prepare(query).get(...args)||null,all:async()=>({results:sql.prepare(query).all(...args)}),run:async()=>sql.prepare(query).run(...args)};}}},async batch(statements){sql.exec('BEGIN');try{const values=[];for(const statement of statements)values.push(await statement.run());sql.exec('COMMIT');return values;}catch(e){sql.exec('ROLLBACK');throw e;}}};return {sql,db};}
 const request=(path,method='GET',body,headers={})=>new Request(origin+path,{method,headers:{...(body?{'Content-Type':'application/json'}:{}),...headers},...(body?{body:JSON.stringify(body)}:{})});
 async function signedUser(db,id='user1'){await db.prepare('INSERT INTO account_users VALUES (?,?,?,?,?)').bind(id,'google-'+id,`${id}@example.test`,id,Date.now()).run();const token=Buffer.alloc(32,id==='user1'?1:2).toString('base64url');await db.prepare('INSERT INTO account_sessions VALUES (?,?,?)').bind(await hashToken(token),id,Date.now()+60000).run();return {'cookie':`__Host-tidestat_session=${token}`,origin};}
 const billingEnv={APP_ORIGIN:origin,STRIPE_SECRET_KEY:'sk_test_secret',BILLING_WEBHOOK_SECRET:'whsec_billing',STRIPE_PRICE_STARTER_MONTHLY:'price_sm',STRIPE_PRICE_STARTER_YEARLY:'price_sy',STRIPE_PRICE_GROWTH_MONTHLY:'price_gm',STRIPE_PRICE_GROWTH_YEARLY:'price_gy'};
@@ -39,4 +39,16 @@ test('setup verification uses the owning account session and rejects another acc
  const path='/api/setup?site=owned&origin=https%3A%2F%2Fshop.example&since='+Date.now();
  const accepted=await worker.fetch(request(path,'GET',undefined,owner),{DB:db,APP_ORIGIN:origin});assert.equal(accepted.status,200);const body=await accepted.json();assert.equal(body.originAllowed,true);assert.equal(body.pageviewReceived,false);
  assert.equal((await worker.fetch(request(path,'GET',undefined,other),{DB:db,APP_ORIGIN:origin})).status,401);
+});
+
+test('website directory reports only same-site pageviews, including visits older than setup window',async()=>{
+ const {db,sql}=database(),owner=await signedUser(db),other=await signedUser(db,'user2'),env={DB:db,APP_ORIGIN:origin};
+ for(const [id,user] of [['first','user1'],['waiting','user1'],['private','user2']])sql.prepare('INSERT INTO account_sites VALUES (?,?,?,?,?)').run(id,user,id,`https://${id}.test`,Date.now());
+ for(const id of ['first','waiting','private'])sql.prepare('INSERT INTO story_sessions VALUES (?,?,?,?,?,?,?)').run(id,'s','v',Date.now(),Date.now(),'Direct','/');
+ const stamp=Date.now()-86400000;
+ const insert=sql.prepare('INSERT INTO story_events(site_id,event_id,visitor_id,session_id,type,ts,path) VALUES (?,?,?,?,?,?,?)');
+ insert.run('first','visit','v','s','page_view',stamp,'/');insert.run('waiting','click','v','s','click',Date.now(),'/');insert.run('private','visit','v','s','page_view',Date.now(),'/');
+ const {sites}=await (await handleAccountRequest(request('/api/sites','GET',null,owner),env)).json();
+ assert.equal(sites.length,2);assert.equal(sites.find(s=>s.id==='first').lastPageviewAt,stamp);assert.equal(sites.find(s=>s.id==='waiting').lastPageviewAt,null);assert.ok(!sites.some(s=>s.id==='private'));
+ assert.equal((await (await handleAccountRequest(request('/api/sites','GET',null,other),env)).json()).sites.length,1);
 });

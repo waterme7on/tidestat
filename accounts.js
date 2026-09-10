@@ -74,7 +74,7 @@ export async function handleAccountRequest(request,env){
   if(!user)return json({error:'Sign in required'},401);
   if(request.method==='POST'&&(!appOrigin(env)||request.headers.get('origin')!==env.APP_ORIGIN))return json({error:'Same-origin request required'},403);
   if(path==='/api/auth/logout'&&request.method==='POST'){await env.DB.prepare('DELETE FROM account_sessions WHERE token_hash=?').bind(await hashToken(cookies(request)[SESSION])).run();return json({ok:true},200,{'Set-Cookie':cookie(SESSION,'',0)});}
-  if(path==='/api/sites'&&request.method==='GET'){const {results}=await env.DB.prepare('SELECT id,name,origin,created_at AS createdAt FROM account_sites WHERE user_id=? ORDER BY created_at').bind(user.id).all();return json({sites:results});}
+  if(path==='/api/sites'&&request.method==='GET'){const {results}=await env.DB.prepare('SELECT id,name,origin,created_at AS createdAt,(SELECT MAX(ts) FROM story_events WHERE site_id=account_sites.id AND type=\'page_view\') AS lastPageviewAt FROM account_sites WHERE user_id=? ORDER BY created_at').bind(user.id).all();return json({sites:results});}
   if(path==='/api/sites'&&request.method==='POST'){
    let body;try{body=await request.json();}catch{return json({error:'Invalid JSON'},400);}
    let origin;try{const parsed=new URL(body.origin);if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.pathname!=='/'||parsed.search||parsed.hash)throw new Error();origin=parsed.origin;}catch{return json({error:'Use the HTTPS origin only, for example https://example.com'},400);}

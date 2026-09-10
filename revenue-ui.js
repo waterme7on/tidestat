@@ -27,6 +27,10 @@ function sample(){
 function notice(message,error=false){$('notice').innerHTML=message?`<div class="notice${error?' error':''}">${esc(message)}</div>`:'';}
 function render(){
  const current=view(),connection=window.tideConnection.get();
+ let banner=$('websiteConnectionNotice');if(!banner){banner=document.createElement('section');banner.id='websiteConnectionNotice';banner.className='account-connection-summary';banner.setAttribute('role','status');document.querySelector('.toolbar').after(banner);}
+ const managed=connection.sites?.find(s=>s.id===connection.site);banner.hidden=demo||!connection.session||!!managed?.lastPageviewAt;
+ banner.innerHTML=banner.hidden?'':`<div><h2>${managed?'No visits received yet':'No websites added yet'}</h2><p>${managed?'This website is registered, but TideStat has not received a pageview. Install tracking and verify a visit to populate this dashboard.':'Add a website before opening its dashboard.'}</p></div><a class="button" href="./account.html">Your websites</a>${managed?'<button id="dashboardSetup" class="primary">Connect website</button>':''}`;
+ if($('dashboardSetup'))$('dashboardSetup').onclick=()=>window.dispatchEvent(new CustomEvent('tide:setup',{detail:managed}));
  const sitePicker=$('accountSiteSelect');sitePicker.hidden=demo||!connection.session||!connection.sites?.length;$('siteLabel').hidden=!sitePicker.hidden;if(!sitePicker.hidden)sitePicker.innerHTML=connection.sites.map(site=>`<option data-no-translate value="${esc(site.id)}"${site.id===connection.site?' selected':''}>${esc(site.name||site.origin||site.id)}</option>`).join('');
  document.querySelectorAll('[data-view],[data-tab]').forEach(a=>{const active=(a.dataset.view||a.dataset.tab)===current;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
  $('pageTitle').textContent=titles[current][0];$('pageDescription').textContent=titles[current][1];$('siteLabel').textContent=demo?'Sample store':window.tideConnection.get().site||'Your workspace';$('dataBadge').textContent=demo?'Sample data · not your revenue':data?'Connected workspace':'Not connected';$('dataBadge').classList.toggle('demo',demo);$('range').disabled=demo;$('metrics').hidden=!data||current==='integrations';
@@ -87,6 +91,7 @@ for(const button of document.querySelectorAll('[data-close]'))button.onclick=()=
 $('accountSiteSelect').onchange=e=>{if(window.tideConnection.select(e.target.value)){sourceFilter='';visitorFilter='';statusFilter='';data=null;void load();}};
 $('refresh').onclick=load;$('range').onchange=load;window.addEventListener('hashchange',render);
 window.addEventListener('tide:languagechange',()=>{const wasOpen=$('storyDialog').open;render();if(wasOpen&&activeStory)openStory(activeStory);translate();});
+window.addEventListener('tide:verified',event=>{const site=window.tideConnection.get().sites?.find(s=>s.id===event.detail.site);if(site){site.lastPageviewAt=event.detail.lastPageviewAt;render();}});
 window.addEventListener('tide:themechange',()=>{if(data)render();});
 load();
 if(params.get('advanced')==='1')$('connectDialog').showModal();
