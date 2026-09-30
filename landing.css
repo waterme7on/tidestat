@@ -152,8 +152,10 @@ body.landing.motion-ready .button:hover,body.landing.motion-ready .nav-cta:hover
 @media(prefers-reduced-motion:reduce){.magic-marquee-track,.beui-text-shimmer{animation:none}}
 html[lang^="zh"] body.landing h1{font-size:clamp(32px,4vw,46px);line-height:1.28;letter-spacing:-.02em;font-weight:500}
 html[lang^="zh"] body.landing h2{letter-spacing:0;line-height:1.32}
-body.landing .mini-visual.spec-chart,body.landing .mini-visual.spec-funnel,body.landing .mini-visual.spec-book{display:flex;flex-direction:column;justify-content:center;gap:8px;height:auto;min-height:188px;padding:14px 16px;overflow:hidden}
+body.landing .mini-visual.spec-chart,body.landing .mini-visual.spec-funnel,body.landing .mini-visual.spec-book{display:flex;flex-direction:column;justify-content:center;gap:10px;height:auto;min-height:0;padding:14px 16px;overflow:visible}
 .spec-head{display:flex;align-items:baseline;gap:8px;min-width:0}
+.spec-head>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spec-head strong,.spec-delta{flex:none}
 .spec-head span{color:var(--muted);font:12px/1.3 var(--mono);letter-spacing:.04em}
 .spec-head strong{color:var(--ink);font:22px/1 var(--mono);font-weight:500;letter-spacing:-.03em}
 .spec-delta{margin-left:auto;color:var(--tide-accent);font:12px/1.3 var(--mono)}
@@ -166,24 +168,23 @@ body.landing .mini-visual.spec-chart,body.landing .mini-visual.spec-funnel,body.
 .spec-chart{cursor:crosshair;touch-action:pan-y}
 .spec-chart:focus-visible{outline:2px solid var(--tide-accent);outline-offset:3px}
 .spec-funnel{position:relative}
-.funnel-svg{width:100%;height:132px}
-.funnel-stage{fill:color-mix(in srgb,var(--tide-accent) 28%,var(--surface));transform-box:fill-box;transform-origin:center;transform:scaleX(.2)}
-.funnel-stage.s2{fill:color-mix(in srgb,var(--tide-accent) 48%,var(--surface))}
-.funnel-stage.s3{fill:var(--tide-accent)}
-.funnel-readout{position:absolute;inset:0;display:grid;grid-template-rows:repeat(3,1fr);margin:0;padding:0 22px;list-style:none}
-.funnel-readout li{display:flex;color:var(--ink);font:12px/1.2 var(--mono)}
-.funnel-readout button,.spec-row{width:100%;display:flex;align-items:center;justify-content:space-between;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:inherit;cursor:pointer}
+.funnel-stage{fill:var(--tide-accent);transform-box:fill-box;transform-origin:left center;transform:scaleX(.2)}
+.funnel-readout{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.funnel-readout li{min-width:0}
+.funnel-readout button{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto 8px;gap:4px 10px;align-items:center;padding:0;border:0;background:transparent;color:var(--ink);font:12px/1.3 var(--mono);text-align:left;cursor:pointer}
+.funnel-readout button span{grid-column:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.funnel-readout button b{grid-column:2;grid-row:1}
+.funnel-readout svg{grid-column:1 / -1;grid-row:2;width:100%;height:8px;display:block}
+.spec-row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto 6px;gap:4px 10px;align-items:center;padding:0;border:0;background:transparent;color:inherit;font:12px/1.3 var(--mono);text-align:left;cursor:pointer}
 .funnel-readout button:hover,.funnel-readout button:focus-visible,.spec-row:hover,.spec-row:focus-visible{outline:2px solid var(--tide-accent);outline-offset:2px}
 .funnel-stage.is-dim{opacity:.28}
 .funnel-stage.is-hot{fill:var(--tide-accent)}
-.spec-table{display:grid;gap:8px}
-.spec-row{position:relative;display:flex;min-height:32px;color:var(--ink);font:12px/1.3 var(--mono)}
-.spec-row.is-hot .spec-bar{fill:color-mix(in srgb,var(--tide-accent) 62%,transparent)}
-.spec-row svg{position:absolute;inset:0;width:100%;height:100%;z-index:0}
-.spec-bar{fill:color-mix(in srgb,var(--tide-accent) 24%,transparent);transform-box:fill-box;transform-origin:left center;transform:scaleX(0)}
-.spec-row span,.spec-row b{position:relative;z-index:1}
-.spec-row span{padding-left:8px}
-.spec-row b{font-weight:500}
+.spec-table{display:grid;gap:10px}
+.spec-row.is-hot .spec-bar{fill:var(--tide-accent)}
+.spec-row svg{grid-column:1 / -1;grid-row:2;position:relative;inset:auto;width:100%;height:6px;z-index:0}
+.spec-bar{fill:color-mix(in srgb,var(--tide-accent) 55%,transparent);transform-box:fill-box;transform-origin:left center;transform:scaleX(0)}
+.spec-row span{grid-column:1;grid-row:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0}
+.spec-row b{grid-column:2;grid-row:1;font-weight:500}
 @media(prefers-reduced-motion:no-preference){
  .spec-line{animation:spec-draw 1.6s cubic-bezier(.16,1,.3,1) forwards}
  .funnel-stage{animation:funnel-in .7s cubic-bezier(.16,1,.3,1) forwards}
