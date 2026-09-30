@@ -67,3 +67,49 @@
 @media(min-width:761px) { .demo-shell iframe[data-demo-view="live"] { height: 760px; } }
 
 @media(min-width:761px) { .demo-shell iframe[data-demo-view="journeys"] { height:760px; } }
+
+/* Landing palette and section rhythm. Visual reference: beUI press states, Spectrum cards, Magic UI borders. The site stays static CSS; these pages do not load React. */
+body.landing{--tide-bg:#0c1214;--tide-surface:#151d20;--tide-ink:#f4f7f5;--tide-muted:#93a39c;--tide-line:#2c3a38;--tide-accent:#f08a62;--tide-soft:#1c282b;--coral:var(--tide-accent);background:radial-gradient(880px 420px at 88% -8%,#f08a621c,transparent 58%),radial-gradient(640px 320px at 0% 18%,#3d8f8614,transparent 50%),var(--tide-bg)}
+html[data-theme="light"] body.landing{--tide-bg:#f7f4ee;--tide-surface:#fffdf8;--tide-ink:#1c2824;--tide-muted:#5c6d66;--tide-line:#e4ddd2;--tide-accent:#c4532c;--tide-soft:#f3eee6;background:radial-gradient(880px 420px at 88% -8%,#c4532c14,transparent 58%),var(--tide-bg)}
+body.landing h1 span{background:linear-gradient(100deg,var(--tide-accent),#e7c4a4);-webkit-background-clip:text;background-clip:text;color:transparent}
+html[data-theme="light"] body.landing h1 span{background:none;color:var(--tide-accent)}
+body.landing .hero{padding-bottom:36px}
+.signal-row{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0;padding:0;list-style:none}
+.signal-row li{padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--surface) 82%,transparent);color:var(--muted);font:11px/1.3 var(--mono);letter-spacing:.3px}
+.audience-section{padding:28px 0 12px}
+.audience-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.audience-card{min-width:0;padding:22px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 92%,white 8%),var(--surface));box-shadow:0 16px 40px #00000014}
+.audience-card h3{margin-top:8px}
+.audience-card p{color:var(--muted);font-size:13px;line-height:1.75;margin:0 0 16px}
+.audience-card:hover{border-color:color-mix(in srgb,var(--coral) 55%,var(--line))}
+body.landing .workflow-grid{display:grid;grid-template-columns:1fr;gap:16px}
+body.landing .workflow-card{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);gap:28px;align-items:center;padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--surface)}
+body.landing .workflow-card .mini-visual{height:168px;margin:0}
+body.landing .workflow-card p{max-width:46ch}
+.feature-copy{min-width:0}
+.band{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;margin:8px auto 72px;padding:28px 32px;border:1px solid color-mix(in srgb,var(--coral) 35%,var(--line));border-radius:20px;background:linear-gradient(120deg,color-mix(in srgb,var(--coral) 12%,var(--surface)),var(--surface) 55%)}
+.band h2{font-size:clamp(28px,3vw,40px);letter-spacing:-1px;margin:0 0 8px}
+.band p:last-child{margin:0;max-width:52ch;color:var(--muted);font-size:14px}
+.band .eyebrow{margin-bottom:8px}
+.site-footer{align-items:flex-start;padding-top:28px;padding-bottom:36px}
+.site-footer nav{flex-wrap:wrap;justify-content:flex-end;max-width:640px}
+@media(prefers-reduced-motion:no-preference){
+ .rise{animation:tide-rise .42s cubic-bezier(.16,1,.3,1) both}
+ .audience-card{animation:tide-rise .46s cubic-bezier(.16,1,.3,1) both}
+ .audience-card:nth-child(2){animation-delay:50ms}
+ .audience-card:nth-child(3){animation-delay:100ms}
+ body.landing .button:active,body.landing .nav-cta:active{transform:scale(.98)}
+}
+@keyframes tide-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(max-width:900px){
+ .audience-grid{grid-template-columns:1fr}
+ .band{flex-direction:column;align-items:flex-start;margin-bottom:48px;padding:22px}
+ .site-footer nav{justify-content:flex-start;max-width:none}
+}
+@media(max-width:760px){
+ body.landing .workflow-card{grid-template-columns:1fr;gap:14px}
+ body.landing .workflow-card .mini-visual{grid-column:auto;grid-row:auto;height:150px}
+ body.landing .step-label,body.landing .workflow-card h3,body.landing .workflow-card p,body.landing .workflow-card>a,body.landing .feature-copy{grid-column:auto}
+ .signal-row{gap:6px}
+ .signal-row li{font-size:10px;padding:6px 10px}
+}
