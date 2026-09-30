@@ -16,97 +16,121 @@ body[data-view="map"] .stage.map-expanded .activity-key { top: 61px; left: 30px;
 body[data-view="map"].data-stale .activity-key { opacity: .55; }
 html[data-theme="dark"] .flat-avatar .visitor-face { box-shadow: 0 0 16px 4px #e8b26335, 0 3px 8px #0007; }
 html[data-theme="light"] body[data-view="map"] {
-  color-scheme: light; --bg: #f8f9f6; --paper: #ffffff; --ink: #28332e;
-  --ink-soft: #68776d; --line: #dce3d9; --blue: #497653; --green: #4c7c58;
-  background: #f8f9f6; color: var(--ink);
+  color-scheme: light; --bg: var(--tide-bg); --paper: var(--tide-surface); --ink: var(--tide-ink);
+  --ink-soft: var(--tide-muted); --line: var(--tide-line); --blue: var(--tide-accent); --green: var(--tide-accent);
+  background: var(--tide-bg); color: var(--ink);
 }
-html[data-theme="light"] body[data-view="map"] header { background: #f8f9f6; border-color: #e0e6dc; }
-html[data-theme="light"] body[data-view="map"] .brand { color: #26362c; }
-html[data-theme="light"] body[data-view="map"] .brand svg rect { fill: #789279; }
-html[data-theme="light"] body[data-view="map"] .brand svg rect:first-child { fill: #496c50; }
-html[data-theme="light"] body[data-view="map"] .tabs { background: #edf1e9; border-color: #dce3d8; }
-html[data-theme="light"] body[data-view="map"] .tabs button { color: #65735f; }
-html[data-theme="light"] body[data-view="map"] .tabs button.active { color: #2c5031; background: #fff; box-shadow: 0 1px 4px #293a2520; }
-html[data-theme="light"] body[data-view="map"] .tabs button:not(.active):hover { color: #2e4c34; background: #e1e8dc; }
-html[data-theme="light"] body[data-view="map"] .live { color: #657761; }
-html[data-theme="light"] body[data-view="map"] .live b { color: #334b32; }
-html[data-theme="light"] body[data-view="map"] .dot { background: #668c57; }
-html[data-theme="light"] .map-heading p { color: #687363; }
-html[data-theme="light"] .source-badge { color: #48633b; background: #eef4e8; border-color: #d6e2ca; }
-html[data-theme="light"] .source-badge::before { background: #628452; }
-html[data-theme="light"] .source-badge.is-demo { color: #82642f; background: #f7f1e4; border-color: #e8dcc1; }
-html[data-theme="light"] .visitor-metrics { border-color: #dce3d7; }
-html[data-theme="light"] .metric-number > span { color: #586950; }
-html[data-theme="light"] .metric-status { color: #69795f; }
-html[data-theme="light"] .metric-status > i { background: #668854; }
-html[data-theme="light"] .metric-secondary { border-color: #dfe6da; }
-html[data-theme="light"] .metric-secondary strong { color: #34492f; }
-html[data-theme="light"] .metric-secondary span { color: #67755e; }
-html[data-theme="light"] body[data-view="map"] .stage { background: #f6f8f3; border-color: #dce4d6; }
-html[data-theme="light"] body[data-view="map"] .stage::after { box-shadow: none; }
-html[data-theme="light"] #liveMap { background: #f6f8f3; } /* No stars in daylight; do not invert avatar colors. */
-html[data-theme="light"] #liveMap[data-engine="flat"] { background: #e3eced; }
-html[data-theme="light"] #liveMap canvas:focus-visible { outline-color: #607e53; }
-html[data-theme="light"] .map-caption, html[data-theme="light"] .globe-mode { color: #627258; }
-html[data-theme="light"] .theme-picker, html[data-theme="light"] .theme-picker option { background: #ffffffed; color: #45633b; border-color: #d4dfcb; }
-html[data-theme="light"] .theme-picker select:focus-visible { outline-color: #4b7043; }
-html[data-theme="light"] .activity-key { color: #617b56; }
-html[data-theme="light"] .activity-key::before { background: #688a56; box-shadow: none; }
-html[data-theme="light"] .map-zoom, html[data-theme="light"] .map-controls > button { background: #ffffffed; border-color: #d7e1ce; box-shadow: 0 2px 8px #2a45200c; }
-html[data-theme="light"] .map-controls button { color: #4b6b3d; background: #ffffffed; }
-html[data-theme="light"] .map-controls button:hover { color: #284421; background: #eaf0e3; }
-html[data-theme="light"] .map-zoom button + button { border-color: #d7e1ce; }
-html[data-theme="light"] .globe-regions { background: #ffffffed; border-color: #d5dfcc; }
-html[data-theme="light"] .globe-regions button { color: #546e46; border-color: #dfe6d7; }
-html[data-theme="light"] .globe-regions button:hover { background: #eaf1e1; color: #36522a; }
-html[data-theme="light"] .map-controls button:focus-visible, html[data-theme="light"] .globe-regions button:focus-visible { outline-color: #597c48; }
-html[data-theme="light"] .map-footer { color: #697761; }
-html[data-theme="light"] #unknownLocations { color: #867138; }
-html[data-theme="light"] #liveMap .maplibregl-ctrl-attrib, html[data-theme="light"] #liveMap .leaflet-control-attribution { background: #f6f8f1e8; color: #60734f; }
-html[data-theme="light"] #liveMap .maplibregl-ctrl-attrib a, html[data-theme="light"] #liveMap .leaflet-control-attribution a { color: #4e673d; }
+html[data-theme="light"] body[data-view="map"] header { background: var(--tide-bg); border-color: var(--tide-line); }
+html[data-theme="light"] body[data-view="map"] .brand { color: var(--tide-ink); }
+html[data-theme="light"] body[data-view="map"] .brand svg rect,
+html[data-theme="light"] body[data-view="map"] .brand svg rect:first-child { fill: currentColor; }
+html[data-theme="light"] body[data-view="map"] .tabs { background: var(--tide-soft); border-color: var(--tide-line); }
+html[data-theme="light"] body[data-view="map"] .tabs button { color: var(--tide-muted); }
+html[data-theme="light"] body[data-view="map"] .tabs button.active { color: var(--tide-accent); background: var(--tide-surface); box-shadow: none; }
+html[data-theme="light"] body[data-view="map"] .tabs button:not(.active):hover { color: var(--tide-ink); background: var(--tide-soft); }
+html[data-theme="light"] body[data-view="map"] .live { color: var(--tide-muted); }
+html[data-theme="light"] body[data-view="map"] .live b { color: var(--tide-ink); }
+html[data-theme="light"] body[data-view="map"] .dot { background: var(--tide-accent); }
+html[data-theme="light"] .map-heading p,
+html[data-theme="light"] .metric-number > span,
+html[data-theme="light"] .metric-status,
+html[data-theme="light"] .metric-secondary span,
+html[data-theme="light"] .map-caption,
+html[data-theme="light"] .globe-mode,
+html[data-theme="light"] .activity-key,
+html[data-theme="light"] .map-footer,
+html[data-theme="light"] .map-empty p,
+html[data-theme="light"] .online-visitor-copy > span,
+html[data-theme="light"] .visitor-arrow,
+html[data-theme="light"] #onlineListEmpty,
+html[data-theme="light"] body[data-view="map"] .ev .txt span,
+html[data-theme="light"] body[data-view="map"] .ev time,
+html[data-theme="light"] body[data-view="map"] .vd-meta,
+html[data-theme="light"] body[data-view="map"] .tl b,
+html[data-theme="light"] .visitor-popup-head div > span,
+html[data-theme="light"] .visitor-popup-page span,
+html[data-theme="light"] #liveMap .visitor-privacy,
+html[data-theme="light"] .group-popup > p,
+html[data-theme="light"] body[data-view="map"] .panel > h2,
+html[data-theme="light"] #liveMap .maplibregl-ctrl-attrib,
+html[data-theme="light"] #liveMap .leaflet-control-attribution { color: var(--tide-muted); }
+html[data-theme="light"] .metric-secondary strong,
+html[data-theme="light"] .map-empty b,
+html[data-theme="light"] .online-visitor,
+html[data-theme="light"] .online-visitor-copy strong,
+html[data-theme="light"] body[data-view="map"] .ev .txt b,
+html[data-theme="light"] .visitor-popup-head strong,
+html[data-theme="light"] .group-popup > strong,
+html[data-theme="light"] .visitor-popup-page b,
+html[data-theme="light"] body[data-view="map"] .live b { color: var(--tide-ink); }
+html[data-theme="light"] .source-badge,
+html[data-theme="light"] .source-badge.is-demo,
+html[data-theme="light"] .visitor-popup-page,
+html[data-theme="light"] body[data-view="map"] .panel > h2 .count,
+html[data-theme="light"] .online-visitor:hover,
+html[data-theme="light"] .online-visitor.is-selected,
+html[data-theme="light"] body[data-view="map"] .ev:hover,
+html[data-theme="light"] body[data-view="map"] .ev.selected,
+html[data-theme="light"] .group-people button:hover,
+html[data-theme="light"] #liveMap .maplibregl-popup-close-button:hover { color: var(--tide-ink); background: var(--tide-soft); border-color: var(--tide-line); }
+html[data-theme="light"] .source-badge::before,
+html[data-theme="light"] .metric-status > i,
+html[data-theme="light"] .activity-key::before,
+html[data-theme="light"] body[data-view="map"] .ev i.visit { background: var(--tide-accent); box-shadow: none; }
+html[data-theme="light"] body[data-view="map"] .ev i.pageview { background: var(--tide-muted); }
+html[data-theme="light"] body[data-view="map"] .ev i.leave { background: var(--tide-line); }
+html[data-theme="light"] .visitor-metrics,
+html[data-theme="light"] .metric-secondary,
+html[data-theme="light"] body[data-view="map"] .stage,
+html[data-theme="light"] body[data-view="map"] .panel,
+html[data-theme="light"] body[data-view="map"] .ev,
+html[data-theme="light"] body[data-view="map"] .panel > h2 { border-color: var(--tide-line); }
+html[data-theme="light"] body[data-view="map"] .stage,
+html[data-theme="light"] #liveMap,
+html[data-theme="light"] body[data-view="map"] .panel { background: var(--tide-surface); }
+html[data-theme="light"] #liveMap[data-engine="flat"] { background: var(--tide-soft); }
+html[data-theme="light"] #liveMap canvas:focus-visible,
+html[data-theme="light"] .theme-picker select:focus-visible,
+html[data-theme="light"] .map-controls button:focus-visible,
+html[data-theme="light"] .globe-regions button:focus-visible { outline-color: var(--tide-accent); }
+html[data-theme="light"] .theme-picker,
+html[data-theme="light"] .theme-picker option,
+html[data-theme="light"] .map-zoom,
+html[data-theme="light"] .map-controls > button,
+html[data-theme="light"] .map-controls button,
+html[data-theme="light"] .globe-regions,
+html[data-theme="light"] #liveMap .maplibregl-popup-content,
+html[data-theme="light"] #liveMap .leaflet-popup-content-wrapper,
+html[data-theme="light"] .map-empty { background: var(--tide-surface); color: var(--tide-ink); border-color: var(--tide-line); box-shadow: none; }
+html[data-theme="light"] .map-controls button,
+html[data-theme="light"] .globe-regions button,
+html[data-theme="light"] .visitor-popup button,
+html[data-theme="light"] .group-people button,
+html[data-theme="light"] .tile-notice button,
+html[data-theme="light"] #dataRetry,
+html[data-theme="light"] #liveMap .maplibregl-ctrl-attrib a,
+html[data-theme="light"] #liveMap .leaflet-control-attribution a,
+html[data-theme="light"] #liveMap .maplibregl-popup-close-button { color: var(--tide-ink); }
+html[data-theme="light"] .map-controls button:hover,
+html[data-theme="light"] .globe-regions button:hover { color: var(--tide-accent); background: var(--tide-soft); }
+html[data-theme="light"] .map-zoom button + button,
+html[data-theme="light"] .globe-regions button { border-color: var(--tide-line); }
+html[data-theme="light"] .online-visitor.is-selected { box-shadow: inset 2px 0 var(--tide-accent); }
+html[data-theme="light"] .visitor-face,
+html[data-theme="light"] .flat-avatar .visitor-face { background: var(--tide-surface); border-color: var(--tide-line); box-shadow: none; }
+html[data-theme="light"] .flat-avatar b { background: var(--tide-soft); color: var(--tide-ink); }
+html[data-theme="light"] #unknownLocations,
+html[data-theme="light"] body[data-view="map"].data-stale .metric-status,
+html[data-theme="light"] .tile-notice { color: var(--tide-accent); }
+html[data-theme="light"] .tile-notice { background: var(--tide-soft); border-color: var(--tide-line); }
+html[data-theme="light"] #liveMap .maplibregl-ctrl-attrib,
+html[data-theme="light"] #liveMap .leaflet-control-attribution { background: var(--tide-surface); }
+html[data-theme="light"] #liveMap .maplibregl-popup-tip { border-top-color: var(--tide-line); border-bottom-color: var(--tide-line); }
+html[data-theme="light"] #liveMap .leaflet-popup-tip { background: var(--tide-surface); }
+html[data-theme="light"] #mapVisitors,
+html[data-theme="light"] body[data-view="map"] #events { scrollbar-color: var(--tide-line) transparent; }
 html[data-theme="light"] #liveMap .maplibregl-ctrl-attrib-button { filter: none; }
-html[data-theme="light"] .map-empty { background: #ffffffef; border-color: #d3dfc9; box-shadow: 0 12px 40px #32442314; }
-html[data-theme="light"] .map-empty b { color: #394f2c; }
-html[data-theme="light"] .map-empty p { color: #6b7e5d; }
-html[data-theme="light"] .tile-notice { background: #fcf6e8f5; border-color: #e2d3ab; color: #7a6330; }
-html[data-theme="light"] .tile-notice button, html[data-theme="light"] #dataRetry { color: #4e673d; }
-html[data-theme="light"] body[data-view="map"].data-stale .metric-status { color: #876325; }
-html[data-theme="light"] body[data-view="map"] .panel { background: #ffffff; border-color: #dce4d5; }
-html[data-theme="light"] body[data-view="map"] .panel > h2 { color: #4b6040; border-color: #e1e8db; }
-html[data-theme="light"] body[data-view="map"] .panel > h2 .count { color: #5b734c; background: #ecf2e5; }
-html[data-theme="light"] #mapVisitors, html[data-theme="light"] body[data-view="map"] #events { scrollbar-color: #c9d5bd transparent; }
-html[data-theme="light"] .online-visitor { color: #374b2d; }
-html[data-theme="light"] .online-visitor:hover, html[data-theme="light"] .online-visitor.is-selected { background: #edf4e4; }
-html[data-theme="light"] .online-visitor.is-selected { box-shadow: inset 2px 0 #76905d; }
-html[data-theme="light"] .online-visitor-copy strong { color: #3c5032; }
-html[data-theme="light"] .online-visitor-copy > span { color: #6e7d60; }
-html[data-theme="light"] .visitor-face { background: #f7f7ef; border-color: #d4ddc9; }
-html[data-theme="light"] .visitor-arrow, html[data-theme="light"] #onlineListEmpty { color: #75866a; }
-html[data-theme="light"] body[data-view="map"] .ev { border-color: #ebefe6; }
-html[data-theme="light"] body[data-view="map"] .ev .txt b { color: #4c6540; }
-html[data-theme="light"] body[data-view="map"] .ev .txt span { color: #6b7e5e; }
-html[data-theme="light"] body[data-view="map"] .ev time { color: #76836a; }
-html[data-theme="light"] body[data-view="map"] .ev:hover, html[data-theme="light"] body[data-view="map"] .ev.selected { background: #eef4e5; }
-html[data-theme="light"] body[data-view="map"] .ev i.visit { background: #7b955f; }
-html[data-theme="light"] body[data-view="map"] .ev i.pageview { background: #a0b18c; }
-html[data-theme="light"] body[data-view="map"] .ev i.leave { background: #c4cfb5; }
-html[data-theme="light"] body[data-view="map"] .vd-meta, html[data-theme="light"] body[data-view="map"] .tl b { color: #5e754f; }
-html[data-theme="light"] #liveMap .maplibregl-popup-content, html[data-theme="light"] #liveMap .leaflet-popup-content-wrapper { background: #fffffff5; border-color: #d2dfc7; color: #344d28; box-shadow: 0 12px 40px #344a2324; }
-html[data-theme="light"] #liveMap .maplibregl-popup-tip { border-top-color: #d9e3ce; border-bottom-color: #d9e3ce; }
-html[data-theme="light"] #liveMap .leaflet-popup-tip { background: #fff; }
-html[data-theme="light"] #liveMap .maplibregl-popup-close-button { color: #668354; }
-html[data-theme="light"] #liveMap .maplibregl-popup-close-button:hover { background: #ebf1e5; }
-html[data-theme="light"] .visitor-popup-head strong, html[data-theme="light"] .group-popup > strong { color: #3a502e; }
-html[data-theme="light"] .visitor-popup-head div > span { color: #738964; }
-html[data-theme="light"] .visitor-popup-page { background: #edf4e5; }
-html[data-theme="light"] .visitor-popup-page span { color: #688554; }
-html[data-theme="light"] .visitor-popup-page b { color: #3f612b; }
-html[data-theme="light"] #liveMap .visitor-privacy, html[data-theme="light"] .group-popup > p { color: #688155; }
-html[data-theme="light"] .visitor-popup button { color: #4c702f; }
-html[data-theme="light"] .group-people button { color: #476532; }
-html[data-theme="light"] .group-people button:hover { background: #edf4e5; }
-html[data-theme="light"] .flat-avatar .visitor-face { border-color: #cbd8be; box-shadow: 0 2px 6px #3d522122; }
-html[data-theme="light"] .flat-avatar b { background: #e5efd9; color: #45622f; }
+html[data-theme="light"] body[data-view="map"] .stage::after { box-shadow: none; }
 @media (prefers-reduced-motion: no-preference) {
   body[data-view="map"], body[data-view="map"] header, body[data-view="map"] .stage,
   body[data-view="map"] .panel, #liveMap, .theme-picker { transition: background-color .22s ease, color .22s ease, border-color .22s ease; }

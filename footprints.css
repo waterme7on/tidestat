@@ -1,15 +1,15 @@
 /* Scoped to Website Footprints: the confirmed globe styles and avatar SVGs are untouched. */
 body:not([data-view="park"]) .park-only { display: none !important; }
 body[data-view="park"] {
-  --fp-bg: #101112; --fp-stage: #101112; --fp-panel: #17191a; --fp-border: #30352f;
-  --fp-ink: #e6e8e0; --fp-soft: #a3ad9c; --fp-accent: #e4c58f; --fp-hover: #2c3328;
-  --ink: var(--fp-ink); --ink-soft: var(--fp-soft); --line: var(--fp-border); --blue: #bbcfa8;
+  --fp-bg: var(--tide-bg); --fp-stage: var(--tide-bg); --fp-panel: var(--tide-surface); --fp-border: var(--tide-line);
+  --fp-ink: var(--tide-ink); --fp-soft: var(--tide-muted); --fp-accent: var(--tide-accent); --fp-hover: var(--tide-soft);
+  --ink: var(--fp-ink); --ink-soft: var(--fp-soft); --line: var(--fp-border); --blue: var(--tide-accent);
   background: var(--fp-bg); color: var(--fp-ink); color-scheme: dark; min-height: 740px;
 }
 html[data-theme="light"] body[data-view="park"] {
-  --fp-bg: #f8f9f6; --fp-stage: #f6f8f3; --fp-panel: #fff; --fp-border: #dce4d5;
-  --fp-ink: #30472d; --fp-soft: #687b5e; --fp-accent: #577c45; --fp-hover: #edf3e6;
-  --blue: #577c45; color-scheme: light;
+  --fp-bg: var(--tide-bg); --fp-stage: var(--tide-bg); --fp-panel: var(--tide-surface); --fp-border: var(--tide-line);
+  --fp-ink: var(--tide-ink); --fp-soft: var(--tide-muted); --fp-accent: var(--tide-accent); --fp-hover: var(--tide-soft);
+  --blue: var(--tide-accent); color-scheme: light;
 }
 body[data-view="park"] header { background: var(--fp-bg); border-color: var(--fp-border); padding: 15px 28px; }
 body[data-view="park"] .brand { color: var(--fp-ink); font-size: 18px; font-weight: 600; }
