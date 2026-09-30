@@ -201,3 +201,17 @@ body.landing .mini-visual.spec-chart,body.landing .mini-visual.spec-funnel,body.
  .spec-line{stroke-dashoffset:0}
  .funnel-stage,.spec-bar{transform:none}
 }
+
+/* Audience header, cards, and the visit band shrink inside the viewport. */
+#audiences .section-top{flex-wrap:wrap}
+#audiences .section-top>*{min-width:0;max-width:100%}
+.audience-section .section-aside{display:block;min-width:0;max-width:100%}
+.audience-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.audience-card{min-width:0}
+.audience-card h3,.audience-card p,.audience-card .text-link{overflow-wrap:break-word}
+.audience-card .text-link{white-space:normal}
+@media(max-width:900px){.audience-grid{grid-template-columns:1fr}}
+.band{flex-wrap:wrap;max-width:100%}
+.band>div:not(.hero-actions),.band .hero-actions{flex:1 1 auto;min-width:0;max-width:100%}
+.band h2,.band p{overflow-wrap:break-word}
+@media(max-width:1100px){.band{flex-direction:column;align-items:flex-start}}
