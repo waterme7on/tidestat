@@ -15,8 +15,6 @@ await esbuild.build({
 });
 
 const fonts = [
-  ['@fontsource/fraunces/files/fraunces-latin-500-normal.woff2', 'fraunces-500.woff2'],
-  ['@fontsource/fraunces/files/fraunces-latin-600-normal.woff2', 'fraunces-600.woff2'],
   ['@fontsource/outfit/files/outfit-latin-400-normal.woff2', 'outfit-400.woff2'],
   ['@fontsource/outfit/files/outfit-latin-500-normal.woff2', 'outfit-500.woff2'],
   ['@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2', 'ibm-plex-mono-400.woff2'],
