@@ -50,7 +50,16 @@ body[data-view=park] .mobile-visitor-detail { display: none; }
 
 /* The marketing site and observatory use one type and color system. */
 html[data-theme] body[data-view] { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
-html[data-theme] body[data-view] .brand { text-decoration: none; font-size: 21px; font-weight: 700; letter-spacing: -.8px; }
+html[data-theme] body[data-view] .brand { text-decoration: none; font-size: 21px; font-weight: 700; letter-spacing: -.8px; color: var(--tide-ink); }
+html[data-theme] body[data-view] .brand svg { color: var(--tide-accent); }
+html[data-theme] body[data-view] .brand svg rect,
+html[data-theme] body[data-view] .brand svg rect:first-child { fill: currentColor; }
+html[data-theme] body[data-view] .dot,
+html[data-theme] body[data-view] .source-badge::before { background: var(--tide-accent); box-shadow: none; }
+html[data-theme] body[data-view] .source-badge,
+html[data-theme] body[data-view] .source-badge.is-demo { color: var(--tide-ink); background: var(--tide-soft); border-color: var(--tide-line); }
+html[data-theme] body[data-view] .theme-picker select:focus-visible,
+html[data-theme] #liveMap canvas:focus-visible { outline-color: var(--tide-accent); }
 html[data-theme] body[data-view] .tabs { background: transparent; border: 0; border-radius: 0; gap: 8px; }
 html[data-theme] body[data-view] .tabs button, html[data-theme] body[data-view] .tabs .revenue-entry { border-radius: 0; border-bottom: 2px solid transparent; background: transparent; box-shadow: none; font-size: 12px; }
 html[data-theme] body[data-view] .tabs button.active { border-bottom-color: var(--tide-accent); background: transparent; box-shadow: none; }
