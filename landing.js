@@ -30,7 +30,17 @@ const demoViews = { journeys: { src: './live.html?demo=1&embed=1&view=park', ope
 for (const tab of document.querySelectorAll('.demo-tab')) tab.addEventListener('click', () => {
   const view = demoViews[tab.dataset.demo]; if (!view || tab.classList.contains('active')) return;
   for (const other of document.querySelectorAll('.demo-tab')) { other.classList.toggle('active', other === tab); other.setAttribute('aria-selected', String(other === tab)); }
-  demoFrame.dataset.demoView = tab.dataset.demo; demoFrame.src = view.src; demoOpen.href = view.open;
+  const innerView = tab.dataset.demo === 'journeys' ? 'park' : tab.dataset.demo === 'live' ? 'map' : null;
+  let switched = false;
+  if (innerView && demoFrame.getAttribute('src').includes('live.html')) {
+    try {
+      const setView = demoFrame.contentWindow?.__tide?.setView;
+      if (typeof setView === 'function') { setView(innerView); switched = true; }
+    } catch { /* cross-origin or not ready: fall through to a fresh load */ }
+  }
+  demoFrame.dataset.demoView = tab.dataset.demo;
+  if (!switched) demoFrame.src = view.src;
+  demoOpen.href = view.open;
   for (const hint of document.querySelectorAll('[data-demo-hint]')) hint.hidden = hint.dataset.demoHint !== tab.dataset.demo;
 });
 

@@ -3,6 +3,30 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<script>
+(function () {
+  var park = new URLSearchParams(location.search).get("view") === "park";
+  function add(rel, href, as) {
+    var link = document.createElement("link");
+    link.rel = rel; link.href = href; if (as) link.as = as;
+    document.head.appendChild(link);
+  }
+  if (park) {
+    add("modulepreload", "./scene.js");
+    add("modulepreload", "./vendor/three.module.js");
+    add("modulepreload", "./vendor/OrbitControls.js");
+    add("modulepreload", "./footprint-model.js");
+  } else {
+    add("modulepreload", "./globe-map.js");
+    add("preload", "./vendor/maplibre/maplibre-gl.js", "script");
+    add("preload", "./vendor/maplibre/maplibre-gl.css", "style");
+    window.__tideGeographyPromise = fetch("./assets/countries-50m.geojson").then(function (response) {
+      if (!response.ok) throw new Error("Geography " + response.status);
+      return response.json();
+    });
+  }
+})();
+</script>
 <meta name="color-scheme" content="light dark" />
 <script src="./theme.js"></script>
 <script src="./connection.js"></script>
@@ -156,6 +180,7 @@
 <link rel="stylesheet" href="./footprints.css">
 <link rel="stylesheet" href="./ui-polish.css"></head>
 <body data-view="map">
+<script>if(new URLSearchParams(location.search).get("view")==="park")document.body.dataset.view="park";</script>
 <header>
   <a class="brand" href="./landing.html" aria-label="TideStat home">
     <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
@@ -810,6 +835,15 @@ window.addEventListener('tide:languagechange',()=>{eventsDirty=true;if(sim.selec
 const tabMap = document.getElementById("tab-map");
 const tabPark = document.getElementById("tab-park");
 let parkLoading = null;
+let mapLoading = null;
+function ensureMap() {
+  if (window.__tideMap || mapLoading) return mapLoading;
+  mapLoading = import("./globe-map.js").catch(error => {
+    mapLoading = null;
+    console.warn("TideStat: map failed to load.", error);
+  });
+  return mapLoading;
+}
 function setView(v) {
   view = v === "park" ? "park" : "map";
   document.body.dataset.view = view;
@@ -821,7 +855,7 @@ function setView(v) {
   const c2 = document.getElementById("stage"), c3 = document.getElementById("stage3d");
   window.__tideMap?.activate?.(view);
   window.__tide3d?.activate?.(view);
-  if (view === "map") { c2.style.display = c3.style.display = "none"; return; }
+  if (view === "map") { ensureMap(); c2.style.display = c3.style.display = "none"; return; }
   const ready = window.__tide3d?.ready?.();
   c2.style.display = ready ? "none" : "block";
   c3.style.display = ready ? "block" : "none";
@@ -914,7 +948,8 @@ window.__tideCities = CITIES;
 window.__tide = window.__tide || {};
 Object.assign(window.__tide, { view: "map", visitors: sim.visitors, selectedId: null,
   demo: DEMO, status: DEMO ? "ready" : "loading", onlineMs: 90000, truncated: false,
-  selectVisitor, deselect, openTimeline, timelineOpen: false, refresh: () => liveTick(performance.now()) });
+  selectVisitor, deselect, openTimeline, timelineOpen: false, setView,
+  refresh: () => liveTick(performance.now()) });
 document.getElementById("tzNote").textContent =
   new Date().toLocaleTimeString(window.__tideI18n.locale, { hour12: false, timeZoneName: "short" }).replace(/^\d{1,2}:\d{2}:\d{2}\s*/, "");
 
@@ -963,19 +998,25 @@ function loop(now) {
 }
 requestAnimationFrame(loop);
 if (new URLSearchParams(location.search).get('view') === 'park') setView('park');
+else ensureMap();
 
 // A large, explicitly simulated audience. Never runs in live mode or calls /api/collect.
-if (DEMO) for (let i = 0; i < 120; i++) {
-  const now=performance.now(), entered=now-rnd(15000,90000);
-  spawnVisitor(entered); const v=[...sim.visitors.values()].at(-1);
-  // Cycle the first visitors through every city, then keep the existing weighted distribution.
-  if(i<CITIES.length)v.city=CITIES[i];
-  let node='gate';const count=3+i%4;v.visited=[];
-  for(let j=0;j<count;j++){v.visited.push({node,arrive:entered+(now-entered)*j/count});node=nextNode(node);}
-  v.node=v.visited.at(-1).node;v.target=nextNode(v.node);v.state='reading';v.dwell=rnd(10000,40000);v.t=0;
+// Seed across frames so the map or journey module can evaluate before all 120 visitors exist.
+if (DEMO) {
+  const seedDemo = start => {
+    const now = performance.now(), end = Math.min(120, start + 24);
+    for (let i = start; i < end; i++) {
+      const entered = now - rnd(15000, 90000);
+      spawnVisitor(entered); const v = [...sim.visitors.values()].at(-1);
+      if (i < CITIES.length) v.city = CITIES[i];
+      let node = 'gate'; const count = 3 + i % 4; v.visited = [];
+      for (let j = 0; j < count; j++) { v.visited.push({ node, arrive: entered + (now - entered) * j / count }); node = nextNode(node); }
+      v.node = v.visited.at(-1).node; v.target = nextNode(v.node); v.state = 'reading'; v.dwell = rnd(10000, 40000); v.t = 0;
+    }
+    if (end < 120) requestAnimationFrame(() => seedDemo(end));
+  };
+  requestAnimationFrame(() => seedDemo(0));
 }
 </script>
-
-<script type="module" src="./globe-map.js"></script>
 </body>
 </html>
