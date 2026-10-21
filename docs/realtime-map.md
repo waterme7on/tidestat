@@ -6,7 +6,7 @@
 
 MapLibre GL JS 5.6.0 的原生 globe 投影；不是自制 Three.js 球体，也未复制 Nomads 的源码或会员照片。头像绘制函数从上一版原样提取，同一匿名访客仍是同一张脸。头像使用原生地图 symbol layer，在地球背面会被地图渲染器遮挡。共用同一坐标的人显示头像组，点击可逐一选择。
 
-Natural Earth 1:50m 国家边界来自 world-atlas 2.0.2，经 topojson-client 3.1.0 转换，四位小数保存；地理轮廓不是手绘。渲染器、样式、地理文件均自托管，没有地图 API key、外部瓦片、图片或字体请求。第三方许可证见 vendor/maplibre/LICENSE.txt、assets/WORLD-ATLAS-LICENSE，文件摘要见 assets/globe-assets.sha256。Natural Earth 的边界表达是其源数据约定，不是法律边界认定；这也不是街道/导航地图。
+Natural Earth 1:50m 国家边界来自 world-atlas 2.0.2，经 topojson-client 3.1.0 转换后，再按地球视图简化（坐标保留三位小数，略去远小于一个像素的碎岛）；地理轮廓不是手绘。渲染器、样式、地理文件均自托管，没有地图 API key、外部瓦片、图片或字体请求。第三方许可证见 vendor/maplibre/LICENSE.txt、assets/WORLD-ATLAS-LICENSE，文件摘要见 assets/globe-assets.sha256。Natural Earth 的边界表达是其源数据约定，不是法律边界认定；这也不是街道/导航地图。
 
 公开参考：https://nomads.com/community
 MapLibre 原生地球：https://maplibre.org/maplibre-gl-js/docs/examples/display-a-globe-with-a-vector-map/

@@ -318,9 +318,15 @@ async function loadGeography() {
   geoLoading = true; const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 12000);
   root.dataset.geography = 'loading';
   try {
-    const response = await fetch(asset('./assets/countries-50m.geojson'), { signal: controller.signal });
-    if (!response.ok) throw new Error(`Geography ${response.status}`);
-    const data = await response.json();
+    const pending = window.__tideGeographyPromise;
+    window.__tideGeographyPromise = null;
+    let data;
+    if (pending) data = await Promise.race([pending, new Promise((_, reject) => controller.signal.addEventListener('abort', () => reject(new Error('Geography timeout'))))]);
+    else {
+      const response = await fetch(asset('./assets/countries-50m.geojson'), { signal: controller.signal });
+      if (!response.ok) throw new Error(`Geography ${response.status}`);
+      data = await response.json();
+    }
     if (data.type !== 'FeatureCollection' || !data.features?.length) throw new Error('Invalid geography');
     if (disposed) return; geography = data;
     if (engine === 'globe') map.getSource('countries').setData(data);
@@ -428,7 +434,7 @@ async function init() {
   }
   try {
     await script('./vendor/maplibre/maplibre-gl.js', 'maplibregl');
-    maplibregl.setWorkerCount(2);
+    maplibregl.setWorkerCount(1);
     map = new maplibregl.Map({
       container: root, center: requestedCenter, zoom: homeZoom(), minZoom: -.7, maxZoom: 5.5,
       pitchWithRotate: false, dragRotate: false, renderWorldCopies: false,

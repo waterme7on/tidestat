@@ -144,8 +144,11 @@ registerMessages({
   "Track the storefront first. Connect paid orders when the visit timeline is already in place. The demo shows that shape before you install anything.": "先记录店铺访问。时间线就位后再关联已付款订单。安装之前，演示里就能看到这个结构。",
   "Read the Shopify guide": "查看 Shopify 指南",
   "One website is enough": "一个网站就够开始",
-  "Ready to follow a real visit?": "准备好跟一条真实访问了吗？",
-  "Open the labeled sample, or connect one site on the free plan. Payments can wait until the timeline is already useful.": "先打开带标识的示例，或在免费方案接入一个网站。时间线有用之后，再接付款。",
+  "Start with the next real visit.": "从下一次真实访问开始。",
+  "Live visitors and page journeys": "实时访客和页面旅程",
+  "Revenue Stories included": "包含收入故事",
+  "Payments only when you want them": "付款等你需要时再接",
+  "See how to connect": "看看怎么接入",
   "Browser": "浏览器"
 });
 translate();

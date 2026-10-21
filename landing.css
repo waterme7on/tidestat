@@ -112,8 +112,10 @@ body.landing .workflow-card .mini-visual{height:168px;margin:0}
 body.landing .workflow-card p{max-width:46ch}
 .feature-copy{min-width:0}
 .band{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;margin:8px auto 72px;padding:28px 32px;border:1px solid color-mix(in srgb,var(--coral) 35%,var(--line));border-radius:20px;background:linear-gradient(120deg,color-mix(in srgb,var(--coral) 12%,var(--surface)),var(--surface) 55%)}
-.band h2{font-size:clamp(26px,2.6vw,34px);letter-spacing:-.025em;margin:0 0 8px}
-.band p:last-child{margin:0;max-width:52ch;color:var(--muted);font-size:16px}
+.band h2{font-size:clamp(32px,4vw,48px);letter-spacing:-.045em;line-height:1.02;max-width:11em;margin:0}
+.band-points{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0;padding:0;list-style:none}
+.band-points li{padding:6px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font:12px/1.35 var(--mono)}
+.band .hero-actions{flex:0 0 auto}
 .band .eyebrow{margin-bottom:8px}
 .site-footer{align-items:flex-start;padding-top:28px;padding-bottom:36px}
 .site-footer nav{flex-wrap:wrap;justify-content:flex-end;max-width:640px}
